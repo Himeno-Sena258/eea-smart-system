@@ -14,22 +14,25 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("sys_organization")
-@Schema(description = "组织架构表")
-public class SysOrganization {
+@TableName("program_scheme")
+@Schema(description = "人才培养方案表")
+public class ProgramScheme {
 
     @TableId(type = IdType.AUTO)
-    @Schema(description = "主键ID")
+    @Schema(description = "方案ID")
     private Long id;
 
-    @Schema(description = "机构/部门名称")
-    private String name;
+    @Schema(description = "专业ID")
+    private Long majorId;
 
-    @Schema(description = "父级ID")
-    private Long parentId;
+    @Schema(description = "版本名称(如2024版人才培养方案)")
+    private String versionName;
 
-    @Schema(description = "类型: COLLEGE-学院, MAJOR-专业, CLASS-班级")
-    private String type;
+    @Schema(description = "状态: 0-草稿, 1-发布启用, 2-历史归档")
+    private Integer status;
+
+    @Schema(description = "创建人ID")
+    private Long createdBy;
 
     @Schema(description = "创建时间")
     private LocalDateTime createdAt;
