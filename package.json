@@ -1,0 +1,17 @@
+{
+  "name": "eea-smart-system",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "frontend:install": "npm --prefix frontend install",
+    "frontend:dev": "npm --prefix frontend run dev",
+    "frontend:build": "npm --prefix frontend run build",
+    "frontend:preview": "npm --prefix frontend run preview",
+    "backend:dev": "mvn -f backend/pom.xml spring-boot:run",
+    "backend:build": "mvn -f backend/pom.xml clean package",
+    "backend:test": "mvn -f backend/pom.xml test",
+    "dev": "npm run frontend:dev",
+    "build": "npm run frontend:build && npm run backend:build",
+    "test": "npm run backend:test"
+  }
+}
