@@ -289,18 +289,67 @@
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='问卷答卷反馈表';
 
     -- ---------------------------------------------------------------------------------
-    -- 10. AI 基础设施配置 (系统管理员维护，Spring AI 引擎读取)
+    -- 10. 自评报告协同模块 (专业负责人统筹，多人协同编写)
     -- ---------------------------------------------------------------------------------
-    DROP TABLE IF EXISTS `ai_prompt_template`;
-    CREATE TABLE `ai_prompt_template` (
-                                          `id` bigint NOT NULL AUTO_INCREMENT COMMENT '模版ID',
-                                          `agent_name` varchar(100) NOT NULL COMMENT 'Agent标识(如 SYLLABUS_AGENT, IMPROVEMENT_AGENT, REPORT_AGENT)',
-                                          `system_prompt` text NOT NULL COMMENT '系统默认Prompt模板内容',
-                                          `description` varchar(200) DEFAULT NULL COMMENT '功能描述说明',
-                                          `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    DROP TABLE IF EXISTS `report`;
+    CREATE TABLE `report` (
+                              `id` bigint NOT NULL AUTO_INCREMENT COMMENT '报告ID',
+                              `scheme_id` bigint NOT NULL COMMENT '关联培养方案ID',
+                              `title` varchar(200) NOT NULL COMMENT '报告标题',
+                              `version` varchar(30) NOT NULL COMMENT '版本号(如 V1.0, V2.0)',
+                              `status` tinyint NOT NULL DEFAULT '0' COMMENT '状态: 0-编写中, 1-审核中, 2-已完成, 3-已归档',
+                              `created_by` bigint NOT NULL COMMENT '创建人(专业负责人)',
+                              `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                              `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
+                              PRIMARY KEY (`id`),
+                              CONSTRAINT `fk_report_scheme` FOREIGN KEY (`scheme_id`) REFERENCES `program_scheme` (`id`) ON DELETE RESTRICT,
+                              CONSTRAINT `fk_report_creator` FOREIGN KEY (`created_by`) REFERENCES `sys_user` (`id`) ON DELETE RESTRICT
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='自评报告主表';
+
+    DROP TABLE IF EXISTS `report_section`;
+    CREATE TABLE `report_section` (
+                                      `id` bigint NOT NULL AUTO_INCREMENT COMMENT '章节ID',
+                                      `report_id` bigint NOT NULL COMMENT '所属报告ID',
+                                      `section_code` varchar(20) NOT NULL COMMENT '章节编号(如 1.1, 1.2, 2.1)',
+                                      `title` varchar(200) NOT NULL COMMENT '章节标题',
+                                      `content` longtext COMMENT '章节正文内容',
+                                      `status` tinyint NOT NULL DEFAULT '0' COMMENT '完成状态: 0-未开始, 1-编写中, 2-已完成',
+                                      `assigned_to` bigint DEFAULT NULL COMMENT '负责人ID',
+                                      `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后修改时间',
+                                      PRIMARY KEY (`id`),
+                                      CONSTRAINT `fk_section_report` FOREIGN KEY (`report_id`) REFERENCES `report` (`id`) ON DELETE CASCADE,
+                                      CONSTRAINT `fk_section_user` FOREIGN KEY (`assigned_to`) REFERENCES `sys_user` (`id`) ON DELETE SET NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='自评报告章节表';
+
+    DROP TABLE IF EXISTS `report_data_source`;
+    CREATE TABLE `report_data_source` (
+                                          `id` bigint NOT NULL AUTO_INCREMENT COMMENT '数据源ID',
+                                          `section_id` bigint NOT NULL COMMENT '所属章节ID',
+                                          `source_type` varchar(30) NOT NULL COMMENT '来源类型: ATTAINMENT-达成度, SURVEY-问卷, TABLE-数据表格, CHART-图表',
+                                          `source_key` varchar(100) NOT NULL COMMENT '数据来源标识',
+                                          `auto_fill_config` text COMMENT '自动填充JSON配置',
                                           PRIMARY KEY (`id`),
-                                          UNIQUE KEY `uk_agent_name` (`agent_name`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Spring AI 智能代理 Prompt 配置表';
+                                          CONSTRAINT `fk_rds_section` FOREIGN KEY (`section_id`) REFERENCES `report_section` (`id`) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='报告章节数据自动填充配置表';
+
+    -- ---------------------------------------------------------------------------------
+    -- 11. 系统审计日志 (系统管理员安全审计)
+    -- ---------------------------------------------------------------------------------
+    DROP TABLE IF EXISTS `sys_audit_log`;
+    CREATE TABLE `sys_audit_log` (
+                                     `id` bigint NOT NULL AUTO_INCREMENT COMMENT '日志ID',
+                                     `user_id` bigint DEFAULT NULL COMMENT '操作用户ID',
+                                     `username` varchar(50) DEFAULT NULL COMMENT '操作账号(冗余，防止用户被删后日志丢失)',
+                                     `action` varchar(50) NOT NULL COMMENT '操作类型: LOGIN, CREATE, UPDATE, DELETE, EXPORT',
+                                     `target` varchar(100) DEFAULT NULL COMMENT '操作对象(如表名或功能模块)',
+                                     `target_id` bigint DEFAULT NULL COMMENT '操作对象ID',
+                                     `detail` varchar(500) DEFAULT NULL COMMENT '操作详情',
+                                     `ip_address` varchar(45) DEFAULT NULL COMMENT '客户端IP',
+                                     `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '操作时间',
+                                     PRIMARY KEY (`id`),
+                                     INDEX `idx_audit_user` (`user_id`),
+                                     INDEX `idx_audit_time` (`created_at`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='系统操作审计日志表';
 
     SET FOREIGN_KEY_CHECKS = 1;
 
@@ -413,12 +462,11 @@
                                                                                          (201, 5, 40.0), -- 实验2 满分50, 得 40分
                                                                                          (201, 6, 85.0); -- 作业1 满分100, 得 85分
 
-    -- 11. 初始化 AI Agent 提示词配置 (Spring AI 系统冷启动预加载)
-    INSERT INTO `ai_prompt_template` (`agent_name`, `system_prompt`, `description`) VALUES
-                                                                                        ('SYLLABUS_AGENT',
-                                                                                         '你是一个熟悉中国工程教育专业认证标准（基于OBE成果导向）的资深教学设计专家。当课程负责人输入课程概要时，你需要帮助他们：\n1. 提炼并生成3-5条具有明确动作和衡量标准的课程目标（使用如“阐述”、“分析”、“设计”、“测试”等符合认知层次要求的行为动词）。\n2. 推荐这几条课程目标分别适合挂接在哪些毕业要求指标点下（如 1.1, 2.1 等）并提供推荐权重的业务合理解释。',
-                                                                                         '负责在大纲编制中提供符合OBE认证的课程目标编写指导'),
+    -- 11. 自评报告协同编写示例
+    INSERT INTO `report` (`id`, `scheme_id`, `title`, `version`, `status`, `created_by`) VALUES
+        (1, 1, '2024版软件工程专业认证自评报告', 'V1.0', 0, 101);
 
-                                                                                        ('IMPROVEMENT_AGENT',
-                                                                                         '你是一位专业的教育诊断与教学评估Agent。当前系统向你提供了某教学班级在各个课程目标（CO）上的实际达成度数值（JSON格式）以及该班级的问卷词云数据。\n你的任务：\n1. 诊断出该班级学生的学业达成缺陷。\n2. 针对达成度偏低的CO（例如低于0.68的红线值），提供符合教学法（Pedagogy）的、具体的、不流于形式的下一步持续改进措施（例如引入项目制学习PBL、调整讲座式授课比重、强化翻转课堂等）。',
-                                                                                         '自动基于班级达成度低分项生成针对性持续改进分析建议文本');
+    INSERT INTO `report_section` (`id`, `report_id`, `section_code`, `title`, `status`, `assigned_to`) VALUES
+        (1, 1, '1.1', '专业基本情况概述', 2, 101),
+        (2, 1, '1.2', '培养目标与毕业要求', 1, 102),
+        (3, 1, '3.1', '课程体系对毕业要求的支撑', 0, NULL);
