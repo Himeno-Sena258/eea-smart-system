@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class DirectorController {
 
     @GetMapping("/dashboard")
-    @Operation(summary = "专业负责人首页")
+    @Operation(summary = "【专业负责人】控制台首页", tags = {"系统首页概览"})
     public Result<String> dashboard() {
         return Result.success("专业负责人首页");
     }

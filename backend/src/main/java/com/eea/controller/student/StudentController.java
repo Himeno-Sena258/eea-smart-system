@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class StudentController {
 
     @GetMapping("/dashboard")
-    @Operation(summary = "学生首页")
+    @Operation(summary = "【学生】个人学业控制台首页", tags = {"系统首页概览"})
     public Result<String> dashboard() {
         return Result.success("学生首页");
     }

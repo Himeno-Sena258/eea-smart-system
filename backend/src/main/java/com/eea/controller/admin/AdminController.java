@@ -22,6 +22,12 @@ public class AdminController {
     @Autowired
     private AdminUserService adminUserService;
 
+    @GetMapping("/dashboard")
+    @Operation(summary = "【系统管理员】控制台首页", tags = {"系统首页概览"})
+    public Result<String> dashboard() {
+        return Result.success("系统管理员控制台");
+    }
+
     @PostMapping("/users")
     @Operation(summary = "【账号管理】管理员开户 / 新建用户", description = "创建单个用户，可指定工号/学号、姓名、角色、班级等")
     public Result<UserDetailVO> createUser(@RequestBody CreateUserDTO dto) {

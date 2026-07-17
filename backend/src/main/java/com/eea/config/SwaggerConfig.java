@@ -38,8 +38,8 @@ public class SwaggerConfig {
     @Bean
     public GroupedOpenApi dashboardApi() {
         return GroupedOpenApi.builder()
-                .group("0.1-控制台与首页概览")
-                .pathsToMatch("/dashboard/**")
+                .group("0.1-系统首页概览")
+                .pathsToMatch("/*/dashboard", "/dashboard/**")
                 .build();
     }
 
