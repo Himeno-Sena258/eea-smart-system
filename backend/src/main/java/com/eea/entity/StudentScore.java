@@ -25,6 +25,9 @@ public class StudentScore {
     @Schema(description = "学生用户ID(sys_user.id)")
     private Long studentId;
 
+    @Schema(description = "教学班ID")
+    private Long teachingClassId;
+
     @Schema(description = "考核细项ID")
     private Long assessmentItemId;
 
