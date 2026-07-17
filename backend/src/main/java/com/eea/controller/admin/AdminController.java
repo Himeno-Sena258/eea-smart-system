@@ -36,7 +36,7 @@ public class AdminController {
 
     @GetMapping("/users")
     @Operation(summary = "分页查询用户列表", description = "支持按关键字、角色代码、组织结构过滤")
-    public Result<PageResult<UserDetailVO>> pageUsers(UserPageDTO dto) {
+    public Result<PageResult<UserDetailVO>> pageUsers(@org.springdoc.core.annotations.ParameterObject UserPageDTO dto) {
         PageResult<UserDetailVO> result = adminUserService.pageUsers(dto);
         return Result.success(result);
     }
