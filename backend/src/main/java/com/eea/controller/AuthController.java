@@ -20,11 +20,7 @@ public class AuthController {
     @PostMapping("/login")
     @Operation(summary = "用户登录", description = "传入 username 和 password，返回用户信息和角色列表")
     public Result<LoginVO> login(@RequestBody LoginRequest request) {
-        try {
-            LoginVO vo = authService.login(request);
-            return Result.success(vo);
-        } catch (RuntimeException e) {
-            return Result.error(e.getMessage());
-        }
+        LoginVO vo = authService.login(request);
+        return Result.success(vo);
     }
 }
