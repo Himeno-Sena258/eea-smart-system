@@ -24,3 +24,14 @@ mybatis-plus:
 logging:
   level:
     com.eea: debug
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    doc-expansion: none
+    operations-sorter: method
+    tags-sorter: alpha
+    filter: true
+    try-it-out-enabled: true
