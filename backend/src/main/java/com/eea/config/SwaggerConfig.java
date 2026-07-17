@@ -58,4 +58,36 @@ public class SwaggerConfig {
                 .pathsToMatch("/admin/**")
                 .build();
     }
+
+    @Bean
+    public GroupedOpenApi directorApi() {
+        return GroupedOpenApi.builder()
+                .group("4-专业负责人 (DIRECTOR)")
+                .pathsToMatch("/director/**")
+                .build();
+    }
+
+    @Bean
+    public GroupedOpenApi coordinatorApi() {
+        return GroupedOpenApi.builder()
+                .group("5-课程负责人 (COORDINATOR)")
+                .pathsToMatch("/coordinator/**")
+                .build();
+    }
+
+    @Bean
+    public GroupedOpenApi teacherApi() {
+        return GroupedOpenApi.builder()
+                .group("6-授课教师 (INSTRUCTOR)")
+                .pathsToMatch("/teacher/**")
+                .build();
+    }
+
+    @Bean
+    public GroupedOpenApi studentApi() {
+        return GroupedOpenApi.builder()
+                .group("7-学生 (STUDENT)")
+                .pathsToMatch("/student/**")
+                .build();
+    }
 }
