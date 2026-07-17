@@ -375,10 +375,10 @@
     -- 3. 初始化用户
     -- 默认所有用户初始密码的明文为 '123456' (实际项目中使用 Spring Security 搭配 BCrypt 加密存储)
     INSERT INTO `sys_user` (`id`, `username`, `password`, `real_name`, `email`, `phone`, `status`, `org_id`) VALUES
-                                                                                                                 (100, 'admin', '$2a$10$QdNz68N.owKEBuihg.iPve3X8RI2qpI12XjQ62.bsReavPFc1kxVu', '系统管理员(张安全)', 'admin@edu.cn', '13800000000', 1, 1),
-                                                                                                                 (101, 'prof_wang', '$2a$10$P35FeLxQ6lebaNE87QpieusllTTKtSD/Ovk8C.hsqsGUGyeNjQZlW', '王教授(专业负责人)', 'wang_prof@edu.cn', '13800000001', 1, 2),
-                                                                                                                 (102, 'dr_li', '$2a$10$wf6qmgK0x4bCTBUQHt.S3.k/0kpoNQh0T6Aerm0NDYP7jOM50zhiS', '李博士(课程负责人)', 'li_doc@edu.cn', '13800000002', 1, 2),
-                                                                                                                 (103, 'teacher_zhang', '$2a$10$lmTfdNyImUIZ/5Cf99bvrewqJUAZ6ymNoH6RX0bwq3UIAQiFWlozi', '张老师(授课教师)', 'zhang_t@edu.cn', '13800000003', 1, 2),
+                                                                                                                 (100, 'admin', '$2a$10$4Hwie7QV0HW5Xo5zCL11HO7.KJpJhLZUj.N.FqMT.TSGkCgZXSTf.', '系统管理员(张安全)', 'admin@edu.cn', '13800000000', 1, 1),
+                                                                                                                 (101, 'prof_wang', '$2a$10$4Hwie7QV0HW5Xo5zCL11HO7.KJpJhLZUj.N.FqMT.TSGkCgZXSTf.', '王教授(专业负责人)', 'wang_prof@edu.cn', '13800000001', 1, 2),
+                                                                                                                 (102, 'dr_li', '$2a$10$4Hwie7QV0HW5Xo5zCL11HO7.KJpJhLZUj.N.FqMT.TSGkCgZXSTf.', '李博士(课程负责人)', 'li_doc@edu.cn', '13800000002', 1, 2),
+                                                                                                                 (103, 'teacher_zhang', '$2a$10$4Hwie7QV0HW5Xo5zCL11HO7.KJpJhLZUj.N.FqMT.TSGkCgZXSTf.', '张老师(授课教师)', 'zhang_t@edu.cn', '13800000003', 1, 2),
                                                                                                                  (201, 'stu_xiaoming', '$2a$10$4Hwie7QV0HW5Xo5zCL11HO7.KJpJhLZUj.N.FqMT.TSGkCgZXSTf.', '小明(学生)', 'xiaoming@edu.cn', '13899999999', 1, 3);
 
     -- 4. 绑定多角色关联 (由于部分老师可能既教书又当负责人，多角色表能完美支撑此场景)
