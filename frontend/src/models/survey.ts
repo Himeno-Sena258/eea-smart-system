@@ -1,0 +1,57 @@
+import type { DateTimeString, ID, JsonValue } from "./common"
+
+export type SurveyType = "COURSE" | "GRADUATE" | "EMPLOYER" | string
+export type SurveyStatus = 0 | 1 | 2
+
+export interface SurveyQuestionnaire {
+  id: ID
+  title: string
+  type: SurveyType
+  status: SurveyStatus
+  createdAt: DateTimeString
+}
+
+export interface SurveyQuestion {
+  questionCode: string
+  title?: string
+  score?: number
+  text?: string
+  [key: string]: JsonValue | undefined
+}
+
+export interface SurveyPayload {
+  title: string
+  type: SurveyType
+  status?: SurveyStatus
+  questions?: SurveyQuestion[]
+}
+
+export interface SurveyAnswerItem {
+  questionCode: string
+  score?: number
+  text?: string
+}
+
+export interface SubmitSurveyAnswerPayload {
+  userId: ID
+  answers: SurveyAnswerItem[]
+}
+
+export interface SurveyAnswer {
+  id: ID
+  questionnaireId: ID
+  userId: ID
+  rawAnswersJson: string
+  submittedAt: DateTimeString
+}
+
+export interface SurveyStatistics {
+  surveyId: ID
+  totalAnswers: number
+  items: Array<{
+    questionCode: string
+    averageScore?: number
+    distribution?: Record<string, number>
+    texts?: string[]
+  }>
+}
