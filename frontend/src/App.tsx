@@ -1,14 +1,25 @@
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom"
+import { AppLayout } from "@/layouts/app-layout"
+import { appRoutes } from "@/routes/app-routes"
+import { LoginPage } from "@/pages/login-page"
+import { NotFoundPage } from "@/pages/not-found-page"
+import { RegisterPage } from "@/pages/register-page"
+
 function App() {
   return (
-    <main className="app-shell">
-      <section className="welcome-panel">
-        <p className="eyebrow">EEA Smart System</p>
-        <h1>React + Vite + TypeScript 前端已就绪</h1>
-        <p className="description">
-          从这里开始构建你的智能系统前端界面，后续可以接入 Spring Boot API。
-        </p>
-      </section>
-    </main>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route element={<AppLayout />}>
+          {appRoutes.map((route) => (
+            <Route key={route.path} path={route.path} element={route.element} />
+          ))}
+        </Route>
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 
