@@ -6,8 +6,7 @@
     -- ---------------------------------------------------------------------------------
     -- 0. 数据库自动创建与切换
     -- ---------------------------------------------------------------------------------
-    DROP DATABASE IF EXISTS `obe_system`;
-    CREATE DATABASE `obe_system` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    CREATE DATABASE IF NOT EXISTS `obe_system` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
     USE `obe_system`;
 
     SET FOREIGN_KEY_CHECKS = 0;
