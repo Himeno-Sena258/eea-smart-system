@@ -79,7 +79,7 @@ public class AuthServiceImpl implements AuthService {
     public UserInfoVO getUserInfo(Long userId) {
         SysUser user = sysUserMapper.selectById(userId);
         if (user == null) {
-            throw new BusinessException(404, "用户不存在");
+            throw new BusinessException(50001, "数据不存在: 用户不存在");
         }
 
         // 查询组织名称

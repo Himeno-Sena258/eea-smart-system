@@ -58,7 +58,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         QueryWrapper<SysUser> checkWrapper = new QueryWrapper<>();
         checkWrapper.eq("username", dto.getUsername());
         if (sysUserMapper.selectCount(checkWrapper) > 0) {
-            throw new BusinessException(40010, "账号/工号/学号已存在");
+            throw new BusinessException(20008, "登录账号已存在");
         }
 
         // 2. 初始密码设定
@@ -95,7 +95,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         // 5. 如果包含 STUDENT 角色，向 student_info 写入拓展记录
         if (dto.getRoleCodes() != null && dto.getRoleCodes().contains("STUDENT")) {
             if (dto.getStudentNo() == null || dto.getClassId() == null) {
-                throw new BusinessException(40011, "学生开户必须传入学号和行政班级ID");
+                throw new BusinessException(30002, "缺少必填参数: 学生开户必须传入学号和行政班级ID");
             }
             StudentInfo studentInfo = new StudentInfo();
             studentInfo.setUserId(user.getId());
@@ -144,7 +144,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     public UserDetailVO getUserDetail(Long userId) {
         SysUser user = sysUserMapper.selectById(userId);
         if (user == null) {
-            throw new BusinessException(404, "未找到该用户");
+            throw new BusinessException(50001, "数据不存在: 未找到该用户");
         }
 
         // 查询组织名称
