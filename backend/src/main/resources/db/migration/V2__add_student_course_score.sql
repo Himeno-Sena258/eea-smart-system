@@ -15,3 +15,10 @@ CREATE TABLE `student_course_score` (
   `is_passed` tinyint DEFAULT '1' COMMENT '是否及格(1-及格, 0-不及格)',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='学生综合总评成绩单';
+
+-- 小明《软件工程》课程成绩
+-- 期末 78/100×0.6 + 实验 85/100×0.2 + 作业 85/100×0.2 = 80.80
+INSERT INTO `student_course_score`
+(`student_id`, `course_id`, `teaching_class_id`, `homework_score`, `experiment_score`, `exam_score`, `total_score`, `is_passed`)
+VALUES
+(201, 1, 1, 85.00, 85.00, 78.00, 80.80, 1);
