@@ -28,6 +28,14 @@ public class SwaggerConfig {
     }
 
     @Bean
+    public GroupedOpenApi allApi() {
+        return GroupedOpenApi.builder()
+                .group("0-全部接口 (ALL)")
+                .pathsToMatch("/**")
+                .build();
+    }
+
+    @Bean
     public GroupedOpenApi authApi() {
         return GroupedOpenApi.builder()
                 .group("1-登录认证模块")
@@ -39,7 +47,7 @@ public class SwaggerConfig {
     public GroupedOpenApi adminApi() {
         return GroupedOpenApi.builder()
                 .group("2-系统管理员 (ADMIN)")
-                .pathsToMatch("/admin/**")
+                .pathsToMatch("/admin/**", "/admin/users/**", "/admin/organizations/**", "/admin/import/**", "/admin/audit-logs/**")
                 .build();
     }
 
