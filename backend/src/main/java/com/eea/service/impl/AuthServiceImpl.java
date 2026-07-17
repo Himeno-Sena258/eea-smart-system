@@ -14,6 +14,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.eea.common.BusinessException;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,15 +41,15 @@ public class AuthServiceImpl implements AuthService {
         wrapper.eq("username", request.getUsername());
         SysUser user = sysUserMapper.selectOne(wrapper);
         if (user == null) {
-            throw new RuntimeException("用户名或密码错误");
+            throw BusinessException.wrongPassword();
         }
         if (user.getStatus() == 0) {
-            throw new RuntimeException("账号已被禁用");
+            throw BusinessException.accountDisabled();
         }
 
         // 2. 验密码
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new RuntimeException("用户名或密码错误");
+            throw BusinessException.wrongPassword();
         }
 
         // 3. 查角色
