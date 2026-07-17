@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/admin/audit-logs")
-@Tag(name = "系统管理员模块")
+@Tag(name = "管理员-安全操作审计", description = "全系统关键敏感写操作与行为安全审计日志检索")
 @RequireRoles("ADMIN")
 public class AdminAuditLogController {
 
@@ -24,7 +24,7 @@ public class AdminAuditLogController {
     private AdminAuditLogService adminAuditLogService;
 
     @GetMapping
-    @Operation(summary = "【安全审计】分页查询系统操作审计日志", description = "支持按账号、操作类型(LOGIN/CREATE/UPDATE/DELETE)、对象模块过滤")
+    @Operation(summary = "分页查询系统操作审计日志", description = "支持按账号、操作类型(LOGIN/CREATE/UPDATE/DELETE)、对象模块过滤")
     public Result<PageResult<SysAuditLog>> pageAuditLogs(@ParameterObject AuditLogQueryDTO dto) {
         PageResult<SysAuditLog> pageResult = adminAuditLogService.pageAuditLogs(dto);
         return Result.success(pageResult);
