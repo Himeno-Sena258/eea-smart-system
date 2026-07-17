@@ -7,10 +7,10 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
-import java.util.Arrays;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 
+@SuppressWarnings("all")
 @Component
 public class SecurityInterceptor implements HandlerInterceptor {
 
@@ -71,8 +71,7 @@ public class SecurityInterceptor implements HandlerInterceptor {
         UserContext.setRoles(userRoles);
 
         // ④ 检查方法上的权限贴纸 @RequireRoles
-        if (handler instanceof HandlerMethod) {
-            HandlerMethod handlerMethod = (HandlerMethod) handler;
+        if (handler instanceof HandlerMethod handlerMethod) {
             RequireRoles requireRoles = handlerMethod.getMethodAnnotation(RequireRoles.class);
             if (requireRoles == null) {
                 requireRoles = handlerMethod.getBeanType().getAnnotation(RequireRoles.class);

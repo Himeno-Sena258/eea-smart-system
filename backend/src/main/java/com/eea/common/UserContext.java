@@ -2,6 +2,7 @@ package com.eea.common;
 
 import java.util.List;
 
+@SuppressWarnings("all")
 public class UserContext {
 
     //    线程 A 存的数据，只有线程 A 能取到；线程 B 存的，只有线程 B 能取到。绝对隔离，线程安全。
