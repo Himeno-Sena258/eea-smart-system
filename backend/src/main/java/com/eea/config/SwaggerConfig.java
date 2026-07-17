@@ -36,6 +36,14 @@ public class SwaggerConfig {
     }
 
     @Bean
+    public GroupedOpenApi dashboardApi() {
+        return GroupedOpenApi.builder()
+                .group("0.1-控制台与首页概览")
+                .pathsToMatch("/dashboard/**")
+                .build();
+    }
+
+    @Bean
     public GroupedOpenApi authApi() {
         return GroupedOpenApi.builder()
                 .group("1-登录认证模块")
@@ -47,7 +55,7 @@ public class SwaggerConfig {
     public GroupedOpenApi adminApi() {
         return GroupedOpenApi.builder()
                 .group("2-系统管理员 (ADMIN)")
-                .pathsToMatch("/admin/**", "/admin/users/**", "/admin/organizations/**", "/admin/import/**", "/admin/audit-logs/**")
+                .pathsToMatch("/admin/**")
                 .build();
     }
 
