@@ -5,6 +5,7 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -15,17 +16,62 @@ public class SwaggerConfig {
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("EEA 智能服务系统 API")
-                        .version("0.0.1")
-                        .description("工程教育专业认证智能服务系统 - 后端接口"))
-                // 1. 配置全局参数组件，让 Swagger 知道我们需要在请求头里带上 User-Id
+                        .title("工程教育专业认证智能服务系统 API 文档")
+                        .version("V1.0")
+                        .description("基于 OBE 理念与角色权限隔离的后端接口规范 (带 Header: User-Id 认证)"))
                 .components(new Components()
                         .addSecuritySchemes("UserIdAuth", new SecurityScheme()
                                 .type(SecurityScheme.Type.APIKEY)
-                                .in(SecurityScheme.In.HEADER) // 放在 Header 中
-                                .name("User-Id")))            // 请求头的名字
-                // 2. 将这个安全配置应用到所有的接口中
+                                .in(SecurityScheme.In.HEADER)
+                                .name("User-Id")))
                 .addSecurityItem(new SecurityRequirement().addList("UserIdAuth"));
     }
-}
 
+    @Bean
+    public GroupedOpenApi authApi() {
+        return GroupedOpenApi.builder()
+                .group("1-登录认证模块")
+                .pathsToMatch("/auth/**")
+                .build();
+    }
+
+    @Bean
+    public GroupedOpenApi adminApi() {
+        return GroupedOpenApi.builder()
+                .group("2-系统管理员 (ADMIN)")
+                .pathsToMatch("/admin/**")
+                .build();
+    }
+
+    @Bean
+    public GroupedOpenApi directorApi() {
+        return GroupedOpenApi.builder()
+                .group("3-专业负责人 (DIRECTOR)")
+                .pathsToMatch("/director/**")
+                .build();
+    }
+
+    @Bean
+    public GroupedOpenApi coordinatorApi() {
+        return GroupedOpenApi.builder()
+                .group("4-课程负责人 (COORDINATOR)")
+                .pathsToMatch("/coordinator/**")
+                .build();
+    }
+
+    @Bean
+    public GroupedOpenApi teacherApi() {
+        return GroupedOpenApi.builder()
+                .group("5-授课教师 (INSTRUCTOR)")
+                .pathsToMatch("/teacher/**")
+                .build();
+    }
+
+    @Bean
+    public GroupedOpenApi studentApi() {
+        return GroupedOpenApi.builder()
+                .group("6-学生 (STUDENT)")
+                .pathsToMatch("/student/**")
+                .build();
+    }
+}
