@@ -6,15 +6,13 @@ import type {
   ID,
   LoginPayload,
   LoginResult,
-  PageQuery,
   PageResult,
-  RegisterPayload,
-  RegisterResult,
   ResetPasswordPayload,
   Role,
   UpdateUserPayload,
   UpdateUserStatusPayload,
   User,
+  UserPageQuery,
 } from "@/models"
 
 export interface RolePayload {
@@ -32,17 +30,8 @@ export const login = async (payload: LoginPayload) => {
   return response.data
 }
 
-export const register = async (payload: RegisterPayload) => {
-  const response = await request<RegisterResult>({
-    url: "/auth/register",
-    method: "POST",
-    data: payload,
-  })
-  return response.data
-}
-
 export const logout = async () => {
-  const response = await request<boolean>({
+  const response = await request<string>({
     url: "/auth/logout",
     method: "POST",
   })
@@ -67,10 +56,10 @@ export const changePassword = async (payload: ChangePasswordPayload) => {
 }
 
 export const resetUserPassword = async (id: ID, payload: ResetPasswordPayload) => {
-  const response = await request<boolean>({
-    url: `/users/${id}/password/reset`,
+  const response = await request<string>({
+    url: `/admin/users/${id}/reset-password`,
     method: "PUT",
-    data: payload,
+    params: payload,
   })
   return response.data
 }
@@ -117,9 +106,9 @@ export const deleteRole = async (id: ID) => {
   return response.data
 }
 
-export const getUserPage = async (query?: PageQuery) => {
+export const getUserPage = async (query?: UserPageQuery) => {
   const response = await request<PageResult<User>>({
-    url: "/users",
+    url: "/admin/users",
     method: "GET",
     params: query,
   })
@@ -128,7 +117,7 @@ export const getUserPage = async (query?: PageQuery) => {
 
 export const getUserDetail = async (id: ID) => {
   const response = await request<User>({
-    url: `/users/${id}`,
+    url: `/admin/users/${id}`,
     method: "GET",
   })
   return response.data
@@ -136,7 +125,7 @@ export const getUserDetail = async (id: ID) => {
 
 export const createUser = async (payload: CreateUserPayload) => {
   const response = await request<User>({
-    url: "/users",
+    url: "/admin/users",
     method: "POST",
     data: payload,
   })
@@ -145,7 +134,7 @@ export const createUser = async (payload: CreateUserPayload) => {
 
 export const updateUser = async (id: ID, payload: UpdateUserPayload) => {
   const response = await request<User>({
-    url: `/users/${id}`,
+    url: `/admin/users/${id}`,
     method: "PUT",
     data: payload,
   })
@@ -153,17 +142,17 @@ export const updateUser = async (id: ID, payload: UpdateUserPayload) => {
 }
 
 export const updateUserStatus = async (id: ID, payload: UpdateUserStatusPayload) => {
-  const response = await request<User>({
-    url: `/users/${id}/status`,
+  const response = await request<string>({
+    url: `/admin/users/${id}/status`,
     method: "PUT",
-    data: payload,
+    params: payload,
   })
   return response.data
 }
 
 export const assignUserRoles = async (id: ID, payload: AssignUserRolesPayload) => {
   const response = await request<boolean>({
-    url: `/users/${id}/roles`,
+    url: `/admin/users/${id}/roles`,
     method: "PUT",
     data: payload,
   })
@@ -172,7 +161,7 @@ export const assignUserRoles = async (id: ID, payload: AssignUserRolesPayload) =
 
 export const deleteUser = async (id: ID) => {
   const response = await request<boolean>({
-    url: `/users/${id}`,
+    url: `/admin/users/${id}`,
     method: "DELETE",
   })
   return response.data
