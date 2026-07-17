@@ -19,7 +19,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addInterceptor(securityInterceptor)
                 .addPathPatterns("/**") // 拦截所有请求
                 .excludePathPatterns(
-                        "/sys/user/login",          // 放行登录接口
+                        "/auth/**",                 // 放行登录注册接口
+                        "/health",                  // 放行健康检查
                         "/swagger-ui.html",         // 放行 Swagger 网页入口
                         "/swagger-ui/**",           // 放行 Swagger 网页静态资源
                         "/v3/api-docs/**",          // 放行 OpenAPI 接口文档数据
