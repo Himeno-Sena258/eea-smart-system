@@ -22,11 +22,16 @@ export interface User {
   realName: string
   email?: string
   phone?: string
-  status: UserStatus
+  status?: UserStatus
   orgId?: Nullable<ID>
   orgName?: Nullable<string>
+  roleCodes?: Array<RoleCode | string>
+  roleNames?: string[]
   roles?: Role[]
   permissions?: string[]
+  studentNo?: string
+  classId?: ID
+  className?: string
   createdAt?: DateTimeString
 }
 
@@ -36,29 +41,10 @@ export interface LoginPayload {
 }
 
 export interface LoginResult {
-  user: User
-}
-
-export interface RegisterPayload {
-  username: string
-  password: string
-  confirmPassword: string
-  realName: string
-  email?: string
-  phone?: string
-  roleCode: RoleCode
-  orgId?: ID
-  studentNo?: string
-  classId?: ID
-}
-
-export interface RegisterResult {
-  id: ID
+  userId: ID
   username: string
   realName: string
-  roleCode: RoleCode | string
-  status: UserStatus
-  createdAt: DateTimeString
+  roles: Array<RoleCode | string>
 }
 
 export interface ChangePasswordPayload {
@@ -68,18 +54,37 @@ export interface ChangePasswordPayload {
 }
 
 export interface ResetPasswordPayload {
-  newPassword: string
+  newPassword?: string
 }
 
 export interface AssignUserRolesPayload {
-  roleIds: ID[]
+  roleCodes: Array<RoleCode | string>
 }
 
 export interface UpdateUserStatusPayload {
   status: UserStatus
 }
 
-export type CreateUserPayload = Omit<RegisterPayload, "confirmPassword">
+export interface UserPageQuery {
+  pageNum?: number
+  pageSize?: number
+  keyword?: string
+  roleCode?: RoleCode | string
+  orgId?: ID
+}
+
+export interface CreateUserPayload {
+  username: string
+  password?: string
+  realName: string
+  email?: string
+  phone?: string
+  orgId?: ID
+  roleCodes: Array<RoleCode | string>
+  studentNo?: string
+  classId?: ID
+}
+
 export type UpdateUserPayload = Partial<
-  Pick<User, "realName" | "email" | "phone" | "status" | "orgId">
+  Pick<User, "realName" | "email" | "phone" | "status" | "orgId" | "roleCodes" | "studentNo" | "classId">
 >

@@ -5,15 +5,13 @@ import type {
   CreateUserPayload,
   ID,
   LoginPayload,
-  PageQuery,
   PageResult,
-  RegisterPayload,
-  RegisterResult,
   ResetPasswordPayload,
   Role,
   UpdateUserPayload,
   UpdateUserStatusPayload,
   User,
+  UserPageQuery,
 } from "@/models"
 import {
   assignUserRoles,
@@ -29,7 +27,6 @@ import {
   getUserPage,
   login,
   logout,
-  register,
   resetUserPassword,
   updateRole,
   updateUser,
@@ -45,21 +42,20 @@ interface AuthStore extends RequestState, RequestActions {
   usersPage: PageResult<User> | null
   currentUserDetail: User | null
   login: (payload: LoginPayload) => Promise<User>
-  register: (payload: RegisterPayload) => Promise<RegisterResult>
-  logout: () => Promise<boolean>
+  logout: () => Promise<string>
   fetchCurrentUser: () => Promise<User>
   changePassword: (payload: ChangePasswordPayload) => Promise<boolean>
-  resetUserPassword: (id: ID, payload: ResetPasswordPayload) => Promise<boolean>
+  resetUserPassword: (id: ID, payload: ResetPasswordPayload) => Promise<string>
   fetchRoles: () => Promise<Role[]>
   fetchRoleDetail: (id: ID) => Promise<Role>
   createRole: (payload: RolePayload) => Promise<Role>
   updateRole: (id: ID, payload: RolePayload) => Promise<Role>
   deleteRole: (id: ID) => Promise<boolean>
-  fetchUsers: (query?: PageQuery) => Promise<PageResult<User>>
+  fetchUsers: (query?: UserPageQuery) => Promise<PageResult<User>>
   fetchUserDetail: (id: ID) => Promise<User>
   createUser: (payload: CreateUserPayload) => Promise<User>
   updateUser: (id: ID, payload: UpdateUserPayload) => Promise<User>
-  updateUserStatus: (id: ID, payload: UpdateUserStatusPayload) => Promise<User>
+  updateUserStatus: (id: ID, payload: UpdateUserStatusPayload) => Promise<string>
   assignUserRoles: (id: ID, payload: AssignUserRolesPayload) => Promise<boolean>
   deleteUser: (id: ID) => Promise<boolean>
 }
@@ -75,9 +71,13 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   login: (payload) =>
     runRequest(set, async () => {
       const result = await login(payload)
-      return result.user
+      return {
+        id: result.userId,
+        username: result.username,
+        realName: result.realName,
+        roleCodes: result.roles,
+      } satisfies User
     }, (currentUser) => ({ currentUser })),
-  register: (payload) => runRequest(set, () => register(payload)),
   logout: () =>
     runRequest(set, logout, () => ({
       currentUser: null,
@@ -115,9 +115,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       currentUser: get().currentUser?.id === id ? user : get().currentUser,
     })),
   updateUserStatus: (id, payload) =>
-    runRequest(set, () => updateUserStatus(id, payload), (user) => ({
-      currentUserDetail: user,
-    })),
+    runRequest(set, () => updateUserStatus(id, payload)),
   assignUserRoles: (id, payload) => runRequest(set, () => assignUserRoles(id, payload)),
   deleteUser: (id) =>
     runRequest(set, () => deleteUser(id), () => ({
