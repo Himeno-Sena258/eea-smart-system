@@ -82,4 +82,12 @@ public class SwaggerConfig {
                 .pathsToMatch("/director/**")
                 .build();
     }
+
+    @Bean
+    public GroupedOpenApi coordinatorApi() {
+        return GroupedOpenApi.builder()
+                .group("7-课程负责人 (COORDINATOR)")
+                .pathsToMatch("/coordinator/**")
+                .build();
+    }
 }

@@ -336,4 +336,77 @@ public class ApiIntegrationTests {
                 .andExpect(jsonPath("$.data.title").value("2024版计算机科学与技术工程教育专业认证自评报告"))
                 .andExpect(jsonPath("$.data.downloadUrl").exists());
     }
+
+    // ==================== 8. 课程负责人模块 API 测试 ====================
+    @Test
+    @DisplayName("测试 8.1: 课程负责人查询管辖的课程大纲列表 /coordinator/syllabus")
+    void testCoordinatorListSyllabus() throws Exception {
+        mockMvc.perform(get("/coordinator/syllabus")
+                        .header("User-Id", 102)) // 102 为课程负责人李副教授
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data").isArray());
+    }
+
+    @Test
+    @DisplayName("测试 8.2: 课程负责人查询课程目标(CO1~CO5)列表 /coordinator/courses/1/objectives")
+    void testCoordinatorListObjectives() throws Exception {
+        mockMvc.perform(get("/coordinator/courses/1/objectives")
+                        .header("User-Id", 102))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data").isArray());
+    }
+
+    @Test
+    @DisplayName("测试 8.3: 课程负责人查询考核环节占比权重 /coordinator/courses/1/methods")
+    void testCoordinatorListMethods() throws Exception {
+        mockMvc.perform(get("/coordinator/courses/1/methods")
+                        .header("User-Id", 102))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data").isArray());
+    }
+
+    @Test
+    @DisplayName("测试 8.4: 课程负责人查询考核细项与 CO 绑定映射 /coordinator/courses/1/items")
+    void testCoordinatorListItems() throws Exception {
+        mockMvc.perform(get("/coordinator/courses/1/items")
+                        .header("User-Id", 102))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data").isArray());
+    }
+
+    @Test
+    @DisplayName("测试 8.5: 课程负责人设置考核环节权重(合法和等于1.000) /coordinator/courses/1/methods")
+    void testCoordinatorSaveMethods() throws Exception {
+        com.eea.dto.SaveMethodsDTO dto = new com.eea.dto.SaveMethodsDTO();
+        dto.setCourseId(1L);
+        List<com.eea.dto.SaveMethodsDTO.MethodItem> items = new java.util.ArrayList<>();
+        
+        com.eea.dto.SaveMethodsDTO.MethodItem m1 = new com.eea.dto.SaveMethodsDTO.MethodItem();
+        m1.setName("期末考试");
+        m1.setWeight(new java.math.BigDecimal("0.60"));
+        items.add(m1);
+
+        com.eea.dto.SaveMethodsDTO.MethodItem m2 = new com.eea.dto.SaveMethodsDTO.MethodItem();
+        m2.setName("课程实验");
+        m2.setWeight(new java.math.BigDecimal("0.20"));
+        items.add(m2);
+
+        com.eea.dto.SaveMethodsDTO.MethodItem m3 = new com.eea.dto.SaveMethodsDTO.MethodItem();
+        m3.setName("平时作业");
+        m3.setWeight(new java.math.BigDecimal("0.20"));
+        items.add(m3);
+
+        dto.setMethods(items);
+
+        mockMvc.perform(post("/coordinator/courses/1/methods")
+                        .header("User-Id", 102)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0));
+    }
 }
