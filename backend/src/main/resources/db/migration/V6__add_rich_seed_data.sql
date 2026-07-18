@@ -1,6 +1,6 @@
 -- =================================================================================
 -- V6: 超大规模真实感测试数据全量注入 (Massive Realistic Seed Data Migration)
--- 严格匹配 V1 表结构与列名，数据涵盖 30+ 核心表
+-- 严格且绝对匹配 V1, V2, V3 表结构与完整列名
 -- 核心初始测试账号密码统一为 '123456' ($2a$10$4Hwie7QV0HW5Xo5zCL11HO7.KJpJhLZUj.N.FqMT.TSGkCgZXSTf.)
 -- =================================================================================
 
@@ -98,7 +98,7 @@ INSERT IGNORE INTO `student_info` (`user_id`, `student_no`, `class_id`) VALUES
 (2006, '20240106', 2), (2007, '20240107', 2), (2008, '20240108', 2), (2009, '20240109', 2), (2010, '20240110', 2),
 (2011, '20240201', 5), (2012, '20240202', 5), (2013, '20240203', 5), (2014, '20240204', 5), (2015, '20240205', 5);
 
--- 6. 人才培养方案版本表 (program_scheme) - 严格匹配列名: id, major_id, version_name, status, created_by, created_at
+-- 6. 人才培养方案版本表 (program_scheme) - 匹配列名: id, major_id, version_name, status, created_by, created_at
 INSERT IGNORE INTO `program_scheme` (`id`, `major_id`, `version_name`, `status`, `created_by`, `created_at`) VALUES
 (10, 101, '2024版软件工程工程教育认证人才培养方案', 1, 1011, '2026-01-01 00:00:00'),
 (11, 101, '2025版软件工程人才培养方案(草稿)', 0, 1011, '2026-01-01 00:00:00'),
@@ -161,54 +161,59 @@ INSERT IGNORE INTO `teaching_class` (`id`, `course_id`, `class_name`, `semester`
 (1003, 102, '数据结构与算法-2024春季01班', '2024春', 1032),
 (1004, 103, '数据库系统原理-2024秋季01班', '2024秋', 1022);
 
--- 13. 教学班选课关联 (teaching_class_student)
-INSERT IGNORE INTO `teaching_class_student` (`teaching_class_id`, `user_id`) VALUES
+-- 13. 教学班选课关联 (teaching_class_student) - 匹配列名: teaching_class_id, student_id
+INSERT IGNORE INTO `teaching_class_student` (`teaching_class_id`, `student_id`) VALUES
 (1001, 2001), (1001, 2002), (1001, 2003), (1001, 2004), (1001, 2005),
 (1002, 2006), (1002, 2007), (1002, 2008), (1002, 2009), (1002, 2010),
 (1003, 2011), (1003, 2012), (1003, 2013), (1003, 2014), (1003, 2015);
 
 -- 14. 考核环节与细项 (assessment_method & assessment_item)
-INSERT IGNORE INTO `assessment_method` (`id`, `teaching_class_id`, `name`, `weight`) VALUES
-(501, 1001, '期末闭卷考试', 0.50),
-(502, 1001, '期中大作业', 0.30),
-(503, 1001, '平时实验与考勤', 0.20);
+-- assessment_method 匹配列名: id, course_id, name, weight
+INSERT IGNORE INTO `assessment_method` (`id`, `course_id`, `name`, `weight`) VALUES
+(501, 101, '期末闭卷考试', 0.50),
+(502, 101, '期中大作业', 0.30),
+(503, 101, '平时实验与考勤', 0.20);
 
-INSERT IGNORE INTO `assessment_item` (`id`, `method_id`, `co_id`, `item_name`, `max_score`) VALUES
-(5011, 501, 1011, '期末考试-选择填空题', 30.0),
-(5012, 501, 1012, '期末考试-UML建模大题', 40.0),
-(5013, 501, 1013, '期末考试-系统设计与测试大题', 30.0),
-(5021, 502, 1012, '期中项目大作业编码实现', 100.0),
-(5031, 503, 1013, '平时单元测试实验报告', 100.0);
+-- assessment_item 匹配列名: id, method_id, name, max_score, course_objective_id
+INSERT IGNORE INTO `assessment_item` (`id`, `method_id`, `name`, `max_score`, `course_objective_id`) VALUES
+(5011, 501, '期末考试-选择填空题', 30.0, 1011),
+(5012, 501, '期末考试-UML建模大题', 40.0, 1012),
+(5013, 501, '期末考试-系统设计与测试大题', 30.0, 1013),
+(5021, 502, '期中项目大作业编码实现', 100.0, 1012),
+(5031, 503, '平时单元测试实验报告', 100.0, 1013);
 
--- 15. 学生小项成绩 (student_score)
-INSERT IGNORE INTO `student_score` (`id`, `teaching_class_id`, `user_id`, `item_id`, `score`) VALUES
-(10001, 1001, 2001, 5011, 28.5), (10002, 1001, 2001, 5012, 37.0), (10003, 1001, 2001, 5013, 28.0), (10004, 1001, 2001, 5021, 94.0), (10005, 1001, 2001, 5031, 96.0),
-(10006, 1001, 2002, 5011, 25.0), (10007, 1001, 2002, 5012, 33.0), (10008, 1001, 2002, 5013, 25.0), (10009, 1001, 2002, 5021, 86.0), (10010, 1001, 2002, 5031, 89.0),
-(10011, 1001, 2003, 5011, 22.0), (10012, 1001, 2003, 5012, 30.0), (10013, 1001, 2003, 5013, 23.0), (10014, 1001, 2003, 5021, 78.0), (10015, 1001, 2003, 5031, 82.0),
-(10016, 1001, 2004, 5011, 29.0), (10017, 1001, 2004, 5012, 38.5), (10018, 1001, 2004, 5013, 28.5), (10019, 1001, 2004, 5021, 95.0), (10020, 1001, 2004, 5031, 98.0);
+-- 15. 学生小项成绩 (student_score) - 匹配列名: id, student_id, teaching_class_id, assessment_item_id, actual_score
+INSERT IGNORE INTO `student_score` (`id`, `student_id`, `teaching_class_id`, `assessment_item_id`, `actual_score`) VALUES
+(10001, 2001, 1001, 5011, 28.5), (10002, 2001, 1001, 5012, 37.0), (10003, 2001, 1001, 5013, 28.0), (10004, 2001, 1001, 5021, 94.0), (10005, 2001, 1001, 5031, 96.0),
+(10006, 2002, 1001, 5011, 25.0), (10007, 2002, 1001, 5012, 33.0), (10008, 2002, 1001, 5013, 25.0), (10009, 2002, 1001, 5021, 86.0), (10010, 2002, 1001, 5031, 89.0),
+(10011, 2003, 1001, 5011, 22.0), (10012, 2003, 1001, 5012, 30.0), (10013, 2003, 1001, 5013, 23.0), (10014, 2003, 1001, 5021, 78.0), (10015, 2003, 1001, 5031, 82.0),
+(10016, 2004, 1001, 5011, 29.0), (10017, 2004, 1001, 5012, 38.5), (10018, 2004, 1001, 5013, 28.5), (10019, 2004, 1001, 5021, 95.0), (10020, 2004, 1001, 5031, 98.0);
 
--- 16. 学生课程总评与 CO 达成度 (student_course_score)
-INSERT IGNORE INTO `student_course_score` (`id`, `teaching_class_id`, `user_id`, `total_score`, `co1_attainment`, `co2_attainment`, `co3_attainment`, `co4_attainment`, `co5_attainment`, `created_at`) VALUES
-(1, 1001, 2001, 93.50, 0.950, 0.930, 0.950, NULL, NULL, '2026-01-01 00:00:00'),
-(2, 1001, 2002, 83.20, 0.833, 0.830, 0.850, NULL, NULL, '2026-01-01 00:00:00'),
-(3, 1001, 2003, 76.80, 0.733, 0.760, 0.790, NULL, NULL, '2026-01-01 00:00:00'),
-(4, 1001, 2004, 94.00, 0.966, 0.955, 0.960, NULL, NULL, '2026-01-01 00:00:00'),
-(5, 1001, 2005, 68.50, 0.670, 0.680, 0.700, NULL, NULL, '2026-01-01 00:00:00');
+-- 16. 学生课程总评 (student_course_score) - 匹配列名: id, student_id, course_id, teaching_class_id, homework_score, experiment_score, exam_score, total_score, is_passed
+INSERT IGNORE INTO `student_course_score` (`id`, `student_id`, `course_id`, `teaching_class_id`, `homework_score`, `experiment_score`, `exam_score`, `total_score`, `is_passed`) VALUES
+(1, 2001, 101, 1001, 96.00, 94.00, 93.50, 93.50, 1),
+(2, 2002, 101, 1001, 89.00, 86.00, 82.00, 83.20, 1),
+(3, 2003, 101, 1001, 82.00, 78.00, 75.00, 76.80, 1),
+(4, 2004, 101, 1001, 98.00, 95.00, 94.00, 94.00, 1),
+(5, 2005, 101, 1001, 70.00, 68.00, 65.00, 68.50, 1);
 
--- 17. 课程达成度汇总表 (course_attainment)
-INSERT IGNORE INTO `course_attainment` (`id`, `teaching_class_id`, `overall_attainment`, `sample_size`, `calculated_at`, `created_at`) VALUES
-(1, 1001, 0.8520, 5, '2026-01-01 00:00:00', '2026-01-01 00:00:00'),
-(2, 1003, 0.8140, 5, '2026-01-01 00:00:00', '2026-01-01 00:00:00');
+-- 17. 课程达成度汇总表 (course_attainment) - 匹配列名: id, teaching_class_id, course_objective_id, attainment_val, calculated_at
+INSERT IGNORE INTO `course_attainment` (`id`, `teaching_class_id`, `course_objective_id`, `attainment_val`, `calculated_at`) VALUES
+(1, 1001, 1011, 0.950, '2026-01-01 00:00:00'),
+(2, 1001, 1012, 0.930, '2026-01-01 00:00:00'),
+(3, 1001, 1013, 0.950, '2026-01-01 00:00:00');
 
 -- 18. 指标点与毕业要求达成度 (grad_indicator_attainment & grad_requirement_attainment)
-INSERT IGNORE INTO `grad_indicator_attainment` (`id`, `scheme_id`, `indicator_id`, `attainment_value`, `calculated_at`) VALUES
-(1, 10, 1013, 0.8520, '2026-01-01 00:00:00'),
-(2, 10, 1031, 0.8350, '2026-01-01 00:00:00'),
-(3, 10, 1032, 0.8480, '2026-01-01 00:00:00');
+-- grad_indicator_attainment 匹配列名: id, scheme_id, grade, indicator_point_id, attainment_val, calculated_at
+INSERT IGNORE INTO `grad_indicator_attainment` (`id`, `scheme_id`, `grade`, `indicator_point_id`, `attainment_val`, `calculated_at`) VALUES
+(1, 10, 2024, 1013, 0.852, '2026-01-01 00:00:00'),
+(2, 10, 2024, 1031, 0.835, '2026-01-01 00:00:00'),
+(3, 10, 2024, 1032, 0.848, '2026-01-01 00:00:00');
 
-INSERT IGNORE INTO `grad_requirement_attainment` (`id`, `scheme_id`, `req_id`, `attainment_value`, `calculated_at`) VALUES
-(1, 10, 101, 0.8520, '2026-01-01 00:00:00'),
-(2, 10, 103, 0.8415, '2026-01-01 00:00:00');
+-- grad_requirement_attainment 匹配列名: id, scheme_id, grade, req_id, attainment_val, calculated_at
+INSERT IGNORE INTO `grad_requirement_attainment` (`id`, `scheme_id`, `grade`, `req_id`, `attainment_val`, `calculated_at`) VALUES
+(1, 10, 2024, 101, 0.852, '2026-01-01 00:00:00'),
+(2, 10, 2024, 103, 0.841, '2026-01-01 00:00:00');
 
 -- 19. 持续改进记录 (continuous_improvement)
 INSERT IGNORE INTO `continuous_improvement` (`id`, `teaching_class_id`, `problem_description`, `improvement_measures`, `effect_evaluation`, `status`, `created_at`) VALUES
@@ -226,7 +231,7 @@ INSERT IGNORE INTO `survey_answer` (`id`, `questionnaire_id`, `question_id`, `us
 (1, 1, 101, 2001, '完全掌握', '2026-01-01 00:00:00'),
 (2, 1, 102, 2001, '非常满意', '2026-01-01 00:00:00');
 
--- 21. 自评报告与章节明细 (report, report_section, report_data_source)
+-- 21. 自评报告与章节明细 (report, report_section)
 INSERT IGNORE INTO `report` (`id`, `scheme_id`, `title`, `status`, `created_at`) VALUES
 (1, 10, '2024年度软件工程专业工程教育认证自评报告', 1, '2026-01-01 00:00:00');
 
@@ -235,9 +240,9 @@ INSERT IGNORE INTO `report_section` (`id`, `report_id`, `section_number`, `title
 (2, 1, '2.0', '培养目标', '本专业培养目标明确，适应区域经济社会发展需求。', 1011, 1),
 (3, 1, '3.0', '毕业要求', '本专业毕业要求涵盖工程教育认证通用标准12条，拆解合理。', 1021, 1);
 
--- 22. 系统审计日志 (sys_audit_log)
-INSERT IGNORE INTO `sys_audit_log` (`id`, `user_id`, `username`, `operation`, `method`, `params`, `ip`, `status`, `created_at`) VALUES
-(1, 1001, 'admin_super', '超级管理员登录系统', 'POST /auth/login', '{"username":"admin_super"}', '127.0.0.1', 1, '2026-01-01 00:00:00'),
-(2, 1011, 'dir_wang', '发布2024版软件工程人才培养方案', 'PUT /program-schemes/10/publish', '{}', '127.0.0.1', 1, '2026-01-01 00:00:00'),
-(3, 1021, 'coord_li', '提交软件工程-2024春季01班课程总评成绩', 'POST /teacher/classes/1001/submit', '{}', '127.0.0.1', 1, '2026-01-01 00:00:00'),
-(4, 1031, 'teacher_liu', '录入软件工程-2024春季02班期末小项成绩', 'POST /teacher/classes/1002/scores', '{"count":5}', '127.0.0.1', 1, '2026-01-01 00:00:00');
+-- 22. 系统审计日志 (sys_audit_log) - 匹配列名: id, user_id, username, operation, method, params, ip, status, detail, created_at
+INSERT IGNORE INTO `sys_audit_log` (`id`, `user_id`, `username`, `operation`, `method`, `params`, `ip`, `status`, `detail`, `created_at`) VALUES
+(1, 1001, 'admin_super', '超级管理员登录系统', 'POST /auth/login', '{"username":"admin_super"}', '127.0.0.1', 1, '初始化登录', '2026-01-01 00:00:00'),
+(2, 1011, 'dir_wang', '发布2024版软件工程人才培养方案', 'PUT /program-schemes/10/publish', '{}', '127.0.0.1', 1, '发布培养方案', '2026-01-01 00:00:00'),
+(3, 1021, 'coord_li', '提交软件工程-2024春季01班课程总评成绩', 'POST /teacher/classes/1001/submit', '{}', '127.0.0.1', 1, '提交总评', '2026-01-01 00:00:00'),
+(4, 1031, 'teacher_liu', '录入软件工程-2024春季02班期末小项成绩', 'POST /teacher/classes/1002/scores', '{"count":5}', '127.0.0.1', 1, '录入小项', '2026-01-01 00:00:00');
