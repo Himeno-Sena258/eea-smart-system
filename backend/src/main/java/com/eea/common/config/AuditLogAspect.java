@@ -1,4 +1,4 @@
-package com.eea.config;
+package com.eea.common.config;
 
 import com.eea.common.AuditLog;
 import com.eea.common.UserContext;

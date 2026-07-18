@@ -1,4 +1,4 @@
-package com.eea.config;
+package com.eea.common.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
@@ -19,7 +19,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addInterceptor(securityInterceptor)
                 .addPathPatterns("/**") // 拦截所有请求
                 .excludePathPatterns(
-                        "/auth/**",                 // 放行登录注册接口
+                        "/auth/login",              // 放行登录接口
                         "/health",                  // 放行健康检查
                         "/swagger-ui.html",         // 放行 Swagger 网页入口
                         "/swagger-ui/**",           // 放行 Swagger 网页静态资源
