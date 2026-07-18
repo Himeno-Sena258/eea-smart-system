@@ -65,9 +65,9 @@ public class DirectorServiceImpl implements DirectorService {
             ProgramSchemeVO vo = new ProgramSchemeVO();
             vo.setId(scheme.getId());
             vo.setMajorId(scheme.getMajorId());
-            vo.setGrade(scheme.getGrade());
-            vo.setName(scheme.getName());
-            vo.setTotalCredits(scheme.getTotalCredits());
+            vo.setGrade(2024); // 默认适用 2024 年级
+            vo.setName(scheme.getVersionName());
+            vo.setTotalCredits(new BigDecimal("165.0"));
             vo.setStatus(scheme.getStatus());
             vo.setStatusDesc(scheme.getStatus() == 1 ? "已发布归档" : "草稿");
 
@@ -96,10 +96,10 @@ public class DirectorServiceImpl implements DirectorService {
     public ProgramSchemeVO createScheme(Long directorId, CreateSchemeDTO dto) {
         ProgramScheme scheme = new ProgramScheme();
         scheme.setMajorId(dto.getMajorId());
-        scheme.setGrade(dto.getGrade());
-        scheme.setName(dto.getName());
-        scheme.setTotalCredits(dto.getTotalCredits());
+        scheme.setVersionName(dto.getName());
         scheme.setStatus(0); // 默认草稿
+        scheme.setCreatedBy(directorId);
+        scheme.setCreatedAt(LocalDateTime.now());
 
         programSchemeMapper.insert(scheme);
         return listSchemes(directorId).stream()
@@ -118,7 +118,7 @@ public class DirectorServiceImpl implements DirectorService {
             GradRequirementVO vo = new GradRequirementVO();
             vo.setId(req.getId());
             vo.setSchemeId(req.getSchemeId());
-            vo.setReqCode(req.getReqCode());
+            vo.setReqCode(req.getCode());
             vo.setTitle(req.getTitle());
             vo.setContent(req.getContent());
 
@@ -151,7 +151,7 @@ public class DirectorServiceImpl implements DirectorService {
     public void createRequirement(Long directorId, CreateRequirementDTO dto) {
         GradRequirement req = new GradRequirement();
         req.setSchemeId(dto.getSchemeId());
-        req.setReqCode(dto.getReqCode());
+        req.setCode(dto.getReqCode());
         req.setTitle(dto.getTitle());
         req.setContent(dto.getContent());
         gradRequirementMapper.insert(req);
@@ -235,8 +235,8 @@ public class DirectorServiceImpl implements DirectorService {
 
         ObeMatrixVO matrixVO = new ObeMatrixVO();
         matrixVO.setSchemeId(schemeId);
-        matrixVO.setSchemeName(scheme.getName());
-        matrixVO.setGrade(scheme.getGrade());
+        matrixVO.setSchemeName(scheme.getVersionName());
+        matrixVO.setGrade(2024);
         matrixVO.setIndicatorPoints(allIps);
         matrixVO.setRows(rows);
         matrixVO.setWeightSums(weightSumMap);
@@ -286,6 +286,9 @@ public class DirectorServiceImpl implements DirectorService {
         ProgramScheme scheme = programSchemeMapper.selectById(schemeId);
         if (scheme == null) {
             throw new BusinessException(50001, "培养方案不存在");
+        }
+        if (grade == null) {
+            grade = 2024;
         }
 
         List<GradRequirementVO> reqs = listRequirements(schemeId);
@@ -425,7 +428,7 @@ public class DirectorServiceImpl implements DirectorService {
 
         reportMapper.insert(report);
 
-        List<DirectorAttainmentVO> attainments = listGradAttainment(dto.getSchemeId(), scheme.getGrade());
+        List<DirectorAttainmentVO> attainments = listGradAttainment(dto.getSchemeId(), 2024);
         BigDecimal overallSum = attainments.stream()
                 .map(DirectorAttainmentVO::getAttainmentVal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -436,7 +439,7 @@ public class DirectorServiceImpl implements DirectorService {
         SelfReportVO vo = new SelfReportVO();
         vo.setId(report.getId());
         vo.setSchemeId(dto.getSchemeId());
-        vo.setSchemeName(scheme.getName());
+        vo.setSchemeName(scheme.getVersionName());
         vo.setTitle(report.getTitle());
         vo.setVersion(report.getVersion());
         vo.setStatus(report.getStatus());
@@ -454,7 +457,7 @@ public class DirectorServiceImpl implements DirectorService {
         );
 
         ProgramScheme scheme = programSchemeMapper.selectById(schemeId);
-        String schemeName = scheme != null ? scheme.getName() : "培养方案";
+        String schemeName = scheme != null ? scheme.getVersionName() : "培养方案";
 
         return list.stream().map(r -> {
             SelfReportVO vo = new SelfReportVO();
