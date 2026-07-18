@@ -126,4 +126,23 @@ public class AuthServiceImpl implements AuthService {
     public void logout() {
         // 基于 Header / Session 的模式下，登出由前端清除本地状态和 Header 即可
     }
+
+    @Override
+    public void changePassword(Long userId, com.eea.dto.ChangePasswordDTO dto) {
+        if (dto == null) {
+            throw new BusinessException(30002, "请求参数不能为空");
+        }
+        if (dto.getConfirmPassword() != null && !dto.getConfirmPassword().equals(dto.getNewPassword())) {
+            throw new BusinessException(30002, "两次输入的新密码不一致");
+        }
+        SysUser user = sysUserMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(20002, "用户不存在");
+        }
+        if (!passwordEncoder.matches(dto.getOldPassword(), user.getPassword())) {
+            throw new BusinessException(20007, "原密码错误");
+        }
+        user.setPassword(passwordEncoder.encode(dto.getNewPassword()));
+        sysUserMapper.updateById(user);
+    }
 }

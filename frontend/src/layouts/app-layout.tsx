@@ -1,31 +1,34 @@
-import { NavLink, Outlet } from "react-router-dom"
+import { useEffect } from "react"
+import { Outlet, useLocation, useNavigate } from "react-router-dom"
+import { AppSidebar } from "@/components/app-sidebar"
+import { GlobalRoleSwitcher } from "@/components/global-role-switcher"
 import { appRoutes } from "@/routes/app-routes"
+import { useUiStore } from "@/stores"
 
 export function AppLayout() {
+  const activeRole = useUiStore((state) => state.activeRole)
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    const currentRoute = appRoutes.find((route) => route.path === location.pathname)
+
+    if (currentRoute && !currentRoute.roles.includes(activeRole)) {
+      navigate("/dashboard", { replace: true })
+    }
+  }, [activeRole, location.pathname, navigate])
+
   return (
-    <div className="app-frame">
-      <aside className="app-sidebar">
-        <div className="brand-block">
-          <span className="brand-mark">EEA</span>
+    <div className="grid min-h-screen lg:grid-cols-[320px_minmax(0,1fr)]">
+      <AppSidebar />
+      <main className="min-w-0 p-6 lg:p-8">
+        <div className="mb-6 flex flex-col gap-3 border-b border-slate-200 pb-5 xl:flex-row xl:items-center xl:justify-between">
           <div>
-            <p className="brand-title">认证智能服务系统</p>
-            <p className="brand-subtitle">工程教育专业认证</p>
+            <p className="m-0 text-xs font-extrabold tracking-[0.14em] text-slate-400 uppercase">Role Preview</p>
+            <h1 className="m-0 mt-1 text-xl font-extrabold text-slate-950">全局角色切换</h1>
           </div>
+          <GlobalRoleSwitcher />
         </div>
-        <nav className="side-nav" aria-label="主导航">
-          {appRoutes.map((route) => (
-            <NavLink
-              key={route.path}
-              to={route.path}
-              className={({ isActive }) => `side-nav-link${isActive ? " active" : ""}`}
-            >
-              <span>{route.title}</span>
-              <small>{route.roles.join(" / ")}</small>
-            </NavLink>
-          ))}
-        </nav>
-      </aside>
-      <main className="app-content">
         <Outlet />
       </main>
     </div>

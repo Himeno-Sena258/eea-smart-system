@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/auth")
-@Tag(name = "登录认证模块")
+@Tag(name = "4.0 认证与用户会话模块", description = "对应文档 §4：用户登录认证、会话及修改密码")
 public class AuthController {
 
     @Autowired
@@ -42,5 +42,16 @@ public class AuthController {
     public Result<String> logout() {
         authService.logout();
         return Result.success("已成功退出登录");
+    }
+
+    @PutMapping("/password")
+    @Operation(summary = "修改密码", description = "当前登录用户修改自身密码")
+    public Result<String> changePassword(@RequestBody com.eea.dto.ChangePasswordDTO dto) {
+        Long userId = UserContext.getUserId();
+        if (userId == null) {
+            return Result.error(401, "未登录或登录已失效");
+        }
+        authService.changePassword(userId, dto);
+        return Result.success("密码修改成功");
     }
 }

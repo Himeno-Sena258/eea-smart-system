@@ -1,9 +1,9 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom"
 import { AppLayout } from "@/layouts/app-layout"
 import { appRoutes } from "@/routes/app-routes"
-import { LoginPage } from "@/pages/login-page"
-import { NotFoundPage } from "@/pages/not-found-page"
-import { RegisterPage } from "@/pages/register-page"
+import { LoginPage } from "@/pages/login"
+import { NotFoundPage } from "@/pages/not-found"
+import { RegisterPage } from "@/pages/register"
 
 function App() {
   return (
