@@ -94,6 +94,14 @@ public class DirectorServiceImpl implements DirectorService {
     @Override
     @Transactional
     public ProgramSchemeVO createScheme(Long directorId, CreateSchemeDTO dto) {
+        SysOrganization org = sysOrganizationMapper.selectById(dto.getMajorId());
+        if (org == null) {
+            throw new BusinessException(30002, "指定的专业ID不存在");
+        }
+        if (!"MAJOR".equalsIgnoreCase(org.getType())) {
+            throw new BusinessException(30002, "指定的组织架构ID不是有效的专业(MAJOR)");
+        }
+
         ProgramScheme scheme = new ProgramScheme();
         scheme.setMajorId(dto.getMajorId());
         scheme.setVersionName(dto.getName());
@@ -165,6 +173,24 @@ public class DirectorServiceImpl implements DirectorService {
                 gradIndicatorPointMapper.insert(ip);
             }
         }
+    }
+
+    @Override
+    @Transactional
+    public Course createCourse(Long directorId, CreateCourseDTO dto) {
+        ProgramScheme scheme = programSchemeMapper.selectById(dto.getSchemeId());
+        if (scheme == null) {
+            throw new BusinessException(30002, "指定的培养方案不存在");
+        }
+        Course course = new Course();
+        course.setSchemeId(dto.getSchemeId());
+        course.setCourseCode(dto.getCourseCode());
+        course.setCourseName(dto.getCourseName());
+        course.setCredits(dto.getCredits());
+        course.setHours(dto.getHours());
+
+        courseMapper.insert(course);
+        return course;
     }
 
     // -------------------------------------------------------------------------
@@ -253,6 +279,15 @@ public class DirectorServiceImpl implements DirectorService {
 
         // 覆盖/保存权重
         for (SaveMatrixDTO.MatrixItem item : dto.getMatrixItems()) {
+            CourseObjective co = courseObjectiveMapper.selectById(item.getCourseObjectiveId());
+            if (co == null) {
+                throw new BusinessException(30002, "课程目标ID " + item.getCourseObjectiveId() + " 不存在");
+            }
+            Course c = courseMapper.selectById(co.getCourseId());
+            if (c == null || !c.getSchemeId().equals(dto.getSchemeId())) {
+                throw new BusinessException(30002, "课程目标ID " + item.getCourseObjectiveId() + " 不属于培养方案 " + dto.getSchemeId());
+            }
+
             CourseObjIndicatorMap exist = courseObjIndicatorMapMapper.selectOne(
                     new LambdaQueryWrapper<CourseObjIndicatorMap>()
                             .eq(CourseObjIndicatorMap::getCourseObjectiveId, item.getCourseObjectiveId())
