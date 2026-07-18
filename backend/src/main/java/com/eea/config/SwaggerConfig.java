@@ -58,4 +58,12 @@ public class SwaggerConfig {
                 .pathsToMatch("/admin/**")
                 .build();
     }
+
+    @Bean
+    public GroupedOpenApi studentApi() {
+        return GroupedOpenApi.builder()
+                .group("4-学生门户 (STUDENT)")
+                .pathsToMatch("/student/**")
+                .build();
+    }
 }
