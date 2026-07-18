@@ -74,4 +74,12 @@ public class SwaggerConfig {
                 .pathsToMatch("/teacher/**")
                 .build();
     }
+
+    @Bean
+    public GroupedOpenApi directorApi() {
+        return GroupedOpenApi.builder()
+                .group("6-专业负责人 (DIRECTOR)")
+                .pathsToMatch("/director/**")
+                .build();
+    }
 }

@@ -257,4 +257,65 @@ public class ApiIntegrationTests {
                 .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.data").isArray());
     }
+
+    // ==================== 7. 专业负责人模块 API 测试 ====================
+    @Test
+    @DisplayName("测试 7.1: 专业负责人查询培养方案列表 /director/schemes")
+    void testDirectorListSchemes() throws Exception {
+        mockMvc.perform(get("/director/schemes")
+                        .header("User-Id", 101)) // 101 为专业负责人王教授
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data").isArray());
+    }
+
+    @Test
+    @DisplayName("测试 7.2: 专业负责人查询毕业要求拆解表 /director/schemes/1/requirements")
+    void testDirectorListRequirements() throws Exception {
+        mockMvc.perform(get("/director/schemes/1/requirements")
+                        .header("User-Id", 101))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data").isArray());
+    }
+
+    @Test
+    @DisplayName("测试 7.3: 专业负责人获取 OBE 课程矩阵与支撑权重配置 /director/schemes/1/matrix")
+    void testDirectorGetObeMatrix() throws Exception {
+        mockMvc.perform(get("/director/schemes/1/matrix")
+                        .header("User-Id", 101))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data.rows").isArray());
+    }
+
+    @Test
+    @DisplayName("测试 7.4: 专业负责人强制校验各指标点支撑权重和 ΣW = 1.000 /director/schemes/1/matrix/validate")
+    void testDirectorValidateObeMatrix() throws Exception {
+        mockMvc.perform(post("/director/schemes/1/matrix/validate")
+                        .header("User-Id", 101))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").exists());
+    }
+
+    @Test
+    @DisplayName("测试 7.5: 专业负责人执行专业毕业达成度计算总引擎 /director/schemes/1/attainment/calculate")
+    void testDirectorCalculateGradAttainment() throws Exception {
+        mockMvc.perform(post("/director/schemes/1/attainment/calculate")
+                        .header("User-Id", 101)
+                        .param("grade", "2024"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data").isArray());
+    }
+
+    @Test
+    @DisplayName("测试 7.6: 专业负责人查询专业自评报告列表 /director/schemes/1/reports")
+    void testDirectorListReports() throws Exception {
+        mockMvc.perform(get("/director/schemes/1/reports")
+                        .header("User-Id", 101))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data").isArray());
+    }
 }
