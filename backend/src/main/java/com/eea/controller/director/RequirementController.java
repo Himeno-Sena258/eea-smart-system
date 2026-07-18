@@ -15,7 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@Tag(name = "5.8 毕业要求管理", description = "对应文档 §5.8：毕业要求大项的查询、录入、修改与删除")
+@Tag(name = "5.08 毕业要求管理", description = "对应文档 §5.8：毕业要求大项的查询、录入、修改与删除")
 @RequireRoles({"DIRECTOR", "ADMIN"})
 public class RequirementController {
 

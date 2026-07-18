@@ -13,7 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@Tag(name = "5.9 指标点分解", description = "对应文档 §5.9：毕业要求二级指标点的查询、新增、修改与删除")
+@Tag(name = "5.09 指标点分解", description = "对应文档 §5.9：毕业要求二级指标点的查询、新增、修改与删除")
 @RequireRoles({"DIRECTOR", "ADMIN"})
 public class IndicatorController {
 

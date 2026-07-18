@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/classes")
-@Tag(name = "5.4 行政班级管理", description = "对应文档 §5.4：行政班级的增删改查与列表分页查询")
+@Tag(name = "5.04 行政班级管理", description = "对应文档 §5.4：行政班级的增删改查与列表分页查询")
 @RequireRoles("ADMIN")
 public class ClassInfoController {
 

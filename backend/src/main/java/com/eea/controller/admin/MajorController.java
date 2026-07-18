@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/majors")
-@Tag(name = "5.5 专业信息管理", description = "对应文档 §5.5：专业信息的增删改查与列表分页查询")
+@Tag(name = "5.05 专业信息管理", description = "对应文档 §5.5：专业信息的增删改查与列表分页查询")
 @RequireRoles("ADMIN")
 public class MajorController {
 

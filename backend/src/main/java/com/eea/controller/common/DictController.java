@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/dicts")
-@Tag(name = "5.2 角色基础数据", description = "对应文档 §5.2：查询系统角色枚举，用于管理员开户和角色筛选下拉菜单")
+@Tag(name = "5.02 角色基础数据", description = "对应文档 §5.2：查询系统角色枚举，用于管理员开户和角色筛选下拉菜单")
 public class DictController {
 
     @Autowired
