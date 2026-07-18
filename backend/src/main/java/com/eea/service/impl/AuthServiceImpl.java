@@ -129,6 +129,12 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void changePassword(Long userId, com.eea.dto.ChangePasswordDTO dto) {
+        if (dto == null) {
+            throw new BusinessException(30002, "请求参数不能为空");
+        }
+        if (dto.getConfirmPassword() != null && !dto.getConfirmPassword().equals(dto.getNewPassword())) {
+            throw new BusinessException(30002, "两次输入的新密码不一致");
+        }
         SysUser user = sysUserMapper.selectById(userId);
         if (user == null) {
             throw new BusinessException(20002, "用户不存在");

@@ -12,4 +12,7 @@ public class ChangePasswordDTO {
 
     @Schema(description = "新密码", requiredMode = Schema.RequiredMode.REQUIRED)
     private String newPassword;
+
+    @Schema(description = "确认新密码", requiredMode = Schema.RequiredMode.REQUIRED)
+    private String confirmPassword;
 }
