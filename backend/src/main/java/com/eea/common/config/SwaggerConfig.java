@@ -1,4 +1,4 @@
-package com.eea.config;
+package com.eea.common.config;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;

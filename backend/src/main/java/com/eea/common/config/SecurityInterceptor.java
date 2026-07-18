@@ -1,4 +1,4 @@
-package com.eea.config;
+package com.eea.common.config;
 
 import com.eea.common.RequireRoles;
 import com.eea.common.Result;
