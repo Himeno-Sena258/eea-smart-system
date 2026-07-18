@@ -158,7 +158,7 @@ public class TeacherServiceImpl implements TeacherService {
                 h.setMethodWeight(m.getWeight());
 
                 CourseObjective co = courseObjectiveMapper.selectById(item.getCourseObjectiveId());
-                h.setCoCode(co != null ? co.getCode() : "CO");
+                h.setCoCode(co != null ? co.getObjectiveCode() : "CO");
                 headers.add(h);
             }
         }
@@ -426,8 +426,8 @@ public class TeacherServiceImpl implements TeacherService {
 
             TeacherCoAttainmentVO vo = new TeacherCoAttainmentVO();
             vo.setCoId(co.getId());
-            vo.setCoCode(co.getCode());
-            vo.setCoDescription(co.getDescription());
+            vo.setCoCode(co.getObjectiveCode());
+            vo.setCoDescription(co.getContent());
 
             // 查询所绑定的二级指标点代码
             CourseObjIndicatorMap mapRel = courseObjIndicatorMapMapper.selectOne(
