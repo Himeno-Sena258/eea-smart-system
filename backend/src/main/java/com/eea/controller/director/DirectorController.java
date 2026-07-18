@@ -78,7 +78,7 @@ public class DirectorController {
         if (valid) {
             return Result.success("校验通过：所有二级指标点的课程支撑权重和均精确等于 1.000");
         } else {
-            return Result.failure(30002, "校验未通过：存在指标点的课程支撑权重和不等于 1.000，请修正后再归档");
+            return Result.error(30002, "校验未通过：存在指标点的课程支撑权重和不等于 1.000，请修正后再归档");
         }
     }
 
