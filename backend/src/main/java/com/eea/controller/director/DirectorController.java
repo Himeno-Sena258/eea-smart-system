@@ -54,6 +54,15 @@ public class DirectorController {
         return Result.success("毕业要求及指标点录入成功");
     }
 
+    @PostMapping("/schemes/{schemeId}/courses")
+    @Operation(summary = "2.1 新增培养方案下属课程", description = "为指定的培养方案新增一门课程(如 SE-303 计算机网络)")
+    public Result<com.eea.entity.Course> createCourse(@PathVariable("schemeId") Long schemeId, @RequestBody CreateCourseDTO dto) {
+        dto.setSchemeId(schemeId);
+        Long directorId = UserContext.getUserId();
+        com.eea.entity.Course course = directorService.createCourse(directorId, dto);
+        return Result.success(course);
+    }
+
     // ==================== 2.2 矩阵配置与权重校验 ====================
     @GetMapping("/schemes/{schemeId}/matrix")
     @Operation(summary = "2.2 OBE 课程矩阵与权重配置表", description = "获取各课程对毕业要求二级指标点的支撑权重矩阵与权重和汇总")

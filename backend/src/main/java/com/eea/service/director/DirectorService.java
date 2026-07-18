@@ -18,6 +18,9 @@ public interface DirectorService {
     /** 2.1 新增毕业要求大项与二级指标点 */
     void createRequirement(Long directorId, CreateRequirementDTO dto);
 
+    /** 2.1 新增培养方案下属课程 */
+    com.eea.entity.Course createCourse(Long directorId, CreateCourseDTO dto);
+
     /** 2.2 获取 OBE 课程矩阵与权重配置表 */
     ObeMatrixVO getObeMatrix(Long schemeId);
 
