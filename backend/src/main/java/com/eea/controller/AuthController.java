@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/auth")
-@Tag(name = "登录认证模块")
+@Tag(name = "2.1 登录认证模块", description = "用户登录认证与 Token 鉴权")
 public class AuthController {
 
     @Autowired

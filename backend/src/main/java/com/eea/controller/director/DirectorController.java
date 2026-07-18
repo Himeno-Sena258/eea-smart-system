@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/director")
-@Tag(name = "专业负责人模块", description = "培养方案制定、毕业要求及指标点拆解、OBE矩阵与支撑权重强校验(ΣW=1.000)、专业毕业达成度计算总引擎与自评报告导出")
+@Tag(name = "4.1 专业负责人模块", description = "培养方案制定、毕业要求及指标点拆解、OBE矩阵与支撑权重强校验(ΣW=1.000)、专业毕业达成度计算总引擎与自评报告导出")
 @RequireRoles("DIRECTOR")
 public class DirectorController {
 

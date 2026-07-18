@@ -46,8 +46,8 @@ public class SwaggerConfig {
     @Bean
     public GroupedOpenApi authApi() {
         return GroupedOpenApi.builder()
-                .group("2-登录认证模块")
-                .pathsToMatch("/auth/**")
+                .group("2-登录认证与系统健康")
+                .pathsToMatch("/auth/**", "/health")
                 .build();
     }
 
@@ -60,25 +60,9 @@ public class SwaggerConfig {
     }
 
     @Bean
-    public GroupedOpenApi studentApi() {
-        return GroupedOpenApi.builder()
-                .group("4-学生门户 (STUDENT)")
-                .pathsToMatch("/student/**")
-                .build();
-    }
-
-    @Bean
-    public GroupedOpenApi teacherApi() {
-        return GroupedOpenApi.builder()
-                .group("5-授课教师 (INSTRUCTOR)")
-                .pathsToMatch("/teacher/**")
-                .build();
-    }
-
-    @Bean
     public GroupedOpenApi directorApi() {
         return GroupedOpenApi.builder()
-                .group("6-专业负责人 (DIRECTOR)")
+                .group("4-专业负责人 (DIRECTOR)")
                 .pathsToMatch("/director/**")
                 .build();
     }
@@ -86,8 +70,24 @@ public class SwaggerConfig {
     @Bean
     public GroupedOpenApi coordinatorApi() {
         return GroupedOpenApi.builder()
-                .group("7-课程负责人 (COORDINATOR)")
+                .group("5-课程负责人 (COORDINATOR)")
                 .pathsToMatch("/coordinator/**")
+                .build();
+    }
+
+    @Bean
+    public GroupedOpenApi teacherApi() {
+        return GroupedOpenApi.builder()
+                .group("6-授课教师 (INSTRUCTOR)")
+                .pathsToMatch("/teacher/**")
+                .build();
+    }
+
+    @Bean
+    public GroupedOpenApi studentApi() {
+        return GroupedOpenApi.builder()
+                .group("7-学生门户 (STUDENT)")
+                .pathsToMatch("/student/**")
                 .build();
     }
 }

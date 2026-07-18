@@ -13,7 +13,7 @@ import java.util.Map;
  * 健康检查 —— 前端同学调用这个接口验证后端是否启动成功
  */
 @RestController
-@Tag(name = "健康检查")
+@Tag(name = "2.2 系统健康检查", description = "服务探活与运行状态监测")
 public class HealthController {
 
     @GetMapping("/health")

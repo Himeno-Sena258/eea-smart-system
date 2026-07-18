@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/admin/organizations")
-@Tag(name = "管理员-组织架构管理", description = "学院 -> 专业 -> 行政班级 树状层级维护与防误删校验")
+@Tag(name = "3.2 管理员-组织架构管理", description = "学院 -> 专业 -> 行政班级 树状层级维护与防误删校验")
 @RequireRoles("ADMIN")
 public class AdminOrgController {
 

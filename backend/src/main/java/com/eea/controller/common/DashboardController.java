@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/dashboard")
-@Tag(name = "系统首页概览", description = "集中收纳系统管理员、专业负责人、课程负责人、授课教师、学生所有角色的控制台首页接口")
+@Tag(name = "1.1 系统首页概览", description = "集中收纳系统管理员、专业负责人、课程负责人、授课教师、学生所有角色的控制台首页接口")
 public class DashboardController {
 
     @GetMapping("/admin")

@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/teacher")
-@Tag(name = "授课教师模块", description = "教学班花名册管理、小项成绩批量录入、总评计算、CO达成度引擎、教学改进与认证样品归档")
+@Tag(name = "6.1 授课教师模块", description = "教学班花名册管理、小项成绩批量录入、总评计算、CO达成度引擎、教学改进与认证样品归档")
 @RequireRoles("INSTRUCTOR")
 public class TeacherController {
 

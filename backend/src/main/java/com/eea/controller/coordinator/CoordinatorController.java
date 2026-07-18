@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/coordinator")
-@Tag(name = "课程负责人模块", description = "课程教学大纲编制、课程目标(CO1~CO5)制定与指标点映射、考核环节权重强校验(ΣW=1.000)及考核细项与CO强绑定")
+@Tag(name = "5.1 课程负责人模块", description = "课程教学大纲编制、课程目标(CO1~CO5)制定与指标点映射、考核环节权重强校验(ΣW=1.000)及考核细项与CO强绑定")
 @RequireRoles("COORDINATOR")
 public class CoordinatorController {
 
