@@ -15,7 +15,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/student")
-@Tag(name = "7.1 学生门户模块", description = "包含综合成绩总表、课程小项明细、个人毕业要求达成表、课程大纲与问卷调查")
+@Tag(name = "9.1 学生门户模块", description = "对应文档 §9：包含综合成绩总表、课程小项明细、个人毕业要求达成表、课程大纲与问卷调查")
 @RequireRoles("STUDENT")
 public class StudentController {
 

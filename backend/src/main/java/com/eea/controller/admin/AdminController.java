@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/admin")
-@Tag(name = "3.1 管理员-账号与开户管理", description = "单个用户新建开户、用户列表分页查询、账号状态开启禁用、重置密码")
+@Tag(name = "5.1 系统管理员 - 账号与开户管理", description = "对应文档 §5.1：单个用户新建开户、用户列表分页查询、账号状态开启禁用、重置密码")
 @RequireRoles("ADMIN")
 public class AdminController {
 

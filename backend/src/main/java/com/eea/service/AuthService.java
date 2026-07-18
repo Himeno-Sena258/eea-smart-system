@@ -19,4 +19,9 @@ public interface AuthService {
      * 退出登录
      */
     void logout();
+
+    /**
+     * 修改密码
+     */
+    void changePassword(Long userId, com.eea.dto.ChangePasswordDTO dto);
 }

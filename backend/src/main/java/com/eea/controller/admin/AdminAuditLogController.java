@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/admin/audit-logs")
-@Tag(name = "3.4 管理员-安全操作审计", description = "全系统关键敏感写操作与行为安全审计日志检索")
+@Tag(name = "5.4 系统管理员 - 安全操作审计", description = "对应文档 §5.4：全系统关键敏感写操作与行为安全审计日志检索")
 @RequireRoles("ADMIN")
 public class AdminAuditLogController {
 

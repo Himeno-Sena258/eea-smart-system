@@ -13,7 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/admin/import")
-@Tag(name = "3.3 管理员-数据批量导入", description = "CSV/Excel 批量导入师生账号、排课教学班与学生选课花名册")
+@Tag(name = "5.3 系统管理员 - 数据批量导入", description = "对应文档 §5.3：CSV/Excel 批量导入师生账号、排课教学班与学生选课花名册")
 @RequireRoles("ADMIN")
 public class AdminImportController {
 
