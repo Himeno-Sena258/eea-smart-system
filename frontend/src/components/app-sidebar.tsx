@@ -13,8 +13,9 @@ import {
   type LucideProps,
 } from "lucide-react"
 import { NavLink } from "react-router-dom"
+import { roleLabels } from "@/constants/role-options"
 import type { RoleCode } from "@/models"
-import { useAuthStore } from "@/stores"
+import { useUiStore } from "@/stores"
 
 type SidebarIcon = ComponentType<LucideProps>
 
@@ -29,14 +30,6 @@ interface SidebarGroup {
   title?: string
   roles: RoleCode[]
   items: SidebarItem[]
-}
-
-const roleLabels: Record<RoleCode, string> = {
-  ADMIN: "系统管理员",
-  DIRECTOR: "专业负责人",
-  COORDINATOR: "课程负责人",
-  INSTRUCTOR: "授课教师",
-  STUDENT: "学生",
 }
 
 const allRoles: RoleCode[] = ["ADMIN", "DIRECTOR", "COORDINATOR", "INSTRUCTOR", "STUDENT"]
@@ -135,13 +128,10 @@ const sidebarGroups: SidebarGroup[] = [
   },
 ]
 
-const isRoleCode = (role: string): role is RoleCode => role in roleLabels
-
 const canAccess = (allowedRoles: RoleCode[], currentRole: RoleCode) => allowedRoles.includes(currentRole)
 
 export function AppSidebar() {
-  const currentUser = useAuthStore((state) => state.currentUser)
-  const currentRole = currentUser?.roleCodes?.find(isRoleCode) ?? "INSTRUCTOR"
+  const currentRole = useUiStore((state) => state.activeRole)
   const visibleGroups = sidebarGroups
     .map((group) => ({
       ...group,
