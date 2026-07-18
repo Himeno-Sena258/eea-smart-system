@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/program-schemes")
-@Tag(name = "5.06 人才培养方案版本管理", description = "对应文档 §5.6：人才培养方案版本的查询、新建、修改、发布与归档")
+@Tag(name = "5.06 人才培养方案版本管理", description = "对应文档 §5.6：人才培养方案版本管理")
 @RequireRoles({"DIRECTOR", "ADMIN"})
 public class ProgramSchemeController {
 

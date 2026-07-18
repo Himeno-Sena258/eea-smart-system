@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/program-schemes/{schemeId}/curriculum")
-@Tag(name = "5.12 课程体系设置", description = "对应文档 §5.12：保存课程体系排序、类别和学期安排")
+@Tag(name = "5.12 课程体系设置", description = "对应文档 §5.12：课程体系设置")
 @RequireRoles({"DIRECTOR", "ADMIN"})
 public class CurriculumController {
 

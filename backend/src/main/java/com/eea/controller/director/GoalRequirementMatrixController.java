@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/program-schemes/{schemeId}/goal-requirement-matrix")
-@Tag(name = "5.11 培养目标-毕业要求矩阵", description = "对应文档 §5.11：培养目标与毕业要求支撑矩阵管理")
+@Tag(name = "5.11 培养目标-毕业要求矩阵", description = "对应文档 §5.11：培养目标-毕业要求矩阵")
 @RequireRoles({"DIRECTOR", "ADMIN"})
 public class GoalRequirementMatrixController {
 
