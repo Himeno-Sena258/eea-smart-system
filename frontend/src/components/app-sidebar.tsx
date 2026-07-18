@@ -150,19 +150,24 @@ export function AppSidebar() {
     .filter((group) => canAccess(group.roles, currentRole) && group.items.length > 0)
 
   return (
-    <aside className="app-sidebar" aria-label="主导航">
-      <div className="sidebar-brand">
-        <div className="sidebar-brand-icon" aria-hidden="true">
+    <aside
+      className="static flex h-auto flex-col overflow-hidden border-b border-slate-200 bg-white shadow-[0_0_0_1px_rgb(15_23_42_/_2%)] lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r"
+      aria-label="主导航"
+    >
+      <div className="flex min-h-[88px] items-center gap-3 border-b border-slate-200 bg-blue-50/50 px-7 text-[22px] font-extrabold text-blue-700">
+        <div className="grid size-9 place-items-center text-blue-700" aria-hidden="true">
           <GraduationCap size={30} strokeWidth={2.4} />
         </div>
         <span>EEA 认证系统</span>
       </div>
 
-      <nav className="side-nav">
+      <nav className="grid flex-1 grid-cols-[repeat(auto-fit,minmax(180px,1fr))] overflow-y-auto p-3 lg:block lg:p-0 lg:py-5">
         {visibleGroups.map((group, groupIndex) => (
-          <section className="side-nav-group" key={group.title ?? "primary"}>
-            {group.title ? <p className="side-nav-group-title">{group.title}</p> : null}
-            <div className="side-nav-list">
+          <section className="mb-0 lg:mb-6" key={group.title ?? "primary"}>
+            {group.title ? (
+              <p className="hidden px-6 pb-2 text-[13px] font-extrabold text-slate-400 lg:block">{group.title}</p>
+            ) : null}
+            <div className="grid gap-1">
               {group.items.map((item) => {
                 const Icon = item.icon
 
@@ -171,9 +176,16 @@ export function AppSidebar() {
                     end={groupIndex === 0}
                     key={item.path}
                     to={item.path}
-                    className={({ isActive }) => `side-nav-link${isActive ? " active" : ""}`}
+                    className={({ isActive }) =>
+                      [
+                        "flex min-h-12 items-center gap-4 rounded-lg px-3 text-sm font-extrabold text-slate-700 no-underline transition-colors lg:min-h-16 lg:rounded-none lg:border-r-[3px] lg:px-7 lg:text-[17px]",
+                        isActive
+                          ? "border-blue-700 bg-blue-50 text-blue-700"
+                          : "border-transparent hover:border-blue-700 hover:bg-blue-50 hover:text-blue-700",
+                      ].join(" ")
+                    }
                   >
-                    <Icon className="side-nav-icon" size={19} strokeWidth={2} aria-hidden="true" />
+                    <Icon className="shrink-0" size={19} strokeWidth={2} aria-hidden="true" />
                     <span>{item.title}</span>
                   </NavLink>
                 )
@@ -183,9 +195,9 @@ export function AppSidebar() {
         ))}
       </nav>
 
-      <div className="sidebar-status">
-        <strong>{roleLabels[currentRole]}</strong>
-        <span>v2.0 运行正常</span>
+      <div className="mx-5 mb-5 hidden gap-2 rounded-lg border border-slate-200 bg-slate-50 p-4 text-center lg:grid">
+        <strong className="text-[15px] text-blue-700">{roleLabels[currentRole]}</strong>
+        <span className="text-sm text-slate-500">v2.0 运行正常</span>
       </div>
     </aside>
   )
