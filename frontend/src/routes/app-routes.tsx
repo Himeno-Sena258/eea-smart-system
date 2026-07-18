@@ -4,6 +4,7 @@ import { AttainmentPage } from "@/pages/attainment-page"
 import { CoursesPage } from "@/pages/courses-page"
 import { DashboardPage } from "@/pages/dashboard-page"
 import { ImprovementsPage } from "@/pages/improvements-page"
+import { ProfilePage } from "@/pages/profile-page"
 import { ProgramPage } from "@/pages/program-page"
 import { ReportsPage } from "@/pages/reports-page"
 import { SurveysPage } from "@/pages/surveys-page"
@@ -18,68 +19,77 @@ export interface AppRoute {
   element: ReactNode
 }
 
+export const allRoles: RoleCode[] = ["ADMIN", "DIRECTOR", "COORDINATOR", "INSTRUCTOR", "STUDENT"]
+
 export const appRoutes: AppRoute[] = [
   {
     path: "/dashboard",
-    title: "工作台",
-    description: "按当前角色展示待办、统计和快捷入口。",
-    roles: ["ADMIN", "DIRECTOR", "COORDINATOR", "INSTRUCTOR", "STUDENT"],
+    title: "角色工作台",
+    description: "按当前角色展示待办、统计与快捷入口。",
+    roles: allRoles,
     element: <DashboardPage />,
   },
   {
     path: "/admin/users",
-    title: "用户与组织",
-    description: "账号开户、组织架构、行政班级和审计入口。",
+    title: "用户与组织管理",
+    description: "账号开设、组织架构、班级与审计入口。",
     roles: ["ADMIN"],
     element: <UsersPage />,
   },
   {
     path: "/program",
-    title: "培养方案",
-    description: "方案版本、毕业要求、指标点和课程支撑矩阵。",
+    title: "培养方案管理",
+    description: "方案版本、毕业要求、指标点与课程支撑矩阵。",
     roles: ["DIRECTOR"],
     element: <ProgramPage />,
   },
   {
     path: "/courses",
-    title: "课程管理",
-    description: "课程信息、大纲、课程目标、考核配置和课程资源。",
+    title: "课程质量管理",
+    description: "课程信息、大纲、课程目标、考核配置与课程资源。",
     roles: ["DIRECTOR", "COORDINATOR", "INSTRUCTOR", "STUDENT"],
     element: <CoursesPage />,
   },
   {
     path: "/teaching-classes",
-    title: "教学班",
-    description: "教学班名单、成绩录入、成绩单和佐证材料。",
+    title: "教学班与成绩",
+    description: "教学班名单、成绩录入、成绩单与佐证材料。",
     roles: ["COORDINATOR", "INSTRUCTOR", "STUDENT"],
     element: <TeachingClassesPage />,
   },
   {
     path: "/attainment",
     title: "达成度分析",
-    description: "专业、课程、班级和个人维度的达成度分析。",
+    description: "专业、课程、班级与个人维度的达成度分析。",
     roles: ["DIRECTOR", "COORDINATOR", "INSTRUCTOR", "STUDENT"],
     element: <AttainmentPage />,
   },
   {
     path: "/surveys",
-    title: "问卷评价",
-    description: "间接评价问卷的发布、填写和统计。",
+    title: "问卷与评价",
+    description: "间接评价问卷的发布、填写与统计。",
     roles: ["DIRECTOR", "STUDENT"],
     element: <SurveysPage />,
   },
   {
     path: "/improvements",
     title: "持续改进",
-    description: "专业、课程和班级层面的改进闭环。",
+    description: "专业、课程与班级层面的改进闭环。",
     roles: ["DIRECTOR", "COORDINATOR", "INSTRUCTOR"],
     element: <ImprovementsPage />,
   },
   {
     path: "/reports",
-    title: "自评报告",
-    description: "报告创建、章节分派、协同编辑和导出。",
-    roles: ["DIRECTOR", "COORDINATOR", "INSTRUCTOR"],
+    title: "自评报告协同",
+    description: "报告创建、章节分派、协同编辑与导出。",
+    roles: ["DIRECTOR", "INSTRUCTOR"],
     element: <ReportsPage />,
+  },
+  {
+    path: "/profile",
+    title: "个人中心",
+    description: "个人资料、账号安全与当前角色信息。",
+    roles: allRoles,
+    element: <ProfilePage />,
   },
 ]
