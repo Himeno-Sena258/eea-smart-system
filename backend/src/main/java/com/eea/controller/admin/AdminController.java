@@ -51,7 +51,11 @@ public class AdminController {
     }
 
     @PutMapping("/users/{id}/reset-password")
-    @Operation(summary = "重置用户密码", description = "管理员重置用户密码，新密码如果不传后端默认重置为 123456")
+    @Operation(
+            summary = "4.6 重置用户密码",
+            description = "对应文档 §4.6：管理员重置用户密码，新密码如果不传后端默认重置为 123456",
+            tags = {"4.0 认证与用户会话模块"}
+    )
     public Result<String> resetPassword(
             @PathVariable("id") Long id,
             @RequestBody(required = false) com.eea.dto.ResetPasswordDTO dto) {
