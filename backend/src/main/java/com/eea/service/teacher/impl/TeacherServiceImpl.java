@@ -80,12 +80,12 @@ public class TeacherServiceImpl implements TeacherService {
         return classes.stream().map(tc -> {
             TeacherClassVO vo = new TeacherClassVO();
             vo.setClassId(tc.getId());
-            vo.setClassName(tc.getName());
+            vo.setClassName(tc.getClassName());
             vo.setCourseId(tc.getCourseId());
             vo.setSemester(tc.getSemester());
 
             Course course = courseMapper.selectById(tc.getCourseId());
-            vo.setCourseName(course != null ? course.getName() : "未知课程");
+            vo.setCourseName(course != null ? course.getCourseName() : "未知课程");
 
             Long count = teachingClassStudentMapper.selectCount(
                     new LambdaQueryWrapper<TeachingClassStudent>().eq(TeachingClassStudent::getTeachingClassId, tc.getId())
@@ -102,7 +102,7 @@ public class TeacherServiceImpl implements TeacherService {
             throw new BusinessException(50001, "教学班不存在");
         }
         Course course = courseMapper.selectById(tc.getCourseId());
-        String courseName = course != null ? course.getName() : "";
+        String courseName = course != null ? course.getCourseName() : "";
 
         List<TeachingClassStudent> rels = teachingClassStudentMapper.selectList(
                 new LambdaQueryWrapper<TeachingClassStudent>().eq(TeachingClassStudent::getTeachingClassId, classId)
@@ -500,7 +500,7 @@ public class TeacherServiceImpl implements TeacherService {
             TeachingImprovementVO vo = new TeachingImprovementVO();
             vo.setId(ci.getId());
             vo.setClassId(classId);
-            vo.setClassName(tc.getName());
+            vo.setClassName(tc.getClassName());
             vo.setProblemAnalysis(ci.getProblemAnalysis());
             vo.setImprovementMeasures(ci.getImprovementMeasures());
             vo.setCreatedBy(ci.getCreatedBy());
@@ -557,7 +557,7 @@ public class TeacherServiceImpl implements TeacherService {
             EvidenceSampleVO vo = new EvidenceSampleVO();
             vo.setId(em.getId());
             vo.setClassId(classId);
-            vo.setClassName(tc.getName());
+            vo.setClassName(tc.getClassName());
             vo.setMethodId(em.getAssessmentMethodId());
 
             AssessmentMethod method = assessmentMethodMapper.selectById(em.getAssessmentMethodId());
