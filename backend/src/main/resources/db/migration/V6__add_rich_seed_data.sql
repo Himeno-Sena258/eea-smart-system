@@ -215,34 +215,33 @@ INSERT IGNORE INTO `grad_requirement_attainment` (`id`, `scheme_id`, `grade`, `r
 (1, 10, 2024, 101, 0.852, '2026-01-01 00:00:00'),
 (2, 10, 2024, 103, 0.841, '2026-01-01 00:00:00');
 
--- 19. 持续改进记录 (continuous_improvement)
-INSERT IGNORE INTO `continuous_improvement` (`id`, `teaching_class_id`, `problem_description`, `improvement_measures`, `effect_evaluation`, `status`, `created_at`) VALUES
-(1, 1001, '部分学生在UML时序图设计环节表达能力欠佳，CO2达成度略低于预期目标。', '增加2课时的案例协同实操演练，重点强化软件架构时序图与类图的对应关系。', '预期在下一轮教学中将 CO2 达成度提升 5%。', 1, '2026-01-01 00:00:00');
+-- 19. 持续改进记录 (continuous_improvement) - 匹配列名: id, teaching_class_id, problem_analysis, improvement_measures, created_by, created_at
+INSERT IGNORE INTO `continuous_improvement` (`id`, `teaching_class_id`, `problem_analysis`, `improvement_measures`, `created_by`, `created_at`) VALUES
+(1, 1001, '部分学生在UML时序图设计环节表达能力欠佳，CO2达成度略低于预期目标。', '增加2课时的案例协同实操演练，重点强化软件架构时序图与类图的对应关系。', 1021, '2026-01-01 00:00:00');
 
--- 20. 问卷与答卷表 (survey_questionnaire, survey_question, survey_answer)
-INSERT IGNORE INTO `survey_questionnaire` (`id`, `title`, `description`, `target_role`, `status`, `created_at`) VALUES
-(1, '2024学年软件工程课程教学质量与目标达成度学生评教问卷', '本问卷旨在评估本课程各教学环节对课程目标(CO)的支撑有效性，请据实填写。', 'STUDENT', 1, '2026-01-01 00:00:00');
+-- 20. 问卷与答卷表 (survey_questionnaire, survey_answer)
+-- survey_questionnaire 匹配列名: id, title, type, status, created_at
+INSERT IGNORE INTO `survey_questionnaire` (`id`, `title`, `type`, `status`, `created_at`) VALUES
+(1, '2024学年软件工程课程教学质量与目标达成度学生评教问卷', 'STU_CO', 1, '2026-01-01 00:00:00');
 
-INSERT IGNORE INTO `survey_question` (`id`, `questionnaire_id`, `question_text`, `question_type`, `options_json`, `sort_order`) VALUES
-(101, 1, '您认为通过本课程的学习，是否掌握了软件需求工程与体系结构设计能力？', 'SINGLE', '["完全掌握", "基本掌握", "一般", "未掌握"]', 1),
-(102, 1, '您对本课程期中项目大作业的教学安排满意度如何？', 'SINGLE', '["非常满意", "满意", "一般", "不满意"]', 2);
-
-INSERT IGNORE INTO `survey_answer` (`id`, `questionnaire_id`, `question_id`, `user_id`, `answer_content`, `submitted_at`) VALUES
-(1, 1, 101, 2001, '完全掌握', '2026-01-01 00:00:00'),
-(2, 1, 102, 2001, '非常满意', '2026-01-01 00:00:00');
+-- survey_answer 匹配列名: id, questionnaire_id, user_id, raw_answers_json, submitted_at
+INSERT IGNORE INTO `survey_answer` (`id`, `questionnaire_id`, `user_id`, `raw_answers_json`, `submitted_at`) VALUES
+(1, 1, 2001, '{"co1":"完全掌握","co2":"非常满意"}', '2026-01-01 00:00:00');
 
 -- 21. 自评报告与章节明细 (report, report_section)
-INSERT IGNORE INTO `report` (`id`, `scheme_id`, `title`, `status`, `created_at`) VALUES
-(1, 10, '2024年度软件工程专业工程教育认证自评报告', 1, '2026-01-01 00:00:00');
+-- report 匹配列名: id, scheme_id, title, version, status, created_by, created_at
+INSERT IGNORE INTO `report` (`id`, `scheme_id`, `title`, `version`, `status`, `created_by`, `created_at`) VALUES
+(1, 10, '2024年度软件工程专业工程教育认证自评报告', 'V1.0', 1, 1011, '2026-01-01 00:00:00');
 
-INSERT IGNORE INTO `report_section` (`id`, `report_id`, `section_number`, `title`, `content`, `assigned_to`, `status`) VALUES
-(1, 1, '1.0', '学生', '本专业学生招生质量良好，转专业与学籍变更管理规范。', 1011, 1),
-(2, 1, '2.0', '培养目标', '本专业培养目标明确，适应区域经济社会发展需求。', 1011, 1),
-(3, 1, '3.0', '毕业要求', '本专业毕业要求涵盖工程教育认证通用标准12条，拆解合理。', 1021, 1);
+-- report_section 匹配列名: id, report_id, section_code, title, content, status, assigned_to
+INSERT IGNORE INTO `report_section` (`id`, `report_id`, `section_code`, `title`, `content`, `status`, `assigned_to`) VALUES
+(1, 1, '1.1', '学生招生与学籍', '本专业学生招生质量良好，转专业与学籍变更管理规范。', 1, 1011),
+(2, 1, '2.1', '培养目标定位', '本专业培养目标明确，适应区域经济社会发展需求。', 1, 1011),
+(3, 1, '3.1', '毕业要求分解', '本专业毕业要求涵盖工程教育认证通用标准12条，拆解合理。', 1, 1021);
 
--- 22. 系统审计日志 (sys_audit_log) - 匹配列名: id, user_id, username, operation, method, params, ip, status, detail, created_at
-INSERT IGNORE INTO `sys_audit_log` (`id`, `user_id`, `username`, `operation`, `method`, `params`, `ip`, `status`, `detail`, `created_at`) VALUES
-(1, 1001, 'admin_super', '超级管理员登录系统', 'POST /auth/login', '{"username":"admin_super"}', '127.0.0.1', 1, '初始化登录', '2026-01-01 00:00:00'),
-(2, 1011, 'dir_wang', '发布2024版软件工程人才培养方案', 'PUT /program-schemes/10/publish', '{}', '127.0.0.1', 1, '发布培养方案', '2026-01-01 00:00:00'),
-(3, 1021, 'coord_li', '提交软件工程-2024春季01班课程总评成绩', 'POST /teacher/classes/1001/submit', '{}', '127.0.0.1', 1, '提交总评', '2026-01-01 00:00:00'),
-(4, 1031, 'teacher_liu', '录入软件工程-2024春季02班期末小项成绩', 'POST /teacher/classes/1002/scores', '{"count":5}', '127.0.0.1', 1, '录入小项', '2026-01-01 00:00:00');
+-- 22. 系统审计日志 (sys_audit_log) - 匹配列名: id, user_id, username, action, target, target_id, detail, ip_address, created_at
+INSERT IGNORE INTO `sys_audit_log` (`id`, `user_id`, `username`, `action`, `target`, `target_id`, `detail`, `ip_address`, `created_at`) VALUES
+(1, 1001, 'admin_super', 'LOGIN', 'sys_user', 1001, '超级管理员登录系统', '127.0.0.1', '2026-01-01 00:00:00'),
+(2, 1011, 'dir_wang', 'UPDATE', 'program_scheme', 10, '发布2024版软件工程人才培养方案', '127.0.0.1', '2026-01-01 00:00:00'),
+(3, 1021, 'coord_li', 'CREATE', 'student_course_score', 1001, '提交软件工程-2024春季01班课程总评成绩', '127.0.0.1', '2026-01-01 00:00:00'),
+(4, 1031, 'teacher_liu', 'CREATE', 'student_score', 1002, '录入软件工程-2024春季02班期末小项成绩', '127.0.0.1', '2026-01-01 00:00:00');
