@@ -3,9 +3,9 @@ import { AppSidebar } from "@/components/app-sidebar"
 
 export function AppLayout() {
   return (
-    <div className="app-frame">
+    <div className="grid min-h-screen lg:grid-cols-[320px_minmax(0,1fr)]">
       <AppSidebar />
-      <main className="app-content">
+      <main className="min-w-0 p-6 lg:p-8">
         <Outlet />
       </main>
     </div>
