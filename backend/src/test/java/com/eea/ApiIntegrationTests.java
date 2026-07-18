@@ -195,4 +195,66 @@ public class ApiIntegrationTests {
                 .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.data").isArray());
     }
+
+    // ==================== 6. 授课教师模块 API 测试 ====================
+    @Test
+    @DisplayName("测试 6.1: 授课教师查询班级列表 /teacher/classes")
+    void testTeacherListClasses() throws Exception {
+        mockMvc.perform(get("/teacher/classes")
+                        .header("User-Id", 103)) // 103 为教师张强
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data").isArray());
+    }
+
+    @Test
+    @DisplayName("测试 6.2: 授课教师查询学生花名册 /teacher/classes/1/students")
+    void testTeacherListClassStudents() throws Exception {
+        mockMvc.perform(get("/teacher/classes/1/students")
+                        .header("User-Id", 103))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data").isArray());
+    }
+
+    @Test
+    @DisplayName("测试 6.3: 授课教师获取细项成绩网格表 /teacher/classes/1/score-grid")
+    void testTeacherGetScoreGrid() throws Exception {
+        mockMvc.perform(get("/teacher/classes/1/score-grid")
+                        .header("User-Id", 103))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data.headers").isArray())
+                .andExpect(jsonPath("$.data.rows").isArray());
+    }
+
+    @Test
+    @DisplayName("测试 6.4: 授课教师获取班级总评成绩单表 /teacher/classes/1/final-scores")
+    void testTeacherListFinalScores() throws Exception {
+        mockMvc.perform(get("/teacher/classes/1/final-scores")
+                        .header("User-Id", 103))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data").isArray());
+    }
+
+    @Test
+    @DisplayName("测试 6.5: 授课教师一键计算班级 CO 达成度引擎 /teacher/classes/1/attainment/calculate")
+    void testTeacherCalculateCoAttainment() throws Exception {
+        mockMvc.perform(post("/teacher/classes/1/attainment/calculate")
+                        .header("User-Id", 103))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data").isArray());
+    }
+
+    @Test
+    @DisplayName("测试 6.6: 授课教师查询认证归档样品列表 /teacher/classes/1/samples")
+    void testTeacherListSamples() throws Exception {
+        mockMvc.perform(get("/teacher/classes/1/samples")
+                        .header("User-Id", 103))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data").isArray());
+    }
 }

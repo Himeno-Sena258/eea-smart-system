@@ -66,4 +66,12 @@ public class SwaggerConfig {
                 .pathsToMatch("/student/**")
                 .build();
     }
+
+    @Bean
+    public GroupedOpenApi teacherApi() {
+        return GroupedOpenApi.builder()
+                .group("5-授课教师 (INSTRUCTOR)")
+                .pathsToMatch("/teacher/**")
+                .build();
+    }
 }
