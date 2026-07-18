@@ -318,4 +318,22 @@ public class ApiIntegrationTests {
                 .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.data").isArray());
     }
+
+    @Test
+    @DisplayName("测试 7.7: 专业负责人生成/导出自评报告 /director/schemes/1/reports/generate")
+    void testDirectorGenerateReport() throws Exception {
+        com.eea.dto.GenerateReportDTO dto = new com.eea.dto.GenerateReportDTO();
+        dto.setSchemeId(1L);
+        dto.setTitle("2024版计算机科学与技术工程教育专业认证自评报告");
+        dto.setVersion("V1.0");
+
+        mockMvc.perform(post("/director/schemes/1/reports/generate")
+                        .header("User-Id", 101)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data.title").value("2024版计算机科学与技术工程教育专业认证自评报告"))
+                .andExpect(jsonPath("$.data.downloadUrl").exists());
+    }
 }
