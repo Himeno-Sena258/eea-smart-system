@@ -51,8 +51,11 @@ public class AdminController {
     }
 
     @PutMapping("/users/{id}/reset-password")
-    @Operation(summary = "重置用户密码", description = "如果不传 newPassword，则默认重置为 123456")
-    public Result<String> resetPassword(@PathVariable("id") Long id, @RequestParam(value = "newPassword", required = false) String newPassword) {
+    @Operation(summary = "重置用户密码", description = "管理员重置用户密码，新密码如果不传后端默认重置为 123456")
+    public Result<String> resetPassword(
+            @PathVariable("id") Long id,
+            @RequestBody(required = false) com.eea.dto.ResetPasswordDTO dto) {
+        String newPassword = (dto != null) ? dto.getNewPassword() : null;
         adminUserService.resetPassword(id, newPassword);
         return Result.success("密码重置成功");
     }
