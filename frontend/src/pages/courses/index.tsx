@@ -1,4 +1,4 @@
-import { PlaceholderPage } from "./placeholder-page"
+import { PlaceholderPage } from "@/components/placeholder-page"
 
 export function CoursesPage() {
   return (
