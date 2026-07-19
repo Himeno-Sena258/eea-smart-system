@@ -1,27 +1,102 @@
-import { PlaceholderPage } from "@/components/placeholder-page"
+import { AlertTriangle, BarChart3, ChartNoAxesCombined } from "lucide-react"
+import { roleLabels } from "@/constants/role-options"
+import { useUiStore } from "@/stores"
+import { AttainmentBarChart } from "./attainment-bar-chart"
+import { AttainmentRadarChart } from "./attainment-radar-chart"
+import { attainmentRadarMockMap } from "./mock/attainment-mock"
+
+const threshold = 0.68
 
 export function AttainmentPage() {
+  const activeRole = useUiStore((state) => state.activeRole)
+  const mock = attainmentRadarMockMap[activeRole]
+
+  if (!mock) {
+    return (
+      <section className="rounded-lg border border-slate-200 bg-white p-8">
+        <h1 className="m-0 text-2xl font-extrabold text-slate-950">达成度分析</h1>
+        <p className="mt-3 text-sm text-slate-500">当前角色暂无达成度分析视图。</p>
+      </section>
+    )
+  }
+
+  const weakItems = mock.requirementResult.items.filter((item) => item.attainmentVal < threshold)
+
   return (
-    <PlaceholderPage
-      title="达成度分析"
-      description="同一分析入口下按角色切换专业、课程、班级和个人维度。"
-      sections={[
-        {
-          title: "专业维度",
-          roles: ["DIRECTOR"],
-          items: ["毕业要求达成度", "指标点预警", "责任课程定位", "专业驾驶舱"],
-        },
-        {
-          title: "课程与班级维度",
-          roles: ["COORDINATOR", "INSTRUCTOR"],
-          items: ["课程目标达成度", "跨教学班对比", "班级 CO 计算", "低达成目标分析"],
-        },
-        {
-          title: "个人维度",
-          roles: ["STUDENT"],
-          items: ["个人毕业要求达成", "短板指标点", "课程目标达成明细"],
-        },
-      ]}
-    />
+    <section className="grid gap-6">
+      <header className="grid gap-2">
+        <p className="m-0 inline-flex items-center gap-2 text-[13px] font-extrabold text-blue-700">
+          <ChartNoAxesCombined size={16} />
+          达成度分析
+        </p>
+        <div>
+          <h1 className="m-0 text-[34px] leading-tight font-extrabold tracking-normal text-slate-950">
+            达成度评价看板
+          </h1>
+          <p className="mt-2 text-base leading-7 text-slate-600">基于成绩数据的底线阈值自动计算结果。</p>
+        </div>
+      </header>
+
+      <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h2 className="m-0 flex items-center gap-2 text-lg font-extrabold text-slate-950">
+            <BarChart3 size={19} className="text-blue-700" />
+            {mock.title}
+          </h2>
+          <p className="mt-1 text-sm leading-6 text-slate-500">{mock.subtitle}</p>
+        </div>
+        <div className="flex flex-wrap gap-2 text-xs font-extrabold">
+          <span className="rounded-full bg-blue-100 px-2.5 py-1 text-blue-700">{roleLabels[activeRole]}</span>
+          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-600">{mock.scopeName}</span>
+          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-600">{mock.updatedAt}</span>
+        </div>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-2">
+        <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <div>
+            <h2 className="m-0 text-lg font-extrabold text-slate-950">{mock.courseObjectiveTitle}</h2>
+          </div>
+          <AttainmentBarChart
+            comparisonLabel={mock.comparisonCourseObjectiveLabel}
+            comparisonResult={mock.comparisonCourseObjectiveResult}
+            primaryLabel={mock.primaryCourseObjectiveLabel}
+            primaryResult={mock.primaryCourseObjectiveResult}
+            threshold={threshold}
+          />
+        </section>
+
+        <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-2">
+            <h2 className="m-0 text-lg font-extrabold text-slate-950">毕业要求(GR)画像</h2>
+          </div>
+          <AttainmentRadarChart result={mock.requirementResult} threshold={threshold} />
+        </section>
+      </div>
+
+      {weakItems.length > 0 ? (
+        <section className="rounded-lg border border-red-200 bg-red-50 p-5">
+          <h2 className="m-0 flex items-center gap-2 text-lg font-extrabold text-red-800">
+            <AlertTriangle size={19} />
+            低达成维度
+          </h2>
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {weakItems.map((item) => (
+              <article className="rounded-lg border border-red-200 bg-white p-4" key={item.requirementId}>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="m-0 text-base font-extrabold text-red-800">
+                      {item.requirementCode} {item.title}
+                    </h3>
+                    <p className="mt-1 text-sm text-red-600">低于标准底线 {threshold.toFixed(2)}</p>
+                  </div>
+                  <strong className="text-2xl leading-none text-red-700">{item.attainmentVal.toFixed(2)}</strong>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
+    </section>
   )
 }
