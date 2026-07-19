@@ -1,6 +1,7 @@
 import { AlertTriangle, BarChart3, ChartNoAxesCombined } from "lucide-react"
 import { roleLabels } from "@/constants/role-options"
 import { useUiStore } from "@/stores"
+import { AttainmentBarChart } from "./attainment-bar-chart"
 import { AttainmentRadarChart } from "./attainment-radar-chart"
 import { attainmentRadarMockMap } from "./mock/attainment-mock"
 
@@ -36,24 +37,42 @@ export function AttainmentPage() {
         </div>
       </header>
 
-      <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="mb-5 flex flex-col gap-3 border-b border-slate-200 pb-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <h2 className="m-0 flex items-center gap-2 text-lg font-extrabold text-slate-950">
-              <BarChart3 size={19} className="text-blue-700" />
-              {mock.title}
-            </h2>
-            <p className="mt-1 text-sm leading-6 text-slate-500">{mock.subtitle}</p>
-          </div>
-          <div className="flex flex-wrap gap-2 text-xs font-extrabold">
-            <span className="rounded-full bg-blue-100 px-2.5 py-1 text-blue-700">{roleLabels[activeRole]}</span>
-            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-600">{mock.scopeName}</span>
-            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-600">{mock.updatedAt}</span>
-          </div>
+      <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h2 className="m-0 flex items-center gap-2 text-lg font-extrabold text-slate-950">
+            <BarChart3 size={19} className="text-blue-700" />
+            {mock.title}
+          </h2>
+          <p className="mt-1 text-sm leading-6 text-slate-500">{mock.subtitle}</p>
         </div>
+        <div className="flex flex-wrap gap-2 text-xs font-extrabold">
+          <span className="rounded-full bg-blue-100 px-2.5 py-1 text-blue-700">{roleLabels[activeRole]}</span>
+          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-600">{mock.scopeName}</span>
+          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-600">{mock.updatedAt}</span>
+        </div>
+      </div>
 
-        <AttainmentRadarChart result={mock.requirementResult} threshold={threshold} />
-      </section>
+      <div className="grid gap-6 xl:grid-cols-2">
+        <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <div>
+            <h2 className="m-0 text-lg font-extrabold text-slate-950">{mock.courseObjectiveTitle}</h2>
+          </div>
+          <AttainmentBarChart
+            comparisonLabel={mock.comparisonCourseObjectiveLabel}
+            comparisonResult={mock.comparisonCourseObjectiveResult}
+            primaryLabel={mock.primaryCourseObjectiveLabel}
+            primaryResult={mock.primaryCourseObjectiveResult}
+            threshold={threshold}
+          />
+        </section>
+
+        <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-2">
+            <h2 className="m-0 text-lg font-extrabold text-slate-950">毕业要求(GR)画像</h2>
+          </div>
+          <AttainmentRadarChart result={mock.requirementResult} threshold={threshold} />
+        </section>
+      </div>
 
       {weakItems.length > 0 ? (
         <section className="rounded-lg border border-red-200 bg-red-50 p-5">
