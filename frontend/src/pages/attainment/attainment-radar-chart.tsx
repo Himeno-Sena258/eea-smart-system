@@ -1,4 +1,4 @@
-import type { RequirementAttainmentResult, RequirementAttainmentItem } from "@/models"
+  import type { RequirementAttainmentResult, RequirementAttainmentItem } from "@/models"
 
 interface AttainmentRadarChartProps {
   result: RequirementAttainmentResult
@@ -18,7 +18,7 @@ const getPoint = (index: number, total: number, value: number) => {
 
   return {
     x: center + Math.cos(angle) * distance,
-    y: center + Math.sin(angle) * distance,
+    y: center + Math.sin(angle) * distance, 
   }
 }
 
