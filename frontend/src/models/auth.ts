@@ -61,6 +61,33 @@ export interface AssignUserRolesPayload {
   roleCodes: Array<RoleCode | string>
 }
 
+export type ImportValidationStatus = "PASS" | "FAIL"
+
+export interface UserImportPreviewRow {
+  rowIndex: number
+  username: string
+  realName: string
+  roleCodes: Array<RoleCode | string>
+  organizationName?: Nullable<string>
+  className?: Nullable<string>
+  phone?: string
+  validation: ImportValidationStatus
+  message: string
+}
+
+export interface UserImportPreviewResult {
+  batchId: string
+  totalRows: number
+  validRows: number
+  invalidRows: number
+  rows: UserImportPreviewRow[]
+}
+
+export interface SubmitUserImportPayload {
+  batchId: string
+  defaultPassword?: string
+}
+
 export interface UpdateUserStatusPayload {
   status: UserStatus
 }

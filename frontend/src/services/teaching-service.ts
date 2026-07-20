@@ -1,5 +1,6 @@
 import { download, request } from "./http"
 import type {
+  AcademicTeachingClassImportPreviewResult,
   ID,
   ImportResult,
   PageQuery,
@@ -10,6 +11,7 @@ import type {
   ScoreTable,
   Student,
   StudentPayload,
+  SubmitAcademicTeachingClassImportPayload,
   Teacher,
   TeacherPayload,
   TeachingClass,
@@ -282,6 +284,27 @@ export const deleteTeachingTask = async (id: ID) => {
   const response = await request<boolean>({
     url: `/teaching-tasks/${id}`,
     method: "DELETE",
+  })
+  return response.data
+}
+
+export const previewAcademicTeachingClassImport = async (file: File) => {
+  const response = await request<AcademicTeachingClassImportPreviewResult>({
+    url: "/academic-imports/teaching-classes/preview",
+    method: "POST",
+    data: toImportForm(file),
+    headers: multipartHeaders,
+  })
+  return response.data
+}
+
+export const submitAcademicTeachingClassImport = async (
+  payload: SubmitAcademicTeachingClassImportPayload,
+) => {
+  const response = await request<ImportResult>({
+    url: "/academic-imports/teaching-classes",
+    method: "POST",
+    data: payload,
   })
   return response.data
 }

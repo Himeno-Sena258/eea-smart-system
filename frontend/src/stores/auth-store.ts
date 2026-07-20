@@ -4,13 +4,16 @@ import type {
   ChangePasswordPayload,
   CreateUserPayload,
   ID,
+  ImportResult,
   LoginPayload,
   PageResult,
   ResetPasswordPayload,
   Role,
+  SubmitUserImportPayload,
   UpdateUserPayload,
   UpdateUserStatusPayload,
   User,
+  UserImportPreviewResult,
   UserPageQuery,
 } from "@/models"
 import {
@@ -27,7 +30,9 @@ import {
   getUserPage,
   login,
   logout,
+  previewUserImport,
   resetUserPassword,
+  submitUserImport,
   updateRole,
   updateUser,
   updateUserStatus,
@@ -68,6 +73,8 @@ interface AuthStore extends RequestState, RequestActions {
   currentRole: Role | null
   usersPage: PageResult<User> | null
   currentUserDetail: User | null
+  userImportPreview: UserImportPreviewResult | null
+  userImportResult: ImportResult | null
   login: (payload: LoginPayload) => Promise<User>
   logout: () => Promise<string>
   fetchCurrentUser: () => Promise<User>
@@ -85,6 +92,8 @@ interface AuthStore extends RequestState, RequestActions {
   updateUserStatus: (id: ID, payload: UpdateUserStatusPayload) => Promise<string>
   assignUserRoles: (id: ID, payload: AssignUserRolesPayload) => Promise<boolean>
   deleteUser: (id: ID) => Promise<boolean>
+  previewUserImport: (file: File) => Promise<UserImportPreviewResult>
+  submitUserImport: (payload: SubmitUserImportPayload) => Promise<ImportResult>
 }
 
 export const useAuthStore = create<AuthStore>((set, get) => ({
@@ -94,6 +103,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   currentRole: null,
   usersPage: null,
   currentUserDetail: null,
+  userImportPreview: null,
+  userImportResult: null,
   clearError: () => set({ error: null }),
   login: (payload) =>
     runRequest(set, async () => {
@@ -156,5 +167,12 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   deleteUser: (id) =>
     runRequest(set, () => deleteUser(id), () => ({
       currentUserDetail: get().currentUserDetail?.id === id ? null : get().currentUserDetail,
+    })),
+  previewUserImport: (file) =>
+    runRequest(set, () => previewUserImport(file), (userImportPreview) => ({ userImportPreview })),
+  submitUserImport: (payload) =>
+    runRequest(set, () => submitUserImport(payload), (userImportResult) => ({
+      userImportResult,
+      userImportPreview: null,
     })),
 }))

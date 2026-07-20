@@ -1,4 +1,5 @@
 import type { DateTimeString, ID, PageQuery } from "./common"
+import type { ImportValidationStatus } from "./auth"
 
 export interface Student {
   id: ID
@@ -120,4 +121,33 @@ export interface TeachingQuery extends PageQuery {
   teacherId?: ID
   semester?: string
   classId?: ID
+}
+
+export interface AcademicTeachingClassImportPreviewRow {
+  rowIndex: number
+  semester: string
+  courseCode: string
+  courseName: string
+  teacherUsername: string
+  teacherName: string
+  teachingClassName: string
+  studentNo: string
+  studentName: string
+  studentClassName: string
+  validation: ImportValidationStatus
+  message: string
+}
+
+export interface AcademicTeachingClassImportPreviewResult {
+  batchId: string
+  totalRows: number
+  validRows: number
+  invalidRows: number
+  teachingClassCount: number
+  studentRelationCount: number
+  rows: AcademicTeachingClassImportPreviewRow[]
+}
+
+export interface SubmitAcademicTeachingClassImportPayload {
+  batchId: string
 }

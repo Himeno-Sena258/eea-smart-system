@@ -1,11 +1,10 @@
-import { useEffect } from "react"
+import { type ChangeEvent, useEffect, useRef, useState } from "react"
 import { Building2, FileSpreadsheet, KeyRound, Plus, Search, ShieldCheck, UserCog } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { roleLabels } from "@/constants/role-options"
 import type { DictOption, Organization, OrganizationType, User } from "@/models"
 import { useAuthStore, useBaseStore, useSystemStore } from "@/stores"
-import { importPreviewRowsMock } from "./mock/users-mock"
 
 const statusMetaMap = {
   0: { label: "禁用", className: "text-red-600" },
@@ -49,6 +48,12 @@ function RoleBadge({ roleOptions, user }: { roleOptions: DictOption<string>[]; u
 export function UsersPage() {
   const usersPage = useAuthStore((state) => state.usersPage)
   const fetchUsers = useAuthStore((state) => state.fetchUsers)
+  const previewUserImport = useAuthStore((state) => state.previewUserImport)
+  const submitUserImport = useAuthStore((state) => state.submitUserImport)
+  const userImportPreview = useAuthStore((state) => state.userImportPreview)
+  const userImportResult = useAuthStore((state) => state.userImportResult)
+  const authLoading = useAuthStore((state) => state.loading)
+  const authError = useAuthStore((state) => state.error)
   const organizationTree = useBaseStore((state) => state.organizationTree)
   const fetchOrganizationTree = useBaseStore((state) => state.fetchOrganizationTree)
   const auditLogsPage = useSystemStore((state) => state.auditLogsPage)
@@ -60,12 +65,31 @@ export function UsersPage() {
   const auditLogs = auditLogsPage?.records ?? []
   const activeUsers = users.filter((user) => user.status === 1).length
   const organizationCount = countOrganizations(organizationTree)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [selectedFileName, setSelectedFileName] = useState("")
 
   useEffect(() => {
     void fetchUsers({ pageNum: 1, pageSize: 20 })
     void fetchOrganizationTree()
     void fetchAuditLogs({ pageNum: 1, pageSize: 10 })
   }, [fetchAuditLogs, fetchOrganizationTree, fetchUsers])
+
+  const handleUserImportPreview = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setSelectedFileName(file.name)
+    await previewUserImport(file)
+    event.target.value = ""
+  }
+
+  const handleSubmitUserImport = async () => {
+    if (!userImportPreview?.batchId) return
+
+    await submitUserImport({ batchId: userImportPreview.batchId })
+    await fetchUsers({ pageNum: 1, pageSize: 20 })
+    await fetchAuditLogs({ pageNum: 1, pageSize: 10 })
+  }
 
   return (
     <section className="grid gap-5">
@@ -133,17 +157,79 @@ export function UsersPage() {
               批量导入预览
             </h2>
             <div className="mt-3 grid gap-2">
-              {importPreviewRowsMock.map((row) => (
-                <div className="rounded-lg border border-slate-200 p-3" key={row.account}>
+              <input
+                accept=".xlsx,.xls"
+                className="sr-only"
+                onChange={handleUserImportPreview}
+                ref={fileInputRef}
+                type="file"
+              />
+              <Button
+                className="w-full bg-blue-700 text-white hover:bg-blue-800"
+                disabled={authLoading}
+                onClick={() => fileInputRef.current?.click()}
+                type="button"
+              >
+                选择 Excel 预览
+              </Button>
+              {userImportPreview ? (
+                <Button
+                  className="w-full"
+                  disabled={authLoading || userImportPreview.invalidRows > 0}
+                  onClick={handleSubmitUserImport}
+                  type="button"
+                  variant="outline"
+                >
+                  提交导入
+                </Button>
+              ) : null}
+            </div>
+            {selectedFileName ? <p className="mt-2 mb-0 text-xs font-bold text-slate-500">{selectedFileName}</p> : null}
+            {authError ? (
+              <p className="mt-2 mb-0 rounded-lg border border-red-200 bg-red-50 p-2 text-xs font-bold text-red-700">
+                {authError}
+              </p>
+            ) : null}
+            {userImportPreview ? (
+              <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                <div className="rounded-lg bg-slate-50 p-2">
+                  <p className="m-0 text-[11px] font-bold text-slate-500">总行数</p>
+                  <strong className="text-base text-slate-950">{userImportPreview.totalRows}</strong>
+                </div>
+                <div className="rounded-lg bg-emerald-50 p-2">
+                  <p className="m-0 text-[11px] font-bold text-emerald-700">通过</p>
+                  <strong className="text-base text-emerald-800">{userImportPreview.validRows}</strong>
+                </div>
+                <div className="rounded-lg bg-amber-50 p-2">
+                  <p className="m-0 text-[11px] font-bold text-amber-700">失败</p>
+                  <strong className="text-base text-amber-800">{userImportPreview.invalidRows}</strong>
+                </div>
+              </div>
+            ) : null}
+            {userImportResult ? (
+              <p className="mt-2 mb-0 rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-xs font-bold text-emerald-700">
+                已导入 {userImportResult.successRows} 行，失败 {userImportResult.failedRows} 行
+              </p>
+            ) : null}
+            <div className="mt-3 grid gap-2">
+              {userImportPreview?.rows.slice(0, 6).map((row) => (
+                <div className="rounded-lg border border-slate-200 p-3" key={`${row.rowIndex}-${row.username}`}>
                   <div className="flex items-center justify-between gap-3">
-                    <p className="m-0 text-sm font-extrabold text-slate-900">{row.account} / {row.realName}</p>
+                    <p className="m-0 text-sm font-extrabold text-slate-900">{row.username} / {row.realName}</p>
                     <span className={row.validation === "PASS" ? "text-xs font-extrabold text-emerald-600" : "text-xs font-extrabold text-amber-600"}>
                       {row.message}
                     </span>
                   </div>
-                  <p className="mt-1 text-xs text-slate-500">{row.roleCode} / {row.organization}</p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {row.roleCodes.join("、")} / {row.organizationName ?? row.className ?? "未匹配组织"}
+                  </p>
                 </div>
               ))}
+              {!userImportPreview ? (
+                <p className="m-0 rounded-lg border border-dashed border-slate-200 p-3 text-sm font-bold text-slate-400">
+                  选择 Excel 后显示校验结果
+                </p>
+              ) : null}
             </div>
           </section>
         </aside>

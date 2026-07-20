@@ -9,11 +9,24 @@ import type {
   PageResult,
   ResetPasswordPayload,
   Role,
+  ImportResult,
+  SubmitUserImportPayload,
   UpdateUserPayload,
   UpdateUserStatusPayload,
   User,
+  UserImportPreviewResult,
   UserPageQuery,
 } from "@/models"
+
+const multipartHeaders = {
+  "Content-Type": "multipart/form-data",
+}
+
+const toImportForm = (file: File) => {
+  const formData = new FormData()
+  formData.append("file", file)
+  return formData
+}
 
 export interface RolePayload {
   roleName: string
@@ -163,6 +176,25 @@ export const deleteUser = async (id: ID) => {
   const response = await request<boolean>({
     url: `/admin/users/${id}`,
     method: "DELETE",
+  })
+  return response.data
+}
+
+export const previewUserImport = async (file: File) => {
+  const response = await request<UserImportPreviewResult>({
+    url: "/admin/users/import/preview",
+    method: "POST",
+    data: toImportForm(file),
+    headers: multipartHeaders,
+  })
+  return response.data
+}
+
+export const submitUserImport = async (payload: SubmitUserImportPayload) => {
+  const response = await request<ImportResult>({
+    url: "/admin/users/import",
+    method: "POST",
+    data: payload,
   })
   return response.data
 }

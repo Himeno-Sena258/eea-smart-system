@@ -1,5 +1,6 @@
 import { create } from "zustand"
 import type {
+  AcademicTeachingClassImportPreviewResult,
   ID,
   ImportResult,
   PageQuery,
@@ -10,6 +11,7 @@ import type {
   ScoreTable,
   Student,
   StudentPayload,
+  SubmitAcademicTeachingClassImportPayload,
   Teacher,
   TeacherPayload,
   TeachingClass,
@@ -42,8 +44,10 @@ import {
   getTeachingTaskPage,
   importScores,
   importTeachingClassStudents,
+  previewAcademicTeachingClassImport,
   removeStudentFromTeachingClass,
   saveScores,
+  submitAcademicTeachingClassImport,
   updateProcessRecord,
   updateStudent,
   updateTeacher,
@@ -61,6 +65,8 @@ interface TeachingStore extends RequestState, RequestActions {
   teachingClassesPage: PageResult<TeachingClass> | null
   currentTeachingClass: TeachingClass | null
   teachingTasksPage: PageResult<TeachingTask> | null
+  academicTeachingClassImportPreview: AcademicTeachingClassImportPreviewResult | null
+  academicTeachingClassImportResult: ImportResult | null
   fetchStudents: (query?: PageQuery) => Promise<PageResult<Student>>
   createStudent: (payload: StudentPayload) => Promise<Student>
   updateStudent: (id: ID, payload: StudentPayload) => Promise<Student>
@@ -91,6 +97,8 @@ interface TeachingStore extends RequestState, RequestActions {
   updateTeachingTask: (id: ID, payload: TeachingTaskPayload) => Promise<TeachingTask>
   assignTeachingTask: (id: ID, teacherId: ID) => Promise<TeachingTask>
   deleteTeachingTask: (id: ID) => Promise<boolean>
+  previewAcademicTeachingClassImport: (file: File) => Promise<AcademicTeachingClassImportPreviewResult>
+  submitAcademicTeachingClassImport: (payload: SubmitAcademicTeachingClassImportPayload) => Promise<ImportResult>
 }
 
 export const useTeachingStore = create<TeachingStore>((set, get) => ({
@@ -103,6 +111,8 @@ export const useTeachingStore = create<TeachingStore>((set, get) => ({
   teachingClassesPage: null,
   currentTeachingClass: null,
   teachingTasksPage: null,
+  academicTeachingClassImportPreview: null,
+  academicTeachingClassImportResult: null,
   clearError: () => set({ error: null }),
   fetchStudents: (query) => runRequest(set, () => getStudentPage(query), (studentsPage) => ({ studentsPage })),
   createStudent: (payload) => runRequest(set, () => createStudent(payload)),
@@ -134,4 +144,13 @@ export const useTeachingStore = create<TeachingStore>((set, get) => ({
   updateTeachingTask: (id, payload) => runRequest(set, () => updateTeachingTask(id, payload)),
   assignTeachingTask: (id, teacherId) => runRequest(set, () => assignTeachingTask(id, teacherId)),
   deleteTeachingTask: (id) => runRequest(set, () => deleteTeachingTask(id)),
+  previewAcademicTeachingClassImport: (file) =>
+    runRequest(set, () => previewAcademicTeachingClassImport(file), (academicTeachingClassImportPreview) => ({
+      academicTeachingClassImportPreview,
+    })),
+  submitAcademicTeachingClassImport: (payload) =>
+    runRequest(set, () => submitAcademicTeachingClassImport(payload), (academicTeachingClassImportResult) => ({
+      academicTeachingClassImportResult,
+      academicTeachingClassImportPreview: null,
+    })),
 }))
