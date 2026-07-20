@@ -1,34 +1,23 @@
 package com.eea.service.admin;
 
 import com.eea.common.PageResult;
-import com.eea.dto.CreateUserDTO;
-import com.eea.dto.UserPageDTO;
+import com.eea.dto.*;
 import com.eea.vo.UserDetailVO;
 
 public interface AdminUserService {
 
-    /**
-     * 管理员开户创建新用户
-     */
     UserDetailVO createUser(CreateUserDTO dto);
-
-    /**
-     * 分页查询用户列表
-     */
     PageResult<UserDetailVO> pageUsers(UserPageDTO dto);
-
-    /**
-     * 获取用户详细信息
-     */
     UserDetailVO getUserDetail(Long userId);
-
-    /**
-     * 启用 / 禁用用户账号
-     */
     void updateUserStatus(Long userId, Integer status);
-
-    /**
-     * 重置用户密码
-     */
     void resetPassword(Long userId, String newPassword);
+
+    /** §2.1 修改用户信息 */
+    UserDetailVO updateUser(Long userId, UpdateUserDTO dto);
+
+    /** §2.2 分配角色（覆盖写入） */
+    void assignRoles(Long userId, AssignRolesDTO dto);
+
+    /** §2.3 删除用户 */
+    void deleteUser(Long userId);
 }

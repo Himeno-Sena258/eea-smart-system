@@ -4,8 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.eea.common.BusinessException;
 import com.eea.common.PageResult;
-import com.eea.dto.CreateUserDTO;
-import com.eea.dto.UserPageDTO;
+import com.eea.dto.*;
+
 import com.eea.entity.ClassInfo;
 import com.eea.entity.StudentInfo;
 import com.eea.entity.SysOrganization;
@@ -230,5 +230,69 @@ public class AdminUserServiceImpl implements AdminUserService {
         String pwd = (newPassword != null && !newPassword.trim().isEmpty()) ? newPassword.trim() : "123456";
         user.setPassword(passwordEncoder.encode(pwd));
         sysUserMapper.updateById(user);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public UserDetailVO updateUser(Long userId, UpdateUserDTO dto) {
+        SysUser user = sysUserMapper.selectById(userId);
+        if (user == null) throw new BusinessException(50001, "用户不存在");
+
+        if (dto.getRealName() != null) user.setRealName(dto.getRealName());
+        if (dto.getEmail() != null) user.setEmail(dto.getEmail());
+        if (dto.getPhone() != null) user.setPhone(dto.getPhone());
+        if (dto.getStatus() != null) user.setStatus(dto.getStatus());
+        if (dto.getOrgId() != null) user.setOrgId(dto.getOrgId());
+        sysUserMapper.updateById(user);
+
+        if (dto.getRoleCodes() != null && !dto.getRoleCodes().isEmpty()) {
+            assignRoles(userId, dto.getRoleCodes());
+        }
+
+        if (dto.getRoleCodes() != null && dto.getRoleCodes().contains("STUDENT")) {
+            StudentInfo si = studentInfoMapper.selectById(userId);
+            if (si == null) {
+                si = new StudentInfo();
+                si.setUserId(userId);
+                if (dto.getStudentNo() != null) si.setStudentNo(dto.getStudentNo());
+                if (dto.getClassId() != null) si.setClassId(dto.getClassId());
+                studentInfoMapper.insert(si);
+            } else {
+                if (dto.getStudentNo() != null) si.setStudentNo(dto.getStudentNo());
+                if (dto.getClassId() != null) si.setClassId(dto.getClassId());
+                studentInfoMapper.updateById(si);
+            }
+        }
+
+        return getUserDetail(userId);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void assignRoles(Long userId, AssignRolesDTO dto) {
+        assignRoles(userId, dto.getRoleCodes());
+    }
+
+    private void assignRoles(Long userId, List<String> roleCodes) {
+        QueryWrapper<SysUserRole> delW = new QueryWrapper<>();
+        delW.eq("user_id", userId);
+        sysUserRoleMapper.delete(delW);
+
+        for (String code : roleCodes) {
+            QueryWrapper<SysRole> rW = new QueryWrapper<>();
+            rW.eq("role_code", code);
+            SysRole role = sysRoleMapper.selectOne(rW);
+            if (role != null) {
+                sysUserRoleMapper.insert(new SysUserRole(userId, role.getId()));
+            }
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteUser(Long userId) {
+        SysUser user = sysUserMapper.selectById(userId);
+        if (user == null) throw new BusinessException(50001, "用户不存在");
+        sysUserMapper.deleteById(userId);
     }
 }
