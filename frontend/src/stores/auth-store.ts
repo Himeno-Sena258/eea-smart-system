@@ -35,6 +35,33 @@ import {
 } from "@/services"
 import { createInitialRequestState, type RequestActions, type RequestState, runRequest } from "./store-utils"
 
+const CURRENT_USER_STORAGE_KEY = "eea-current-user"
+
+const readStoredCurrentUser = () => {
+  if (typeof window === "undefined") return null
+
+  const storedValue = window.localStorage.getItem(CURRENT_USER_STORAGE_KEY)
+  if (!storedValue) return null
+
+  try {
+    return JSON.parse(storedValue) as User
+  } catch {
+    window.localStorage.removeItem(CURRENT_USER_STORAGE_KEY)
+    return null
+  }
+}
+
+const writeStoredCurrentUser = (user: User | null) => {
+  if (typeof window === "undefined") return
+
+  if (user) {
+    window.localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(user))
+    return
+  }
+
+  window.localStorage.removeItem(CURRENT_USER_STORAGE_KEY)
+}
+
 interface AuthStore extends RequestState, RequestActions {
   currentUser: User | null
   roles: Role[]
@@ -62,7 +89,7 @@ interface AuthStore extends RequestState, RequestActions {
 
 export const useAuthStore = create<AuthStore>((set, get) => ({
   ...createInitialRequestState(),
-  currentUser: null,
+  currentUser: readStoredCurrentUser(),
   roles: [],
   currentRole: null,
   usersPage: null,
@@ -71,19 +98,28 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   login: (payload) =>
     runRequest(set, async () => {
       const result = await login(payload)
-      return {
+      const currentUser = {
         id: result.userId,
         username: result.username,
         realName: result.realName,
         roleCodes: result.roles,
       } satisfies User
+      writeStoredCurrentUser(currentUser)
+      return currentUser
     }, (currentUser) => ({ currentUser })),
   logout: () =>
-    runRequest(set, logout, () => ({
-      currentUser: null,
-      currentUserDetail: null,
-    })),
-  fetchCurrentUser: () => runRequest(set, getCurrentUser, (currentUser) => ({ currentUser })),
+    runRequest(set, logout, () => {
+      writeStoredCurrentUser(null)
+      return {
+        currentUser: null,
+        currentUserDetail: null,
+      }
+    }),
+  fetchCurrentUser: () =>
+    runRequest(set, getCurrentUser, (currentUser) => {
+      writeStoredCurrentUser(currentUser)
+      return { currentUser }
+    }),
   changePassword: (payload) => runRequest(set, () => changePassword(payload)),
   resetUserPassword: (id, payload) => runRequest(set, () => resetUserPassword(id, payload)),
   fetchRoles: () => runRequest(set, getRoleList, (roles) => ({ roles })),

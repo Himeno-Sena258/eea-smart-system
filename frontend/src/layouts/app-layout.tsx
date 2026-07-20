@@ -3,20 +3,26 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom"
 import { AppSidebar } from "@/components/app-sidebar"
 import { GlobalRoleSwitcher } from "@/components/global-role-switcher"
 import { appRoutes } from "@/routes/app-routes"
-import { useUiStore } from "@/stores"
+import { useAuthStore, useUiStore } from "@/stores"
 
 export function AppLayout() {
   const activeRole = useUiStore((state) => state.activeRole)
+  const currentUser = useAuthStore((state) => state.currentUser)
   const location = useLocation()
   const navigate = useNavigate()
 
   useEffect(() => {
+    if (!currentUser) {
+      navigate("/login", { replace: true, state: { from: location.pathname } })
+      return
+    }
+
     const currentRoute = appRoutes.find((route) => route.path === location.pathname)
 
     if (currentRoute && !currentRoute.roles.includes(activeRole)) {
       navigate("/dashboard", { replace: true })
     }
-  }, [activeRole, location.pathname, navigate])
+  }, [activeRole, currentUser, location.pathname, navigate])
 
   return (
     <div className="grid min-h-screen lg:grid-cols-[320px_minmax(0,1fr)]">

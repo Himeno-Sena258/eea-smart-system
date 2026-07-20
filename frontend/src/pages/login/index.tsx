@@ -1,6 +1,8 @@
-import { type FormEvent, useMemo, useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
-import { useAuthStore } from "@/stores"
+import { type FormEvent, useEffect, useMemo, useState } from "react"
+import { Link, useLocation, useNavigate } from "react-router-dom"
+import { roleOptions } from "@/constants/role-options"
+import type { RoleCode } from "@/models"
+import { useAuthStore, useUiStore } from "@/stores"
 
 const captchaChars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 
@@ -74,10 +76,13 @@ function CaptchaImage({ onRefresh, value }: { onRefresh: () => void; value: stri
 
 export function LoginPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const login = useAuthStore((state) => state.login)
   const loading = useAuthStore((state) => state.loading)
   const serviceError = useAuthStore((state) => state.error)
   const clearError = useAuthStore((state) => state.clearError)
+  const currentUser = useAuthStore((state) => state.currentUser)
+  const setActiveRole = useUiStore((state) => state.setActiveRole)
 
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
@@ -90,6 +95,12 @@ export function LoginPage() {
     setCaptchaInput("")
     setFormError(null)
   }
+
+  useEffect(() => {
+    if (currentUser) {
+      navigate("/dashboard", { replace: true })
+    }
+  }, [currentUser, navigate])
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -108,8 +119,17 @@ export function LoginPage() {
     }
 
     try {
-      await login({ username: username.trim(), password })
-      navigate("/dashboard", { replace: true })
+      const user = await login({ username: username.trim(), password })
+      const firstValidRole = user.roleCodes?.find((roleCode): roleCode is RoleCode =>
+        roleOptions.some((option) => option.role === roleCode),
+      )
+      if (firstValidRole) {
+        setActiveRole(firstValidRole)
+      }
+      const redirectTo = typeof location.state === "object" && location.state && "from" in location.state
+        ? String(location.state.from)
+        : "/dashboard"
+      navigate(redirectTo, { replace: true })
     } catch {
       refreshCaptcha()
     }
