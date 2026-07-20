@@ -1,7 +1,8 @@
 package com.eea;
 
-import com.eea.dto.LoginDTO;
+import com.eea.dto.LoginRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,7 +32,7 @@ public class ApiIntegrationTests {
     @Test
     @DisplayName("测试 1.1: 管理员正确密码登录")
     void testAdminLoginSuccess() throws Exception {
-        LoginDTO dto = new LoginDTO();
+        LoginRequest dto = new LoginRequest();
         dto.setUsername("admin");
         dto.setPassword("123456");
 
@@ -47,7 +48,7 @@ public class ApiIntegrationTests {
     @Test
     @DisplayName("测试 1.2: 登录失败-错误密码测试")
     void testLoginWrongPassword() throws Exception {
-        LoginDTO dto = new LoginDTO();
+        LoginRequest dto = new LoginRequest();
         dto.setUsername("admin");
         dto.setPassword("wrongpassword");
 
