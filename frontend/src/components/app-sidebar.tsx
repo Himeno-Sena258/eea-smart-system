@@ -13,9 +13,8 @@ import {
   type LucideProps,
 } from "lucide-react"
 import { NavLink } from "react-router-dom"
-import { roleLabels } from "@/constants/role-options"
 import type { RoleCode } from "@/models"
-import { useSystemStore, useUiStore } from "@/stores"
+import { useUiStore } from "@/stores"
 
 type SidebarIcon = ComponentType<LucideProps>
 
@@ -132,8 +131,6 @@ const canAccess = (allowedRoles: RoleCode[], currentRole: RoleCode) => allowedRo
 
 export function AppSidebar() {
   const currentRole = useUiStore((state) => state.activeRole)
-  const roleOptions = useSystemStore((state) => state.roleOptions)
-  const currentRoleLabel = roleOptions.find((option) => option.value === currentRole)?.label ?? roleLabels[currentRole]
   const visibleGroups = sidebarGroups
     .map((group) => ({
       ...group,
@@ -186,11 +183,6 @@ export function AppSidebar() {
           </section>
         ))}
       </nav>
-
-      <div className="mx-5 mb-5 hidden gap-2 rounded-lg border border-slate-200 bg-slate-50 p-4 text-center lg:grid">
-        <strong className="text-[15px] text-blue-700">{currentRoleLabel}</strong>
-        <span className="text-sm text-slate-500">v2.0 运行正常</span>
-      </div>
     </aside>
   )
 }

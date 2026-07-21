@@ -122,9 +122,6 @@ export function DashboardPage() {
             <h1 className="m-0 text-[34px] leading-tight font-extrabold tracking-normal text-slate-950">
               {dashboard?.title ?? roleLabels[activeRole]}
             </h1>
-            <p className="mt-2 text-base leading-7 text-slate-600">
-              {dashboard?.notice ?? "当前页面已接入后端 dashboard 真实接口，展示后端已返回的工作台数据。"}
-            </p>
           </div>
         </div>
       </header>

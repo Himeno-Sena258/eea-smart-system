@@ -259,9 +259,6 @@ export function ReportsPage() {
             <h1 className="m-0 text-[34px] leading-tight font-extrabold tracking-normal text-slate-950">
               {activeReport?.title ?? "暂无自评报告"}
             </h1>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              已接入报告列表、章节、数据源、章节保存、状态更新、自动填充和导出预览接口。
-            </p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">

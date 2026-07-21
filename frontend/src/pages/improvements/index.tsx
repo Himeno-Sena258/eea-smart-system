@@ -246,9 +246,6 @@ export function ImprovementsPage() {
             <h1 className="m-0 text-[34px] leading-tight font-extrabold tracking-normal text-slate-950">
               {canEdit ? "班级教学改进任务单" : "按教学班查看持续改进"}
             </h1>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              已接入教学班、低达成 CO、改进记录查询、草稿生成和教师提交接口。
-            </p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2 text-xs font-extrabold">

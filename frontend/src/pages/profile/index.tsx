@@ -13,6 +13,15 @@ import {
 import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { roleLabels } from "@/constants/role-options"
 import type { RoleCode } from "@/models"
@@ -58,6 +67,9 @@ export function ProfilePage() {
   const logout = useAuthStore((state) => state.logout)
   const loading = useAuthStore((state) => state.loading)
   const storeError = useAuthStore((state) => state.error)
+
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false)
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false)
   const [oldPassword, setOldPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -67,7 +79,9 @@ export function ProfilePage() {
   const primaryRole = getPrimaryRole(currentUser?.roleCodes, activeRole)
   const roleNames = useMemo(() => {
     if (currentUser?.roleNames?.length) return currentUser.roleNames.join(" / ")
-    if (currentUser?.roleCodes?.length) return currentUser.roleCodes.map((role) => roleLabels[role as RoleCode] ?? role).join(" / ")
+    if (currentUser?.roleCodes?.length) {
+      return currentUser.roleCodes.map((role) => roleLabels[role as RoleCode] ?? role).join(" / ")
+    }
     return roleLabels[activeRole]
   }, [activeRole, currentUser?.roleCodes, currentUser?.roleNames])
 
@@ -76,12 +90,18 @@ export function ProfilePage() {
     void fetchCurrentUser().catch((requestError: Error) => setLocalError(requestError.message))
   }, [fetchCurrentUser])
 
+  const resetPasswordForm = () => {
+    setOldPassword("")
+    setNewPassword("")
+    setConfirmPassword("")
+  }
+
   const handleChangePassword = async () => {
     setMessage(null)
     setLocalError(null)
 
     if (!oldPassword || !newPassword || !confirmPassword) {
-      setLocalError("请完整填写旧密码、新密码和确认密码。")
+      setLocalError("请完整填写旧密码、新密码和确认新密码。")
       return
     }
     if (newPassword !== confirmPassword) {
@@ -91,9 +111,8 @@ export function ProfilePage() {
 
     try {
       const result = await changePassword({ oldPassword, newPassword, confirmPassword })
-      setOldPassword("")
-      setNewPassword("")
-      setConfirmPassword("")
+      resetPasswordForm()
+      setPasswordDialogOpen(false)
       setMessage(result)
     } catch (requestError) {
       setLocalError(requestError instanceof Error ? requestError.message : "修改密码失败")
@@ -105,6 +124,7 @@ export function ProfilePage() {
     setLocalError(null)
     try {
       await logout()
+      setLogoutDialogOpen(false)
       navigate("/login", { replace: true })
     } catch (requestError) {
       setLocalError(requestError instanceof Error ? requestError.message : "退出登录失败")
@@ -123,9 +143,6 @@ export function ProfilePage() {
             <h1 className="m-0 text-[34px] leading-tight font-extrabold tracking-normal text-slate-950">
               账号资料与安全
             </h1>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              已接入当前用户信息、修改密码和退出登录接口。
-            </p>
           </div>
         </div>
         <Button disabled={loading} onClick={() => void fetchCurrentUser()} variant="outline" type="button">
@@ -135,21 +152,25 @@ export function ProfilePage() {
       </header>
 
       {localError || storeError ? (
-        <p className="m-0 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700">{localError ?? storeError}</p>
+        <p className="m-0 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700">
+          {localError ?? storeError}
+        </p>
       ) : null}
       {message ? (
-        <p className="m-0 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-700">{message}</p>
+        <p className="m-0 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-700">
+          {message}
+        </p>
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-[260px_minmax(0,1fr)]">
-        <aside className="h-fit rounded-lg border border-slate-200 bg-white p-5 text-center shadow-sm">
+      <div className="grid items-stretch gap-6 xl:grid-cols-[300px_minmax(0,1fr)]">
+        <aside className="flex h-full min-h-[420px] flex-col rounded-lg border border-slate-200 bg-white p-5 text-center shadow-sm">
           <div className="mx-auto grid size-18 place-items-center rounded-full bg-blue-700 text-xl font-extrabold text-white shadow-sm">
             {getInitials(currentUser?.realName, currentUser?.username)}
           </div>
           <h2 className="mt-3 text-lg font-extrabold text-slate-950">{currentUser?.realName ?? "-"}</h2>
           <p className="mt-1 text-sm font-semibold text-slate-500">{roleLabels[primaryRole] ?? primaryRole}</p>
 
-          <div className="mt-4 grid gap-3 border-t border-slate-200 pt-4 text-left text-sm">
+          <div className="mt-5 grid gap-4 border-t border-slate-200 pt-5 text-left text-sm">
             <div className="flex items-start gap-3">
               <CheckCircle2 className="mt-0.5 text-emerald-600" size={17} aria-hidden="true" />
               <div>
@@ -165,6 +186,10 @@ export function ProfilePage() {
               </div>
             </div>
           </div>
+
+          <div className="mt-auto border-t border-slate-100 pt-5 text-left text-xs leading-5 text-slate-400">
+            当前角色：{roleNames}
+          </div>
         </aside>
 
         <div className="grid gap-6">
@@ -172,7 +197,7 @@ export function ProfilePage() {
             <div className="mb-5 flex items-center justify-between gap-3 border-b border-slate-200 pb-4">
               <div>
                 <h2 className="m-0 text-lg font-extrabold text-slate-950">基础信息</h2>
-                <p className="mt-1 text-sm text-slate-500">当前后端仅支持读取个人资料，暂未提供个人资料保存接口。</p>
+                <p className="mt-1 text-sm text-slate-500">当前账号资料来自后端用户信息接口。</p>
               </div>
               <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-extrabold text-blue-700">
                 {roleNames}
@@ -195,35 +220,120 @@ export function ProfilePage() {
               <ShieldCheck size={19} className="text-blue-700" />
               账号安全
             </h2>
-            <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
-              <div className="grid gap-3 md:grid-cols-3">
-                <label className="grid gap-1.5">
-                  <span className="text-sm font-bold text-slate-700">旧密码</span>
-                  <Input autoComplete="current-password" onChange={(event) => setOldPassword(event.target.value)} type="password" value={oldPassword} />
-                </label>
-                <label className="grid gap-1.5">
-                  <span className="text-sm font-bold text-slate-700">新密码</span>
-                  <Input autoComplete="new-password" onChange={(event) => setNewPassword(event.target.value)} type="password" value={newPassword} />
-                </label>
-                <label className="grid gap-1.5">
-                  <span className="text-sm font-bold text-slate-700">确认新密码</span>
-                  <Input autoComplete="new-password" onChange={(event) => setConfirmPassword(event.target.value)} type="password" value={confirmPassword} />
-                </label>
-              </div>
-              <div className="flex flex-col justify-end gap-2">
-                <Button className="bg-blue-700 text-white hover:bg-blue-800" disabled={loading} onClick={handleChangePassword} type="button">
-                  <LockKeyhole size={16} />
-                  修改密码
+
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <article className="flex items-center justify-between gap-4 rounded-lg border border-blue-100 bg-blue-50/60 p-4">
+                <div className="flex items-center gap-3">
+                  <span className="grid size-9 place-items-center rounded-lg bg-blue-700 text-white">
+                    <LockKeyhole size={17} />
+                  </span>
+                  <strong className="text-sm font-extrabold text-slate-950">修改密码</strong>
+                </div>
+                <Button
+                  className="bg-blue-700 text-white hover:bg-blue-800"
+                  disabled={loading}
+                  onClick={() => {
+                    setLocalError(null)
+                    setMessage(null)
+                    setPasswordDialogOpen(true)
+                  }}
+                  type="button"
+                >
+                  修改
                 </Button>
-                <Button disabled={loading} onClick={handleLogout} variant="outline" type="button">
-                  <LogOut size={16} />
-                  退出登录
+              </article>
+
+              <article className="flex items-center justify-between gap-4 rounded-lg border border-red-100 bg-red-50/60 p-4">
+                <div className="flex items-center gap-3">
+                  <span className="grid size-9 place-items-center rounded-lg bg-red-600 text-white">
+                    <LogOut size={17} />
+                  </span>
+                  <strong className="text-sm font-extrabold text-slate-950">退出登录</strong>
+                </div>
+                <Button disabled={loading} onClick={() => setLogoutDialogOpen(true)} variant="outline" type="button">
+                  退出
                 </Button>
-              </div>
+              </article>
             </div>
           </section>
         </div>
       </div>
+
+      <Dialog
+        open={passwordDialogOpen}
+        onOpenChange={(open) => {
+          setPasswordDialogOpen(open)
+          if (!open) resetPasswordForm()
+        }}
+      >
+        <DialogContent className="bg-white shadow-2xl sm:max-w-[460px]">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-extrabold text-slate-950">修改密码</DialogTitle>
+            <DialogDescription>请输入旧密码并确认新密码。</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <label className="grid gap-1.5">
+              <span className="text-sm font-bold text-slate-700">旧密码</span>
+              <Input
+                autoComplete="current-password"
+                onChange={(event) => setOldPassword(event.target.value)}
+                type="password"
+                value={oldPassword}
+              />
+            </label>
+            <label className="grid gap-1.5">
+              <span className="text-sm font-bold text-slate-700">新密码</span>
+              <Input
+                autoComplete="new-password"
+                onChange={(event) => setNewPassword(event.target.value)}
+                type="password"
+                value={newPassword}
+              />
+            </label>
+            <label className="grid gap-1.5">
+              <span className="text-sm font-bold text-slate-700">确认新密码</span>
+              <Input
+                autoComplete="new-password"
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                type="password"
+                value={confirmPassword}
+              />
+            </label>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button disabled={loading} variant="outline" type="button">取消</Button>
+            </DialogClose>
+            <Button
+              className="bg-blue-700 text-white hover:bg-blue-800"
+              disabled={loading}
+              onClick={handleChangePassword}
+              type="button"
+            >
+              <LockKeyhole size={16} />
+              确认修改
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
+        <DialogContent className="border-red-100 bg-white shadow-2xl sm:max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-extrabold text-red-700">确认退出登录</DialogTitle>
+            <DialogDescription>退出后需要重新输入账号和密码才能访问系统。</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button disabled={loading} variant="outline" type="button">取消</Button>
+            </DialogClose>
+            <Button disabled={loading} onClick={handleLogout} variant="destructive" type="button">
+              <LogOut size={16} />
+              确认退出
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   )
 }

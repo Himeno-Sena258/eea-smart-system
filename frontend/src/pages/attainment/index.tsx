@@ -246,9 +246,6 @@ export function AttainmentPage() {
             <h1 className="m-0 text-[34px] leading-tight font-extrabold tracking-normal text-slate-950">
               达成度评价看板
             </h1>
-            <p className="mt-2 text-base leading-7 text-slate-600">
-              当前以 {roleLabels[activeRole]} 视角读取后端真实达成度计算结果。
-            </p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">

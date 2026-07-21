@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react"
 import { Outlet, useLocation, useNavigate } from "react-router-dom"
 import { AppSidebar } from "@/components/app-sidebar"
-import { GlobalRoleSwitcher } from "@/components/global-role-switcher"
 import { roleOptions } from "@/constants/role-options"
 import type { RoleCode } from "@/models"
 import { appRoutes } from "@/routes/app-routes"
@@ -87,13 +86,6 @@ export function AppLayout() {
     <div className="grid min-h-screen lg:grid-cols-[320px_minmax(0,1fr)]">
       <AppSidebar />
       <main className="min-w-0 p-6 lg:p-8">
-        <div className="mb-6 flex flex-col gap-3 border-b border-slate-200 pb-5 xl:flex-row xl:items-center xl:justify-between">
-          <div>
-            <p className="m-0 text-xs font-extrabold tracking-[0.14em] text-slate-400 uppercase">Role Preview</p>
-            <h1 className="m-0 mt-1 text-xl font-extrabold text-slate-950">全局角色切换</h1>
-          </div>
-          <GlobalRoleSwitcher />
-        </div>
         <Outlet />
       </main>
     </div>
