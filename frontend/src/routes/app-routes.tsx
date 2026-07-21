@@ -61,7 +61,7 @@ export const appRoutes: AppRoute[] = [
     path: "/attainment",
     title: "达成度分析",
     description: "专业、课程、班级与个人维度的达成度分析。",
-    roles: ["DIRECTOR", "INSTRUCTOR", "STUDENT"],
+    roles: ["DIRECTOR", "COORDINATOR", "INSTRUCTOR", "STUDENT"],
     element: <AttainmentPage />,
   },
   {

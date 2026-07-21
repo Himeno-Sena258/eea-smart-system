@@ -9,10 +9,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import type { ID, JsonValue, SurveyQuestionnaire, SurveyStatistics } from "@/models"
+import type { ID, JsonValue, SurveyQuestion, SurveyQuestionnaire, SurveyStatistics } from "@/models"
 import {
   closeSurvey,
   getSurveyPage,
+  getSurveyQuestions,
   getSurveyStatistics,
   openSurvey,
   submitSurveyAnswer,
@@ -130,23 +131,36 @@ function SurveyCard({
 function AnswerDialog({
   survey,
   onSubmitted,
+  questions,
   trigger,
 }: {
   survey: SurveyQuestionnaire
   onSubmitted: () => void
+  questions: SurveyQuestion[]
   trigger: ReactNode
 }) {
   const [rawAnswer, setRawAnswer] = useState('{\n  "feedback": "课程目标达成情况良好"\n}')
+  const [answers, setAnswers] = useState<Record<string, string>>({})
+  const [dialogQuestions, setDialogQuestions] = useState<SurveyQuestion[]>(questions)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    setDialogQuestions(questions)
+    void getSurveyQuestions(survey.id)
+      .then(setDialogQuestions)
+      .catch((requestError: Error) => setError(requestError.message))
+  }, [questions, survey.id])
 
   const handleSubmit = async () => {
     setError(null)
     setMessage(null)
 
     try {
-      const payload = JSON.parse(rawAnswer) as Record<string, JsonValue>
+      const payload = dialogQuestions.length > 0
+        ? Object.fromEntries(dialogQuestions.map((question) => [question.questionCode, answers[question.questionCode] ?? ""])) as Record<string, JsonValue>
+        : JSON.parse(rawAnswer) as Record<string, JsonValue>
       setSubmitting(true)
       await submitSurveyAnswer(survey.id, payload)
       setMessage("提交成功")
@@ -174,11 +188,29 @@ function AnswerDialog({
         </DialogHeader>
 
         <div className="grid gap-3">
-          <textarea
-            className="min-h-48 rounded-lg border border-slate-200 bg-slate-50 p-3 font-mono text-sm leading-6 text-slate-700 outline-none transition focus:border-blue-400 focus:ring-3 focus:ring-blue-100"
-            onChange={(event) => setRawAnswer(event.target.value)}
-            value={rawAnswer}
-          />
+          {dialogQuestions.length > 0 ? (
+            <div className="grid max-h-[360px] gap-3 overflow-y-auto pr-1">
+              {dialogQuestions.map((question) => (
+                <label className="grid gap-2 rounded-lg border border-slate-200 p-3" key={question.id ?? question.questionCode}>
+                  <span className="text-sm font-extrabold text-slate-950">
+                    {question.questionCode}. {question.title}
+                  </span>
+                  <input
+                    className="h-10 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none transition focus:border-blue-400 focus:ring-3 focus:ring-blue-100"
+                    onChange={(event) => setAnswers((current) => ({ ...current, [question.questionCode]: event.target.value }))}
+                    placeholder={question.questionType === "SCORE" ? "请输入评分" : "请输入答案"}
+                    value={answers[question.questionCode] ?? ""}
+                  />
+                </label>
+              ))}
+            </div>
+          ) : (
+            <textarea
+              className="min-h-48 rounded-lg border border-slate-200 bg-slate-50 p-3 font-mono text-sm leading-6 text-slate-700 outline-none transition focus:border-blue-400 focus:ring-3 focus:ring-blue-100"
+              onChange={(event) => setRawAnswer(event.target.value)}
+              value={rawAnswer}
+            />
+          )}
           {error ? <p className="m-0 text-sm font-bold text-red-600">{error}</p> : null}
           {message ? <p className="m-0 text-sm font-bold text-emerald-600">{message}</p> : null}
           <div className="flex justify-end">
@@ -197,6 +229,7 @@ export function SurveysPage() {
   const activeRole = useUiStore((state) => state.activeRole)
   const [surveys, setSurveys] = useState<SurveyQuestionnaire[]>([])
   const [selectedId, setSelectedId] = useState<ID | null>(null)
+  const [questions, setQuestions] = useState<SurveyQuestion[]>([])
   const [statistics, setStatistics] = useState<SurveyStatistics | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -225,6 +258,17 @@ export function SurveysPage() {
   useEffect(() => {
     void refreshSurveys()
   }, [])
+
+  useEffect(() => {
+    if (!selectedSurvey) {
+      setQuestions([])
+      return
+    }
+
+    void getSurveyQuestions(selectedSurvey.id)
+      .then(setQuestions)
+      .catch((requestError: Error) => setError(requestError.message))
+  }, [selectedSurvey])
 
   useEffect(() => {
     if (!canManage || !selectedSurvey) {
@@ -371,6 +415,7 @@ export function SurveysPage() {
                 </div>
                 <AnswerDialog
                   onSubmitted={() => void refreshSurveys()}
+                  questions={questions}
                   survey={survey}
                   trigger={<Button className="bg-orange-500 text-white hover:bg-orange-600" type="button"><Send size={16} />填写答卷</Button>}
                 />

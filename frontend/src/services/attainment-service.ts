@@ -2,12 +2,14 @@ import { request } from "./http"
 import type {
   ContinuousImprovement,
   ContinuousImprovementPayload,
+  CoordinatorCourseAttainment,
   DirectorAttainment,
   DirectorProgramScheme,
   DashboardQuery,
   ID,
   ImprovementDraft,
   OverviewStats,
+  ReviewImprovementPayload,
   StudentAttainment,
   TeacherCoAttainment,
   TeacherImprovementPayload,
@@ -95,6 +97,15 @@ export const deleteImprovement = async (id: ID) => {
   return response.data
 }
 
+export const reviewImprovement = async (id: ID, payload: ReviewImprovementPayload) => {
+  const response = await request<string>({
+    url: `/improvements/${id}/review`,
+    method: "PUT",
+    data: payload,
+  })
+  return response.data
+}
+
 export const generateImprovement = async (teachingClassId: ID) => {
   const response = await request<ImprovementDraft>({
     url: `/teaching-classes/${teachingClassId}/improvements/generate`,
@@ -168,6 +179,14 @@ export const calculateDirectorAttainment = async (schemeId: ID, grade?: number) 
 export const getStudentAttainmentList = async () => {
   const response = await request<StudentAttainment[]>({
     url: "/student/attainment",
+    method: "GET",
+  })
+  return response.data
+}
+
+export const getCoordinatorCourseAttainmentList = async (courseId: ID) => {
+  const response = await request<CoordinatorCourseAttainment[]>({
+    url: `/coordinator/courses/${courseId}/attainment`,
     method: "GET",
   })
   return response.data

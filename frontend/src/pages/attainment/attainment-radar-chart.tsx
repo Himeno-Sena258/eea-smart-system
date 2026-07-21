@@ -5,9 +5,11 @@ interface AttainmentRadarChartProps {
   threshold?: number
 }
 
-const size = 360
-const center = size / 2
-const radius = 118
+const chartWidth = 760
+const chartHeight = 460
+const center = chartWidth / 2
+const centerY = chartHeight / 2
+const radius = 125
 const levels = [0.6, 0.7, 0.8, 0.9, 1]
 
 const clampValue = (value: number) => Math.min(Math.max(value, 0), 1)
@@ -18,7 +20,7 @@ const getPoint = (index: number, total: number, value: number) => {
 
   return {
     x: center + Math.cos(angle) * distance,
-    y: center + Math.sin(angle) * distance,
+    y: centerY + Math.sin(angle) * distance,
   }
 }
 
@@ -30,7 +32,13 @@ const toPoints = (items: RequirementAttainmentItem[], valueGetter: (item: Requir
     })
     .join(" ")
 
-const toCenterPoints = (items: RequirementAttainmentItem[]) => items.map(() => `${center},${center}`).join(" ")
+const toCenterPoints = (items: RequirementAttainmentItem[]) => items.map(() => `${center},${centerY}`).join(" ")
+
+const toAxisLabel = (item: RequirementAttainmentItem) => {
+  const title = item.title === item.requirementCode ? "" : item.title
+  const summary = title.length > 12 ? `${title.slice(0, 12)}...` : title
+  return summary ? `${item.requirementCode} ${summary}` : item.requirementCode
+}
 
 export function AttainmentRadarChart({ result, threshold = 0.68 }: AttainmentRadarChartProps) {
   const items = result.items
@@ -51,7 +59,7 @@ export function AttainmentRadarChart({ result, threshold = 0.68 }: AttainmentRad
 
   return (
     <div className="grid gap-4">
-      <svg className="mx-auto block h-auto w-full max-w-[440px]" viewBox={`0 0 ${size} ${size}`} role="img" aria-label="毕业要求达成雷达图">
+      <svg className="mx-auto block h-auto w-full max-w-[860px]" viewBox={`0 0 ${chartWidth} ${chartHeight}`} role="img" aria-label="毕业要求达成雷达图">
         <g>
           {levels.map((level) => (
             <polygon
@@ -74,7 +82,7 @@ export function AttainmentRadarChart({ result, threshold = 0.68 }: AttainmentRad
                 strokeWidth="1"
                 x1={center}
                 x2={end.x}
-                y1={center}
+                y1={centerY}
                 y2={end.y}
               />
             )
@@ -102,7 +110,7 @@ export function AttainmentRadarChart({ result, threshold = 0.68 }: AttainmentRad
           return (
             <circle
               cx={center}
-              cy={center}
+              cy={centerY}
               fill={isWeak ? "#ef4444" : "#1d4ed8"}
               key={item.requirementId}
               opacity="0"
@@ -111,7 +119,7 @@ export function AttainmentRadarChart({ result, threshold = 0.68 }: AttainmentRad
               strokeWidth="2"
             >
               <animate attributeName="cx" begin={begin} dur="420ms" fill="freeze" from={center} to={point.x} />
-              <animate attributeName="cy" begin={begin} dur="420ms" fill="freeze" from={center} to={point.y} />
+              <animate attributeName="cy" begin={begin} dur="420ms" fill="freeze" from={centerY} to={point.y} />
               <animate attributeName="r" begin={begin} dur="420ms" fill="freeze" from="0" to="4.5" />
               <animate attributeName="opacity" begin={begin} dur="220ms" fill="freeze" from="0" to="1" />
             </circle>
@@ -133,12 +141,12 @@ export function AttainmentRadarChart({ result, threshold = 0.68 }: AttainmentRad
               opacity="0"
               textAnchor={isRight ? "start" : isLeft ? "end" : "middle"}
               x={center}
-              y={center}
+              y={centerY}
             >
-              {item.title}
+              {toAxisLabel(item)}
               <animate attributeName="opacity" begin={`${620 + index * 60}ms`} dur="300ms" fill="freeze" from="0" to="1" />
               <animate attributeName="x" begin={`${620 + index * 60}ms`} dur="360ms" fill="freeze" from={center} to={label.x} />
-              <animate attributeName="y" begin={`${620 + index * 60}ms`} dur="360ms" fill="freeze" from={center} to={label.y} />
+              <animate attributeName="y" begin={`${620 + index * 60}ms`} dur="360ms" fill="freeze" from={centerY} to={label.y} />
             </text>
           )
         })}

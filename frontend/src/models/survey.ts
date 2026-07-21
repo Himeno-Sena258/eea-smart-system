@@ -12,8 +12,13 @@ export interface SurveyQuestionnaire {
 }
 
 export interface SurveyQuestion {
+  id?: ID
+  questionnaireId?: ID
   questionCode: string
-  title?: string
+  title: string
+  questionType: string
+  options?: JsonValue | string
+  sortOrder?: number
   score?: number
   text?: string
   [key: string]: JsonValue | undefined

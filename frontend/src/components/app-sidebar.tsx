@@ -84,7 +84,7 @@ const sidebarGroups: SidebarGroup[] = [
       {
         path: "/attainment",
         title: "达成度分析",
-        roles: ["DIRECTOR", "INSTRUCTOR", "STUDENT"],
+        roles: ["DIRECTOR", "COORDINATOR", "INSTRUCTOR", "STUDENT"],
         icon: Target,
       },
     ],

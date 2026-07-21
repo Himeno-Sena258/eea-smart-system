@@ -84,18 +84,31 @@ export interface CourseResource {
   description?: string
   fileName: string
   filePath: string
+  mimeType?: string
+  fileSize?: number
+  previewUrl?: string
   uploadedBy?: ID
   uploadedAt?: DateTimeString
 }
 
 export interface CourseResourcePayload {
-  file: File
   resourceType: CourseResourceType
+  fileName: string
+  filePath: string
   description?: string
+  mimeType?: string
+  fileSize?: number
+  previewUrl?: string
+}
+
+export interface ResourceDownloadInfo {
+  filePath: string
+  fileName: string
 }
 
 export interface TeachingContentItem {
   id?: ID
+  courseId?: ID
   title: string
   hours: number
   objectiveIds: ID[]
@@ -189,6 +202,7 @@ export interface SaveAssessmentMethodsPayload {
 export interface AssessmentStandard {
   id?: ID
   itemId?: ID
+  assessmentItemId?: ID
   level: string
   minScore: number
   maxScore: number
@@ -206,13 +220,14 @@ export interface EvidenceMaterial {
   fileName: string
   filePath: string
   levelTag: EvidenceLevelTag
-  uploadedBy: ID
-  uploadedAt: DateTimeString
+  uploadedBy?: ID
+  uploadedAt?: DateTimeString
 }
 
 export interface EvidenceMaterialPayload {
-  file: File
   assessmentMethodId: ID
+  fileName: string
+  filePath: string
   levelTag: EvidenceLevelTag
 }
 

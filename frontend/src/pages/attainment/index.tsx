@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button"
 import { roleLabels } from "@/constants/role-options"
 import type {
   CourseObjectiveAttainmentResult,
+  CoordinatorCourse,
+  CoordinatorCourseAttainment,
   DirectorAttainment,
   DirectorProgramScheme,
   ID,
@@ -17,6 +19,8 @@ import {
   calculateTeacherCoAttainment,
   getDirectorAttainmentList,
   getDirectorProgramSchemeList,
+  getCoordinatorCourseAttainmentList,
+  getCoordinatorCourseList,
   getStudentAttainmentList,
   getTeacherClassList,
   getTeacherCoAttainmentList,
@@ -77,11 +81,26 @@ const toDirectorRequirementResult = (schemeId: ID | null, rows: DirectorAttainme
   items: rows.map((row) => ({
     requirementId: row.indicatorPointId,
     requirementCode: row.indicatorPointCode,
-    title: row.indicatorPointCode,
+    title: row.indicatorPointContent || row.indicatorPointCode,
     attainmentVal: Number(row.attainmentVal ?? 0),
     indicatorItems: [{
       indicatorPointId: row.indicatorPointId,
       code: row.indicatorPointCode,
+      attainmentVal: Number(row.attainmentVal ?? 0),
+    }],
+  })),
+})
+
+const toCoordinatorRequirementResult = (courseId: ID | null, rows: CoordinatorCourseAttainment[]): RequirementAttainmentResult => ({
+  schemeId: courseId ?? 0,
+  items: rows.map((row) => ({
+    requirementId: row.courseObjectiveId,
+    requirementCode: row.objectiveCode,
+    title: row.teachingClassName,
+    attainmentVal: Number(row.attainmentVal ?? 0),
+    indicatorItems: [{
+      indicatorPointId: row.courseObjectiveId,
+      code: row.objectiveCode,
       attainmentVal: Number(row.attainmentVal ?? 0),
     }],
   })),
@@ -92,7 +111,7 @@ const toStudentRequirementResult = (rows: StudentAttainment[]): RequirementAttai
   items: rows.map((row, index) => ({
     requirementId: index + 1,
     requirementCode: row.indicatorCode,
-    title: row.indicatorCode,
+    title: row.indicatorContent || row.indicatorCode,
     attainmentVal: Number(row.attainmentValue ?? 0),
     indicatorItems: [{
       indicatorPointId: index + 1,
@@ -110,6 +129,9 @@ export function AttainmentPage() {
   const [directorSchemes, setDirectorSchemes] = useState<DirectorProgramScheme[]>([])
   const [selectedSchemeId, setSelectedSchemeId] = useState<ID | null>(null)
   const [directorRows, setDirectorRows] = useState<DirectorAttainment[]>([])
+  const [coordinatorCourses, setCoordinatorCourses] = useState<CoordinatorCourse[]>([])
+  const [selectedCourseId, setSelectedCourseId] = useState<ID | null>(null)
+  const [coordinatorRows, setCoordinatorRows] = useState<CoordinatorCourseAttainment[]>([])
   const [studentRows, setStudentRows] = useState<StudentAttainment[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -117,6 +139,7 @@ export function AttainmentPage() {
 
   const selectedClass = teacherClasses.find((item) => item.classId === selectedClassId) ?? teacherClasses[0] ?? null
   const selectedScheme = directorSchemes.find((item) => item.id === selectedSchemeId) ?? directorSchemes[0] ?? null
+  const selectedCourse = coordinatorCourses.find((item) => item.courseId === selectedCourseId) ?? coordinatorCourses[0] ?? null
 
   const teacherCourseResult = useMemo(
     () => toTeacherCourseObjectiveResult(selectedClass?.classId ?? null, selectedClass?.courseId ?? null, teacherRows),
@@ -130,10 +153,15 @@ export function AttainmentPage() {
     () => toDirectorRequirementResult(selectedScheme?.id ?? null, directorRows),
     [directorRows, selectedScheme],
   )
+  const coordinatorResult = useMemo(
+    () => toCoordinatorRequirementResult(selectedCourse?.courseId ?? null, coordinatorRows),
+    [coordinatorRows, selectedCourse],
+  )
   const studentResult = useMemo(() => toStudentRequirementResult(studentRows), [studentRows])
 
   const activeResult =
     activeRole === "DIRECTOR" ? directorResult :
+    activeRole === "COORDINATOR" ? coordinatorResult :
     activeRole === "INSTRUCTOR" ? teacherIndicatorResult :
     activeRole === "STUDENT" ? studentResult :
     null
@@ -147,6 +175,7 @@ export function AttainmentPage() {
     setMessage(null)
     setTeacherRows([])
     setDirectorRows([])
+    setCoordinatorRows([])
     setStudentRows([])
 
     if (activeRole === "INSTRUCTOR") {
@@ -167,6 +196,18 @@ export function AttainmentPage() {
         .then((data) => {
           setDirectorSchemes(data)
           setSelectedSchemeId((current) => current ?? data[0]?.id ?? null)
+        })
+        .catch((requestError: Error) => setError(requestError.message))
+        .finally(() => setLoading(false))
+      return
+    }
+
+    if (activeRole === "COORDINATOR") {
+      setLoading(true)
+      void getCoordinatorCourseList()
+        .then((data) => {
+          setCoordinatorCourses(data)
+          setSelectedCourseId((current) => current ?? data[0]?.courseId ?? null)
         })
         .catch((requestError: Error) => setError(requestError.message))
         .finally(() => setLoading(false))
@@ -203,6 +244,17 @@ export function AttainmentPage() {
       .catch((requestError: Error) => setError(requestError.message))
       .finally(() => setLoading(false))
   }, [activeRole, selectedScheme])
+
+  useEffect(() => {
+    if (activeRole !== "COORDINATOR" || !selectedCourse) return
+
+    setLoading(true)
+    setError(null)
+    void getCoordinatorCourseAttainmentList(selectedCourse.courseId)
+      .then(setCoordinatorRows)
+      .catch((requestError: Error) => setError(requestError.message))
+      .finally(() => setLoading(false))
+  }, [activeRole, selectedCourse])
 
   const handleCalculate = async () => {
     setLoading(true)
@@ -302,6 +354,25 @@ export function AttainmentPage() {
               type="button"
             >
               {scheme.name} {scheme.grade ? `/${scheme.grade}` : ""}
+            </button>
+          ))}
+        </section>
+      ) : null}
+
+      {activeRole === "COORDINATOR" && coordinatorCourses.length > 0 ? (
+        <section className="flex flex-wrap gap-2">
+          {coordinatorCourses.map((course) => (
+            <button
+              className={
+                course.courseId === selectedCourse?.courseId
+                  ? "rounded-lg border border-blue-600 bg-blue-600 px-3 py-2 text-sm font-extrabold text-white"
+                  : "rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-extrabold text-slate-600 hover:bg-slate-50"
+              }
+              key={course.courseId}
+              onClick={() => setSelectedCourseId(course.courseId)}
+              type="button"
+            >
+              {course.courseName}
             </button>
           ))}
         </section>
