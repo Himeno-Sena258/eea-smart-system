@@ -132,10 +132,16 @@ export interface WarningStudentResult {
   students: WarningStudent[]
 }
 
-export interface GenerateImprovementPayload {
+export interface ContinuousImprovementPayload {
   problemAnalysis: string
   improvementMeasures: string
-  createdBy: ID
+  createdBy?: ID
+}
+
+export interface TeacherImprovementPayload {
+  lowAttainmentCos: string
+  problemAnalysis: string
+  improvementMeasures: string
 }
 
 export interface ContinuousImprovement {
@@ -147,4 +153,20 @@ export interface ContinuousImprovement {
   createdAt: DateTimeString
 }
 
-export type ContinuousImprovementPayload = GenerateImprovementPayload
+export interface TeachingImprovement {
+  id: ID
+  classId: ID
+  className: string
+  lowAttainmentCos: string
+  problemAnalysis: string
+  improvementMeasures: string
+  createdBy: ID
+  creatorName?: string
+  createdAt: DateTimeString
+}
+
+export interface ImprovementDraft {
+  teachingClassId: ID
+  lowAttainmentCOs: string[]
+  suggestedAnalysis: string
+}

@@ -6,9 +6,12 @@ import type {
   DirectorProgramScheme,
   DashboardQuery,
   ID,
+  ImprovementDraft,
   OverviewStats,
   StudentAttainment,
   TeacherCoAttainment,
+  TeacherImprovementPayload,
+  TeachingImprovement,
   WarningStudentResult,
 } from "@/models"
 
@@ -58,7 +61,7 @@ export const createImprovement = async (
 }
 
 export const updateImprovement = async (id: ID, payload: ContinuousImprovementPayload) => {
-  const response = await request<ContinuousImprovement>({
+  const response = await request<string>({
     url: `/improvements/${id}`,
     method: "PUT",
     data: payload,
@@ -67,7 +70,7 @@ export const updateImprovement = async (id: ID, payload: ContinuousImprovementPa
 }
 
 export const deleteImprovement = async (id: ID) => {
-  const response = await request<boolean>({
+  const response = await request<string>({
     url: `/improvements/${id}`,
     method: "DELETE",
   })
@@ -75,9 +78,29 @@ export const deleteImprovement = async (id: ID) => {
 }
 
 export const generateImprovement = async (teachingClassId: ID) => {
-  const response = await request<ContinuousImprovement>({
+  const response = await request<ImprovementDraft>({
     url: `/teaching-classes/${teachingClassId}/improvements/generate`,
     method: "POST",
+  })
+  return response.data
+}
+
+export const getTeacherImprovementList = async (classId: ID) => {
+  const response = await request<TeachingImprovement[]>({
+    url: `/teacher/classes/${classId}/improvements`,
+    method: "GET",
+  })
+  return response.data
+}
+
+export const saveTeacherImprovement = async (
+  classId: ID,
+  payload: TeacherImprovementPayload,
+) => {
+  const response = await request<string>({
+    url: `/teacher/classes/${classId}/improvements`,
+    method: "POST",
+    data: payload,
   })
   return response.data
 }

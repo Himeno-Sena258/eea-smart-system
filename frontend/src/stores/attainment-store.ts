@@ -5,6 +5,7 @@ import type {
   DirectorAttainment,
   DirectorProgramScheme,
   ID,
+  ImprovementDraft,
   OverviewStats,
   StudentAttainment,
   TeacherCoAttainment,
@@ -47,9 +48,9 @@ interface AttainmentStore extends RequestState, RequestActions {
   fetchWarnings: (teachingClassId: ID) => Promise<WarningStudentResult>
   fetchImprovements: (teachingClassId: ID) => Promise<ContinuousImprovement[]>
   createImprovement: (teachingClassId: ID, payload: ContinuousImprovementPayload) => Promise<ContinuousImprovement>
-  updateImprovement: (id: ID, payload: ContinuousImprovementPayload) => Promise<ContinuousImprovement>
-  deleteImprovement: (id: ID) => Promise<boolean>
-  generateImprovement: (teachingClassId: ID) => Promise<ContinuousImprovement>
+  updateImprovement: (id: ID, payload: ContinuousImprovementPayload) => Promise<string>
+  deleteImprovement: (id: ID) => Promise<string>
+  generateImprovement: (teachingClassId: ID) => Promise<ImprovementDraft>
 }
 
 export const useAttainmentStore = create<AttainmentStore>((set, get) => ({
@@ -93,19 +94,11 @@ export const useAttainmentStore = create<AttainmentStore>((set, get) => ({
     () => createImprovement(teachingClassId, payload),
     (improvement) => ({ improvements: [...get().improvements, improvement] }),
   ),
-  updateImprovement: (id, payload) => runRequest(
-    set,
-    () => updateImprovement(id, payload),
-    (improvement) => ({ improvements: get().improvements.map((item) => (item.id === id ? improvement : item)) }),
-  ),
+  updateImprovement: (id, payload) => runRequest(set, () => updateImprovement(id, payload)),
   deleteImprovement: (id) => runRequest(
     set,
     () => deleteImprovement(id),
     () => ({ improvements: get().improvements.filter((item) => item.id !== id) }),
   ),
-  generateImprovement: (teachingClassId) => runRequest(
-    set,
-    () => generateImprovement(teachingClassId),
-    (improvement) => ({ improvements: [...get().improvements, improvement] }),
-  ),
+  generateImprovement: (teachingClassId) => runRequest(set, () => generateImprovement(teachingClassId)),
 }))
