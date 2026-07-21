@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react"
 import type { RequirementAttainmentItem, RequirementAttainmentResult } from "@/models"
 
 interface AttainmentRadarChartProps {
@@ -40,6 +41,94 @@ const toAxisLabel = (item: RequirementAttainmentItem) => {
   return summary ? `${item.requirementCode} ${summary}` : item.requirementCode
 }
 
+function AttainmentMetricList({
+  average,
+  items,
+  threshold,
+  weakItems,
+}: {
+  average: number
+  items: RequirementAttainmentItem[]
+  threshold: number
+  weakItems: RequirementAttainmentItem[]
+}) {
+  return (
+    <div className="grid gap-4">
+      <div className="grid min-h-[260px] content-center gap-4 px-2 sm:px-6">
+        {items.map((item, index) => {
+          const value = clampValue(item.attainmentVal)
+          const isWeak = item.attainmentVal < threshold
+
+          return (
+            <article className="grid gap-2 rounded-lg border border-slate-200 bg-white p-4" key={item.requirementId}>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h3 className="m-0 text-base font-extrabold text-slate-950">{toAxisLabel(item)}</h3>
+                  {item.title !== item.requirementCode ? (
+                    <p className="mt-1 text-sm leading-6 text-slate-500">{item.title}</p>
+                  ) : null}
+                </div>
+                <strong className={isWeak ? "text-2xl leading-none text-red-700" : "text-2xl leading-none text-blue-700"}>
+                  {item.attainmentVal.toFixed(2)}
+                </strong>
+              </div>
+              <div className="relative h-3 overflow-hidden rounded-full bg-slate-100">
+                <span
+                  className="absolute top-0 bottom-0 w-px bg-red-400"
+                  style={{ left: `${threshold * 100}%` }}
+                />
+                <span
+                  className={isWeak ? "block h-full rounded-full bg-red-500" : "block h-full rounded-full bg-blue-700"}
+                  style={{
+                    animation: `attainmentBarGrow 520ms ${index * 100}ms ease-out both`,
+                    "--bar-width": `${value * 100}%`,
+                  } as CSSProperties}
+                />
+              </div>
+            </article>
+          )
+        })}
+      </div>
+
+      <style>
+        {`
+          @keyframes attainmentBarGrow {
+            from { width: 0; }
+            to { width: var(--bar-width); }
+          }
+        `}
+      </style>
+
+      <ChartSummary average={average} weakCount={weakItems.length} />
+    </div>
+  )
+}
+
+function ChartSummary({ average, weakCount }: { average: number; weakCount: number }) {
+  return (
+    <aside className="grid gap-4 border-t border-slate-200 pt-4 md:grid-cols-[1fr_1fr_auto] md:items-center">
+      <div>
+        <p className="m-0 text-xs font-extrabold text-slate-400">平均达成度</p>
+        <strong className="mt-1 block text-2xl leading-none font-extrabold text-blue-800">{average.toFixed(2)}</strong>
+      </div>
+      <div>
+        <p className="m-0 text-xs font-extrabold text-slate-400">低于阈值</p>
+        <strong className="mt-1 block text-2xl leading-none font-extrabold text-red-700">{weakCount}</strong>
+      </div>
+      <div className="grid gap-2 text-sm font-semibold text-slate-600">
+        <span className="inline-flex items-center gap-2">
+          <span className="h-0.5 w-6 rounded bg-blue-700" />
+          达成度计算值
+        </span>
+        <span className="inline-flex items-center gap-2">
+          <span className="h-0.5 w-6 border-t-2 border-dashed border-red-400" />
+          标准底线
+        </span>
+      </div>
+    </aside>
+  )
+}
+
 export function AttainmentRadarChart({ result, threshold = 0.68 }: AttainmentRadarChartProps) {
   const items = result.items
 
@@ -56,6 +145,10 @@ export function AttainmentRadarChart({ result, threshold = 0.68 }: AttainmentRad
   const centerPolygon = toCenterPoints(items)
   const average = items.reduce((sum, item) => sum + item.attainmentVal, 0) / items.length
   const weakItems = items.filter((item) => item.attainmentVal < threshold)
+
+  if (items.length < 3) {
+    return <AttainmentMetricList average={average} items={items} threshold={threshold} weakItems={weakItems} />
+  }
 
   return (
     <div className="grid gap-4">
@@ -161,26 +254,7 @@ export function AttainmentRadarChart({ result, threshold = 0.68 }: AttainmentRad
         })}
       </svg>
 
-      <aside className="grid gap-4 border-t border-slate-200 pt-4 md:grid-cols-[1fr_1fr_auto] md:items-center">
-        <div>
-          <p className="m-0 text-xs font-extrabold text-slate-400">平均达成度</p>
-          <strong className="mt-1 block text-2xl leading-none font-extrabold text-blue-800">{average.toFixed(2)}</strong>
-        </div>
-        <div>
-          <p className="m-0 text-xs font-extrabold text-slate-400">低于阈值</p>
-          <strong className="mt-1 block text-2xl leading-none font-extrabold text-red-700">{weakItems.length}</strong>
-        </div>
-        <div className="grid gap-2 text-sm font-semibold text-slate-600">
-          <span className="inline-flex items-center gap-2">
-            <span className="h-0.5 w-6 rounded bg-blue-700" />
-            达成度计算值
-          </span>
-          <span className="inline-flex items-center gap-2">
-            <span className="h-0.5 w-6 border-t-2 border-dashed border-red-400" />
-            标准底线
-          </span>
-        </div>
-      </aside>
+      <ChartSummary average={average} weakCount={weakItems.length} />
     </div>
   )
 }

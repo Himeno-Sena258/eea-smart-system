@@ -64,7 +64,7 @@ const toTeacherIndicatorResult = (classId: ID | null, rows: TeacherCoAttainment[
       return {
         requirementId: index + 1,
         requirementCode: code,
-        title: code,
+        title: group.map((row) => row.indicatorPointContent).filter(Boolean).join("；") || code,
         attainmentVal,
         indicatorItems: group.map((row) => ({
           indicatorPointId: row.coId,

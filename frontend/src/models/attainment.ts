@@ -52,6 +52,7 @@ export interface TeacherCoAttainment {
   coCode: string
   coDescription: string
   indicatorPointCode: string
+  indicatorPointContent?: string
   targetMaxScore: number
   classAvgScore: number
   attainmentVal: number

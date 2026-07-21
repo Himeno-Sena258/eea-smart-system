@@ -19,6 +19,9 @@ public class TeacherCoAttainmentVO {
     @Schema(description = "支撑的毕业要求二级指标点")
     private String indicatorPointCode;
 
+    @Schema(description = "支撑的毕业要求二级指标点内容")
+    private String indicatorPointContent;
+
     @Schema(description = "目标满分")
     private BigDecimal targetMaxScore;
 

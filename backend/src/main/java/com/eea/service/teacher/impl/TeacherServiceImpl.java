@@ -407,17 +407,19 @@ public class TeacherServiceImpl implements TeacherService {
                     : BigDecimal.ZERO;
 
             // 写入或更新 course_attainment 表
-            CourseAttainment ca = courseAttainmentMapper.selectOne(
+            List<CourseAttainment> existingAttainments = courseAttainmentMapper.selectList(
                     new LambdaQueryWrapper<CourseAttainment>()
                             .eq(CourseAttainment::getTeachingClassId, classId)
                             .eq(CourseAttainment::getCourseObjectiveId, co.getId())
             );
+            CourseAttainment ca = existingAttainments.isEmpty() ? null : existingAttainments.get(0);
             if (ca == null) {
                 ca = new CourseAttainment();
                 ca.setTeachingClassId(classId);
                 ca.setCourseObjectiveId(co.getId());
             }
             ca.setAttainmentVal(attainmentVal);
+            ca.setCalculatedAt(LocalDateTime.now());
             if (ca.getId() == null) {
                 courseAttainmentMapper.insert(ca);
             } else {
@@ -435,14 +437,22 @@ public class TeacherServiceImpl implements TeacherService {
             );
             if (mapRels.isEmpty()) {
                 vo.setIndicatorPointCode("未绑定");
+                vo.setIndicatorPointContent("未绑定指标点");
             } else {
-                String indicatorCodes = mapRels.stream()
+                List<GradIndicatorPoint> indicatorPoints = mapRels.stream()
                         .map(rel -> gradIndicatorPointMapper.selectById(rel.getIndicatorPointId()))
                         .filter(Objects::nonNull)
+                        .collect(Collectors.toList());
+                String indicatorCodes = indicatorPoints.stream()
                         .map(GradIndicatorPoint::getCode)
                         .filter(Objects::nonNull)
                         .collect(Collectors.joining(", "));
+                String indicatorContents = indicatorPoints.stream()
+                        .map(GradIndicatorPoint::getContent)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.joining("；"));
                 vo.setIndicatorPointCode(indicatorCodes.isEmpty() ? "指标点" : indicatorCodes);
+                vo.setIndicatorPointContent(indicatorContents.isEmpty() ? vo.getIndicatorPointCode() : indicatorContents);
             }
 
             vo.setTargetMaxScore(targetMaxSum.setScale(2, RoundingMode.HALF_UP));
