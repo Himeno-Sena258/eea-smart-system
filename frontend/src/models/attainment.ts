@@ -151,6 +151,34 @@ export interface ContinuousImprovement {
   improvementMeasures: string
   createdBy: ID
   createdAt: DateTimeString
+  status?: number
+  reviewedBy?: ID
+  reviewedAt?: DateTimeString
+  reviewerComment?: string
+  updatedAt?: DateTimeString
+  lowAttainmentCos?: string
+  cycleLabel?: string
+  followUpAt?: DateTimeString
+  followUpResult?: string
+  teachingClassName?: string
+  courseName?: string
+  teacherName?: string
+}
+
+export interface ReviewImprovementPayload {
+  status: number
+  reviewerComment?: string
+}
+
+export interface CoordinatorCourseAttainment {
+  courseId: ID
+  teachingClassId: ID
+  teachingClassName: string
+  courseObjectiveId: ID
+  objectiveCode: string
+  attainmentVal: number
+  warningThreshold: number
+  calculatedAt?: DateTimeString
 }
 
 export interface TeachingImprovement {

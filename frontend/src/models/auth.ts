@@ -32,6 +32,7 @@ export interface User {
   studentNo?: string
   classId?: ID
   className?: string
+  avatarUrl?: string
   createdAt?: DateTimeString
 }
 

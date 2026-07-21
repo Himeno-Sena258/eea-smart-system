@@ -1,4 +1,4 @@
-import { download, request } from "./http"
+import { request } from "./http"
 import type {
   AssessmentItem,
   AssessmentItemPayload,
@@ -20,6 +20,7 @@ import type {
   ID,
   ImportResult,
   PageResult,
+  ResourceDownloadInfo,
   SaveAssessmentMethodsPayload,
   SaveAssessmentStandardsPayload,
   SaveCourseIndicatorMatrixPayload,
@@ -36,21 +37,35 @@ const multipartHeaders = {
   "Content-Type": "multipart/form-data",
 }
 
-const toCourseResourceForm = (payload: CourseResourcePayload) => {
-  const formData = new FormData()
-  formData.append("file", payload.file)
-  formData.append("resourceType", payload.resourceType)
-  if (payload.description) formData.append("description", payload.description)
-  return formData
+const parseObjectiveIds = (value: unknown): ID[] => {
+  if (Array.isArray(value)) return value as ID[]
+  if (typeof value !== "string" || value.trim() === "") return []
+
+  try {
+    const parsed = JSON.parse(value)
+    if (Array.isArray(parsed)) return parsed as ID[]
+  } catch {
+    // Compatible with strings such as "1,2,3" or "[1, 2, 3]".
+  }
+
+  return value
+    .replace(/^\[/, "")
+    .replace(/\]$/, "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => Number(item))
 }
 
-const toEvidenceForm = (payload: EvidenceMaterialPayload) => {
-  const formData = new FormData()
-  formData.append("file", payload.file)
-  formData.append("assessmentMethodId", String(payload.assessmentMethodId))
-  formData.append("levelTag", payload.levelTag)
-  return formData
-}
+const normalizeTeachingContent = (item: TeachingContentItem): TeachingContentItem => ({
+  ...item,
+  objectiveIds: parseObjectiveIds(item.objectiveIds),
+})
+
+const normalizeAssessmentStandard = (item: AssessmentStandard): AssessmentStandard => ({
+  ...item,
+  itemId: item.itemId ?? item.assessmentItemId,
+})
 
 export const getCoursePage = async (query?: CourseQuery) => {
   const response = await request<PageResult<Course>>({
@@ -208,8 +223,11 @@ export const saveCourseIndicatorMatrix = async (
 }
 
 export const clearCourseIndicatorMatrix = async (courseId: ID) => {
-  void courseId
-  throw new Error("后端暂未提供清空单门课程指标矩阵的接口")
+  await request<string>({
+    url: `/courses/${courseId}/indicator-matrix`,
+    method: "DELETE",
+  })
+  return true
 }
 
 export const getCourseSyllabus = async (courseId: ID) => {
@@ -241,8 +259,7 @@ export const uploadCourseResource = async (courseId: ID, payload: CourseResource
   const response = await request<CourseResource>({
     url: `/courses/${courseId}/resources`,
     method: "POST",
-    data: toCourseResourceForm(payload),
-    headers: multipartHeaders,
+    data: payload,
   })
   return response.data
 }
@@ -268,7 +285,11 @@ export const deleteCourseResource = async (id: ID) => {
 }
 
 export const downloadCourseResource = async (id: ID) => {
-  return download(`/course-resources/${id}/download`)
+  const response = await request<ResourceDownloadInfo>({
+    url: `/course-resources/${id}/download`,
+    method: "GET",
+  })
+  return response.data
 }
 
 export const getCourseObjectiveList = async (courseId: ID) => {
@@ -310,7 +331,7 @@ export const getTeachingContentList = async (courseId: ID) => {
     url: `/courses/${courseId}/teaching-contents`,
     method: "GET",
   })
-  return response.data
+  return response.data.map(normalizeTeachingContent)
 }
 
 export const saveTeachingContents = async (courseId: ID, payload: SaveTeachingContentsPayload) => {
@@ -319,7 +340,7 @@ export const saveTeachingContents = async (courseId: ID, payload: SaveTeachingCo
     method: "PUT",
     data: payload,
   })
-  return response.data
+  return response.data.map(normalizeTeachingContent)
 }
 
 export const getAssessmentMethodList = async (courseId: ID) => {
@@ -387,7 +408,7 @@ export const getAssessmentStandardList = async (itemId: ID) => {
     url: `/assessment-items/${itemId}/standards`,
     method: "GET",
   })
-  return response.data
+  return response.data.map(normalizeAssessmentStandard)
 }
 
 export const saveAssessmentStandards = async (
@@ -399,7 +420,7 @@ export const saveAssessmentStandards = async (
     method: "PUT",
     data: payload,
   })
-  return response.data
+  return response.data.map(normalizeAssessmentStandard)
 }
 
 export const getEvidenceMaterialList = async (teachingClassId: ID) => {
@@ -417,8 +438,7 @@ export const uploadEvidenceMaterial = async (
   const response = await request<EvidenceMaterial>({
     url: `/teaching-classes/${teachingClassId}/evidence-materials`,
     method: "POST",
-    data: toEvidenceForm(payload),
-    headers: multipartHeaders,
+    data: payload,
   })
   return response.data
 }
@@ -432,5 +452,9 @@ export const deleteEvidenceMaterial = async (id: ID) => {
 }
 
 export const downloadEvidenceMaterial = async (id: ID) => {
-  return download(`/evidence-materials/${id}/download`)
+  const response = await request<ResourceDownloadInfo>({
+    url: `/evidence-materials/${id}/download`,
+    method: "GET",
+  })
+  return response.data
 }

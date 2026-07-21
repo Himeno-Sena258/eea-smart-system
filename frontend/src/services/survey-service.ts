@@ -6,6 +6,7 @@ import type {
   SubmitSurveyAnswerPayload,
   SurveyAnswer,
   SurveyPayload,
+  SurveyQuestion,
   SurveyQuestionnaire,
   SurveyStatistics,
 } from "@/models"
@@ -65,6 +66,23 @@ export const deleteSurvey = async (id: ID) => {
   const response = await request<string>({
     url: `/surveys/${id}`,
     method: "DELETE",
+  })
+  return response.data
+}
+
+export const getSurveyQuestions = async (surveyId: ID) => {
+  const response = await request<SurveyQuestion[]>({
+    url: `/surveys/${surveyId}/questions`,
+    method: "GET",
+  })
+  return response.data
+}
+
+export const saveSurveyQuestions = async (surveyId: ID, questions: SurveyQuestion[]) => {
+  const response = await request<SurveyQuestion[]>({
+    url: `/surveys/${surveyId}/questions`,
+    method: "PUT",
+    data: questions,
   })
   return response.data
 }

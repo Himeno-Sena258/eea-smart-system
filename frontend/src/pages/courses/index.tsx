@@ -1,9 +1,28 @@
 import { BookOpen, CheckCircle2, FileText, GitBranch, Layers3, PencilLine, Search, Settings2 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { roleLabels } from "@/constants/role-options"
-import type { AssessmentMethod, CoordinatorCourse, Course, CourseObjective, ID, StudentCourse, StudentSyllabus, TeacherCourse } from "@/models"
+import type {
+  AssessmentMethod,
+  AssessmentStandard,
+  CoordinatorCourse,
+  Course,
+  CourseObjective,
+  CourseResource,
+  ID,
+  StudentCourse,
+  StudentSyllabus,
+  TeacherCourse,
+  TeachingContentItem,
+} from "@/models"
 import { getCoordinatorCourseList, getStudentCourseList, getStudentSyllabusList, getTeacherCourseList } from "@/services"
 import { useBaseStore, useCourseStore, useUiStore } from "@/stores"
 
@@ -87,12 +106,20 @@ export function CoursesPage() {
   const objectives = useCourseStore((state) => state.objectives)
   const indicatorMatrix = useCourseStore((state) => state.indicatorMatrix)
   const assessmentMethods = useCourseStore((state) => state.assessmentMethods)
+  const resources = useCourseStore((state) => state.resources)
+  const teachingContents = useCourseStore((state) => state.teachingContents)
+  const assessmentStandards = useCourseStore((state) => state.assessmentStandards)
   const loading = useCourseStore((state) => state.loading)
   const error = useCourseStore((state) => state.error)
   const fetchCourses = useCourseStore((state) => state.fetchCourses)
+  const fetchCourseDetail = useCourseStore((state) => state.fetchCourseDetail)
+  const updateCourse = useCourseStore((state) => state.updateCourse)
   const fetchObjectives = useCourseStore((state) => state.fetchObjectives)
   const fetchIndicatorMatrix = useCourseStore((state) => state.fetchIndicatorMatrix)
   const fetchAssessmentMethods = useCourseStore((state) => state.fetchAssessmentMethods)
+  const fetchResources = useCourseStore((state) => state.fetchResources)
+  const fetchTeachingContents = useCourseStore((state) => state.fetchTeachingContents)
+  const fetchAssessmentStandards = useCourseStore((state) => state.fetchAssessmentStandards)
   const clearCourseError = useCourseStore((state) => state.clearError)
 
   const [keyword, setKeyword] = useState("")
@@ -102,6 +129,15 @@ export function CoursesPage() {
   const [roleCourses, setRoleCourses] = useState<Course[]>([])
   const [roleLoading, setRoleLoading] = useState(false)
   const [roleError, setRoleError] = useState<string | null>(null)
+  const [actionMessage, setActionMessage] = useState<string | null>(null)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [editSchemeId, setEditSchemeId] = useState<ID>(0)
+  const [editCourseCode, setEditCourseCode] = useState("")
+  const [editCourseName, setEditCourseName] = useState("")
+  const [editCredits, setEditCredits] = useState("")
+  const [editHours, setEditHours] = useState("")
+  const [editCourseType, setEditCourseType] = useState("")
+  const [editSemester, setEditSemester] = useState("")
 
   const courses = isDirector ? coursesPage?.records ?? [] : roleCourses
   const filteredCourses = useMemo(
@@ -146,6 +182,10 @@ export function CoursesPage() {
     [assessmentMethods, isStudent, selectedStudentSyllabus],
   )
   const displayIndicatorMatrix = isStudent ? [] : indicatorMatrix
+  const firstAssessmentItem = displayAssessmentMethods.flatMap((method) => method.items ?? [])[0] ?? null
+  const displayResources = resources as CourseResource[]
+  const displayTeachingContents = teachingContents as TeachingContentItem[]
+  const displayAssessmentStandards = assessmentStandards as AssessmentStandard[]
   const canEdit = editableRoles.includes(activeRole)
   const totalWeight = displayAssessmentMethods.reduce((sum, method) => sum + method.weight, 0)
   const indicators = useMemo(() => indicatorTree.flatMap((requirement) => requirement.indicators), [indicatorTree])
@@ -272,6 +312,10 @@ export function CoursesPage() {
 
   useEffect(() => {
     if (!selectedCourse) return
+
+    void fetchResources(selectedCourse.id)
+    void fetchTeachingContents(selectedCourse.id)
+
     if (isStudent) return
 
     if (isDirector) {
@@ -283,10 +327,79 @@ export function CoursesPage() {
       void fetchObjectives(selectedCourse.id)
       void fetchAssessmentMethods(selectedCourse.id)
     }
-  }, [fetchAssessmentMethods, fetchIndicatorMatrix, fetchIndicatorTree, fetchObjectives, isCoordinator, isDirector, isStudent, selectedCourse])
+  }, [fetchAssessmentMethods, fetchIndicatorMatrix, fetchIndicatorTree, fetchObjectives, fetchResources, fetchTeachingContents, isCoordinator, isDirector, isStudent, selectedCourse])
+
+  useEffect(() => {
+    if (!firstAssessmentItem || isStudent) return
+
+    void fetchAssessmentStandards(firstAssessmentItem.id)
+  }, [fetchAssessmentStandards, firstAssessmentItem, isStudent])
 
   const displayError = isDirector ? error : roleError
   const displayLoading = isDirector ? loading : roleLoading
+
+  const handleOpenEditCourse = async () => {
+    if (!selectedCourse) return
+
+    setRoleError(null)
+    setActionMessage(null)
+    try {
+      const detail = await fetchCourseDetail(selectedCourse.id)
+      setEditSchemeId(detail.schemeId)
+      setEditCourseCode(detail.courseCode ?? "")
+      setEditCourseName(detail.courseName ?? "")
+      setEditCredits(String(detail.credits ?? ""))
+      setEditHours(String(detail.hours ?? ""))
+      setEditCourseType(detail.courseType ?? "")
+      setEditSemester(detail.semester ?? "")
+      setEditDialogOpen(true)
+    } catch (requestError) {
+      setRoleError(requestError instanceof Error ? requestError.message : "课程详情加载失败")
+    }
+  }
+
+  const handleSaveCourse = async () => {
+    if (!selectedCourse) return
+
+    setRoleError(null)
+    setActionMessage(null)
+    const credits = Number(editCredits)
+    const hours = Number(editHours)
+
+    if (!editCourseCode.trim() || !editCourseName.trim() || !Number.isFinite(credits) || !Number.isFinite(hours)) {
+      setRoleError("请完整填写课程代码、课程名称、学分和学时")
+      return
+    }
+
+    try {
+      const updated = await updateCourse(selectedCourse.id, {
+        schemeId: editSchemeId,
+        courseCode: editCourseCode.trim(),
+        courseName: editCourseName.trim(),
+        credits,
+        hours,
+        courseType: editCourseType.trim() || undefined,
+        semester: editSemester.trim() || undefined,
+      })
+
+      if (isDirector) {
+        await fetchCourses({
+          pageNum: 1,
+          pageSize: 100,
+          keyword: keyword.trim() || undefined,
+          schemeId: selectedSchemeId ?? undefined,
+        })
+      } else {
+        setRoleCourses((current) => current.map((course) => (course.id === updated.id ? { ...course, ...updated } : course)))
+      }
+
+      setSelectedCourseId(updated.id)
+      setEditDialogOpen(false)
+      setActionMessage("课程信息已保存")
+    } catch (requestError) {
+      setRoleError(requestError instanceof Error ? requestError.message : "课程信息保存失败")
+    }
+  }
 
   return (
     <section className="grid gap-5">
@@ -304,6 +417,9 @@ export function CoursesPage() {
 
       {displayError ? (
         <p className="m-0 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700">{displayError}</p>
+      ) : null}
+      {actionMessage ? (
+        <p className="m-0 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-700">{actionMessage}</p>
       ) : null}
 
       {isDirector ? <div className="flex flex-wrap gap-2">
@@ -349,7 +465,7 @@ export function CoursesPage() {
                   {roleLabels[activeRole]}
                 </span>
                 {canEdit ? (
-                  <Button className="bg-blue-700 text-white hover:bg-blue-800" disabled type="button">
+                  <Button className="bg-blue-700 text-white hover:bg-blue-800" disabled={!selectedCourse || loading} onClick={handleOpenEditCourse} type="button">
                     <PencilLine size={16} />
                     编辑课程
                   </Button>
@@ -436,6 +552,57 @@ export function CoursesPage() {
             <aside className="grid gap-5 lg:grid-cols-2 2xl:grid-cols-2">
               <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
                 <h2 className="m-0 flex items-center gap-2 text-lg font-extrabold text-slate-950">
+                  <Layers3 size={19} className="text-blue-700" />
+                  教学内容
+                </h2>
+                <div className="mt-3 grid max-h-[220px] gap-2 overflow-y-auto pr-1">
+                  {displayTeachingContents.map((item) => (
+                    <div className="rounded-lg border border-slate-200 p-3" key={item.id ?? `${item.title}-${item.sortOrder}`}>
+                      <div className="flex items-center justify-between gap-3">
+                        <strong className="text-sm text-slate-900">{item.title}</strong>
+                        <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-700">{item.hours} 学时</span>
+                      </div>
+                      <p className="mt-1 text-xs font-semibold text-slate-500">
+                        支撑目标 {item.objectiveIds.length > 0 ? item.objectiveIds.join(", ") : "-"}
+                      </p>
+                    </div>
+                  ))}
+                  {displayTeachingContents.length === 0 ? (
+                    <p className="m-0 rounded-lg border border-dashed border-slate-200 p-3 text-sm font-bold text-slate-400">
+                      暂无教学内容
+                    </p>
+                  ) : null}
+                </div>
+              </section>
+
+              <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                <h2 className="m-0 flex items-center gap-2 text-lg font-extrabold text-slate-950">
+                  <FileText size={19} className="text-blue-700" />
+                  课程资源
+                </h2>
+                <div className="mt-3 grid max-h-[220px] gap-2 overflow-y-auto pr-1">
+                  {displayResources.map((item) => (
+                    <a
+                      className="rounded-lg border border-slate-200 p-3 text-sm font-bold text-slate-900 no-underline transition hover:border-blue-200 hover:bg-blue-50"
+                      href={item.filePath}
+                      key={item.id}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      <span className="block">{item.fileName}</span>
+                      <span className="mt-1 block text-xs text-slate-500">{item.resourceType} / {item.description ?? "无说明"}</span>
+                    </a>
+                  ))}
+                  {displayResources.length === 0 ? (
+                    <p className="m-0 rounded-lg border border-dashed border-slate-200 p-3 text-sm font-bold text-slate-400">
+                      暂无课程资源
+                    </p>
+                  ) : null}
+                </div>
+              </section>
+
+              <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                <h2 className="m-0 flex items-center gap-2 text-lg font-extrabold text-slate-950">
                   <Settings2 size={19} className="text-blue-700" />
                   考核细项
                 </h2>
@@ -469,6 +636,31 @@ export function CoursesPage() {
 
               <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
                 <h2 className="m-0 flex items-center gap-2 text-lg font-extrabold text-slate-950">
+                  <Settings2 size={19} className="text-blue-700" />
+                  评分标准
+                </h2>
+                <div className="mt-3 grid max-h-[260px] gap-2 overflow-y-auto pr-1">
+                  {displayAssessmentStandards.map((item) => (
+                    <div className="rounded-lg border border-slate-200 p-3" key={item.id ?? `${item.level}-${item.minScore}`}>
+                      <div className="flex items-center justify-between gap-3">
+                        <strong className="text-sm text-slate-900">{item.level}</strong>
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-600">
+                          {item.minScore}-{item.maxScore}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-xs leading-5 text-slate-500">{item.description}</p>
+                    </div>
+                  ))}
+                  {displayAssessmentStandards.length === 0 ? (
+                    <p className="m-0 rounded-lg border border-dashed border-slate-200 p-3 text-sm font-bold text-slate-400">
+                      暂无评分标准
+                    </p>
+                  ) : null}
+                </div>
+              </section>
+
+              <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                <h2 className="m-0 flex items-center gap-2 text-lg font-extrabold text-slate-950">
                   <GitBranch size={19} className="text-blue-700" />
                   指标点支撑
                 </h2>
@@ -495,6 +687,46 @@ export function CoursesPage() {
           </div>
         </div>
       </div>
+
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="bg-white shadow-2xl sm:max-w-[560px]">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-extrabold text-slate-950">编辑课程</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="grid gap-1.5">
+              <span className="text-sm font-bold text-slate-700">课程代码</span>
+              <Input value={editCourseCode} onChange={(event) => setEditCourseCode(event.target.value)} />
+            </label>
+            <label className="grid gap-1.5">
+              <span className="text-sm font-bold text-slate-700">课程名称</span>
+              <Input value={editCourseName} onChange={(event) => setEditCourseName(event.target.value)} />
+            </label>
+            <label className="grid gap-1.5">
+              <span className="text-sm font-bold text-slate-700">学分</span>
+              <Input type="number" value={editCredits} onChange={(event) => setEditCredits(event.target.value)} />
+            </label>
+            <label className="grid gap-1.5">
+              <span className="text-sm font-bold text-slate-700">学时</span>
+              <Input type="number" value={editHours} onChange={(event) => setEditHours(event.target.value)} />
+            </label>
+            <label className="grid gap-1.5">
+              <span className="text-sm font-bold text-slate-700">课程类型</span>
+              <Input value={editCourseType} onChange={(event) => setEditCourseType(event.target.value)} />
+            </label>
+            <label className="grid gap-1.5">
+              <span className="text-sm font-bold text-slate-700">开课学期</span>
+              <Input value={editSemester} onChange={(event) => setEditSemester(event.target.value)} />
+            </label>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)} type="button">取消</Button>
+            <Button className="bg-blue-700 text-white hover:bg-blue-800" disabled={loading} onClick={handleSaveCourse} type="button">
+              保存
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   )
 }

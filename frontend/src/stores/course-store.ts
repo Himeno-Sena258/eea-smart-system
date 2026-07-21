@@ -19,6 +19,7 @@ import type {
   ID,
   ImportResult,
   PageResult,
+  ResourceDownloadInfo,
   SaveAssessmentMethodsPayload,
   SaveAssessmentStandardsPayload,
   SaveCourseIndicatorMatrixPayload,
@@ -94,7 +95,7 @@ interface CourseStore extends RequestState, RequestActions {
   uploadResource: (courseId: ID, payload: CourseResourcePayload) => Promise<CourseResource>
   updateResource: (id: ID, payload: Pick<CourseResource, "resourceType" | "description">) => Promise<CourseResource>
   deleteResource: (id: ID) => Promise<boolean>
-  downloadResource: (id: ID) => Promise<Blob>
+  downloadResource: (id: ID) => Promise<ResourceDownloadInfo>
   fetchObjectives: (courseId: ID) => Promise<CourseObjective[]>
   createObjective: (courseId: ID, payload: CourseObjectivePayload) => Promise<CourseObjective>
   updateObjective: (id: ID, payload: CourseObjectivePayload) => Promise<CourseObjective>
@@ -111,7 +112,7 @@ interface CourseStore extends RequestState, RequestActions {
   fetchEvidenceMaterials: (teachingClassId: ID) => Promise<EvidenceMaterial[]>
   uploadEvidenceMaterial: (teachingClassId: ID, payload: EvidenceMaterialPayload) => Promise<EvidenceMaterial>
   deleteEvidenceMaterial: (id: ID) => Promise<boolean>
-  downloadEvidenceMaterial: (id: ID) => Promise<Blob>
+  downloadEvidenceMaterial: (id: ID) => Promise<ResourceDownloadInfo>
 }
 
 export const useCourseStore = create<CourseStore>((set, get) => ({
