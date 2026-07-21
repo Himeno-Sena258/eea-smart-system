@@ -34,10 +34,12 @@ const scoreValue = (value: number | null | undefined) =>
 
 function ClassSelector({
   classes,
+  loading,
   selectedClassId,
   onSelect,
 }: {
   classes: TeacherClass[]
+  loading: boolean
   selectedClassId: ID | null
   onSelect: (classId: ID) => void
 }) {
@@ -69,7 +71,7 @@ function ClassSelector({
         })}
         {classes.length === 0 ? (
           <p className="m-0 rounded-lg border border-dashed border-slate-200 p-3 text-sm font-bold text-slate-400">
-            暂无教学班
+            {loading ? "正在加载教学班..." : "当前登录账号没有关联教学班"}
           </p>
         ) : null}
       </div>
@@ -168,7 +170,12 @@ function InstructorView() {
 
   return (
     <div className="grid gap-5 xl:grid-cols-[280px_minmax(0,1fr)]">
-      <ClassSelector classes={classes} onSelect={setSelectedClassId} selectedClassId={selectedClass?.classId ?? null} />
+      <ClassSelector
+        classes={classes}
+        loading={loading}
+        onSelect={setSelectedClassId}
+        selectedClassId={selectedClass?.classId ?? null}
+      />
 
       <div className="grid gap-5">
         {error ? (
@@ -339,7 +346,7 @@ function ManagementView() {
           </table>
           {classes.length === 0 ? (
             <p className="m-0 p-6 text-center text-sm font-bold text-slate-400">
-              {loading ? "正在加载教学班..." : "暂无教学班数据"}
+              {loading ? "正在加载教学班..." : "后端当前没有返回教学班数据"}
             </p>
           ) : null}
         </div>
@@ -453,7 +460,9 @@ function StudentView() {
             </tbody>
           </table>
           {(detail?.items ?? []).length === 0 ? (
-            <p className="m-0 p-6 text-center text-sm font-bold text-slate-400">暂无成绩明细</p>
+            <p className="m-0 p-6 text-center text-sm font-bold text-slate-400">
+              {scores.length === 0 ? "当前登录学生没有课程成绩数据" : "暂无成绩明细"}
+            </p>
           ) : null}
         </div>
       </section>
