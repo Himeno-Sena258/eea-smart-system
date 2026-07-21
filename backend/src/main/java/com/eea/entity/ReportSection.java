@@ -40,6 +40,21 @@ public class ReportSection {
     @Schema(description = "负责人ID")
     private Long assignedTo;
 
+    @Schema(description = "截止时间")
+    private LocalDateTime dueAt;
+
+    @Schema(description = "提交时间")
+    private LocalDateTime submittedAt;
+
+    @Schema(description = "审阅人ID")
+    private Long reviewedBy;
+
+    @Schema(description = "审阅时间")
+    private LocalDateTime reviewedAt;
+
+    @Schema(description = "审阅意见")
+    private String reviewComment;
+
     @Schema(description = "最后修改时间")
     private LocalDateTime updatedAt;
 }
