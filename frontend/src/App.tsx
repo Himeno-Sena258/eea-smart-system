@@ -4,6 +4,7 @@ import { appRoutes } from "@/routes/app-routes"
 import { LoginPage } from "@/pages/login"
 import { NotFoundPage } from "@/pages/not-found"
 import { RegisterPage } from "@/pages/register"
+import { Toaster } from "@/components/ui/sonner"
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
+      <Toaster position="top-right" richColors />
     </BrowserRouter>
   )
 }

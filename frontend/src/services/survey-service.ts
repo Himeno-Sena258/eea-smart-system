@@ -1,6 +1,7 @@
 import { request } from "./http"
 import type {
   ID,
+  MySurveyAnswer,
   PageQuery,
   PageResult,
   SubmitSurveyAnswerPayload,
@@ -92,6 +93,14 @@ export const submitSurveyAnswer = async (surveyId: ID, payload: SubmitSurveyAnsw
     url: `/surveys/${surveyId}/answers`,
     method: "POST",
     data: payload,
+  })
+  return response.data
+}
+
+export const getMySurveyAnswers = async () => {
+  const response = await request<MySurveyAnswer[]>({
+    url: "/surveys/answers/my",
+    method: "GET",
   })
   return response.data
 }

@@ -13,8 +13,9 @@ import {
   type LucideProps,
 } from "lucide-react"
 import { NavLink } from "react-router-dom"
+import { roleLabels } from "@/constants/role-options"
 import type { RoleCode } from "@/models"
-import { useUiStore } from "@/stores"
+import { useAuthStore, useUiStore } from "@/stores"
 
 type SidebarIcon = ComponentType<LucideProps>
 
@@ -129,8 +130,15 @@ const sidebarGroups: SidebarGroup[] = [
 
 const canAccess = (allowedRoles: RoleCode[], currentRole: RoleCode) => allowedRoles.includes(currentRole)
 
+const getInitials = (name?: string, username?: string) => {
+  const source = name || username || "用户"
+  if (/^[A-Za-z0-9]+$/.test(source)) return source.slice(0, 2).toUpperCase()
+  return source.slice(0, 2)
+}
+
 export function AppSidebar() {
   const currentRole = useUiStore((state) => state.activeRole)
+  const currentUser = useAuthStore((state) => state.currentUser)
   const visibleGroups = sidebarGroups
     .map((group) => ({
       ...group,
@@ -183,6 +191,23 @@ export function AppSidebar() {
           </section>
         ))}
       </nav>
+
+      <div className="border-t border-slate-200 p-4">
+        <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+          <div className="grid size-10 shrink-0 place-items-center rounded-full bg-blue-700 text-sm font-extrabold text-white">
+            {getInitials(currentUser?.realName, currentUser?.username)}
+          </div>
+          <div className="min-w-0">
+            <p className="m-0 truncate text-sm font-extrabold text-slate-950">
+              {currentUser?.realName ?? currentUser?.username ?? "未登录用户"}
+            </p>
+            <p className="mt-0.5 truncate text-xs font-semibold text-slate-500">
+              {roleLabels[currentRole]}
+              {currentUser?.username ? ` / ${currentUser.username}` : ""}
+            </p>
+          </div>
+        </div>
+      </div>
     </aside>
   )
 }

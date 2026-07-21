@@ -13,6 +13,7 @@ import {
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -153,13 +154,28 @@ export function ProfilePage() {
     }
   }
 
+  const handleRefreshProfile = async () => {
+    setMessage(null)
+    setLocalError(null)
+
+    try {
+      await fetchCurrentUser()
+      setMessage("资料已刷新")
+    } catch (requestError) {
+      setLocalError(requestError instanceof Error ? requestError.message : "刷新资料失败")
+    }
+  }
+
   const handleLogout = async () => {
     setMessage(null)
     setLocalError(null)
     try {
       await logout()
       setLogoutDialogOpen(false)
-      navigate("/login", { replace: true })
+      toast.success("退出成功")
+      window.setTimeout(() => {
+        navigate("/login", { replace: true })
+      }, 1200)
     } catch (requestError) {
       setLocalError(requestError instanceof Error ? requestError.message : "退出登录失败")
     }
@@ -179,7 +195,7 @@ export function ProfilePage() {
             </h1>
           </div>
         </div>
-        <Button disabled={loading} onClick={() => void fetchCurrentUser()} variant="outline" type="button">
+        <Button disabled={loading} onClick={handleRefreshProfile} variant="outline" type="button">
           <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
           刷新资料
         </Button>
@@ -357,16 +373,35 @@ export function ProfilePage() {
       </Dialog>
 
       <Dialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
-        <DialogContent className="border-red-100 bg-white shadow-2xl sm:max-w-[420px]">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-extrabold text-red-700">确认退出登录</DialogTitle>
-            <DialogDescription>退出后需要重新输入账号和密码才能访问系统。</DialogDescription>
+        <DialogContent className="gap-5 border border-slate-200 bg-white p-5 shadow-2xl sm:max-w-[380px]">
+          <DialogHeader className="gap-3 pr-8">
+            <div className="flex items-center gap-3">
+              <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-red-50 text-red-600 ring-1 ring-red-100">
+                <LogOut size={19} />
+              </span>
+              <div>
+                <DialogTitle className="text-lg font-extrabold text-slate-950">退出登录</DialogTitle>
+                <DialogDescription className="mt-1 text-sm text-slate-500">
+                  确认结束当前登录会话吗？
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
-          <DialogFooter>
+
+          <div className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm font-semibold leading-6 text-red-700">
+            退出后需要重新输入账号和密码才能访问系统。
+          </div>
+
+          <DialogFooter className="-mx-0 -mb-0 gap-2 border-t-0 bg-transparent p-0 sm:justify-end">
             <DialogClose asChild>
-              <Button disabled={loading} variant="outline" type="button">取消</Button>
+              <Button className="min-w-20" disabled={loading} variant="outline" type="button">取消</Button>
             </DialogClose>
-            <Button disabled={loading} onClick={handleLogout} variant="destructive" type="button">
+            <Button
+              className="min-w-24 bg-red-600 text-white hover:bg-red-700"
+              disabled={loading}
+              onClick={handleLogout}
+              type="button"
+            >
               <LogOut size={16} />
               确认退出
             </Button>

@@ -92,6 +92,24 @@ public class SurveyController {
     }
 
     // ===== §10.2 答卷 =====
+    @GetMapping("/answers/my")
+    @Operation(summary = "查询当前用户已提交答卷")
+    public Result<List<Map<String, Object>>> myAnswers() {
+        Long userId = UserContext.getUserId();
+        if (userId == null) throw BusinessException.unauthorized();
+
+        QueryWrapper<SurveyAnswer> w = new QueryWrapper<>();
+        w.eq("user_id", userId).orderByDesc("submitted_at");
+        List<Map<String, Object>> answers = aMapper.selectList(w).stream().map(answer -> {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("id", answer.getId());
+            item.put("questionnaireId", answer.getQuestionnaireId());
+            item.put("submittedAt", answer.getSubmittedAt());
+            return item;
+        }).toList();
+        return Result.success(answers);
+    }
+
     @PostMapping("/{id}/answers")
     @Operation(summary = "提交问卷答案")
     public Result<String> submitAnswer(@PathVariable Long id,
