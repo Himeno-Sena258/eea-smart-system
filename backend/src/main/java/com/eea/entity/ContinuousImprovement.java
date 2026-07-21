@@ -36,4 +36,14 @@ public class ContinuousImprovement {
 
     @Schema(description = "建立时间")
     private LocalDateTime createdAt;
+
+    private Integer status;
+    private Long reviewedBy;
+    private LocalDateTime reviewedAt;
+    private String reviewerComment;
+    private LocalDateTime updatedAt;
+    private String lowAttainmentCos;
+    private String cycleLabel;
+    private LocalDateTime followUpAt;
+    private String followUpResult;
 }

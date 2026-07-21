@@ -84,21 +84,41 @@ public class ImprovementController {
     @GetMapping("/director/improvements")
     @com.eea.common.RequireRoles({"DIRECTOR","ADMIN"})
     @Operation(summary = "P1 全专业改进记录")
-    public Result<List<ContinuousImprovement>> directorImprovements(
+    public Result<List<java.util.Map<String,Object>>> directorImprovements(
             @RequestParam(required = false) Long schemeId) {
         QueryWrapper<ContinuousImprovement> w = new QueryWrapper<>();
         w.orderByDesc("created_at");
-        return Result.success(ciMapper.selectList(w));
+        return Result.success(enrich(ciMapper.selectList(w)));
     }
 
-    // ===== P1: 课程级改进聚合 (COORDINATOR) =====
     @GetMapping("/coordinator/improvements")
     @com.eea.common.RequireRoles({"COORDINATOR","ADMIN"})
     @Operation(summary = "P1 课程级改进记录")
-    public Result<List<ContinuousImprovement>> coordinatorImprovements(
+    public Result<List<java.util.Map<String,Object>>> coordinatorImprovements(
             @RequestParam(required = false) Long courseId) {
         QueryWrapper<ContinuousImprovement> w = new QueryWrapper<>();
         w.orderByDesc("created_at");
-        return Result.success(ciMapper.selectList(w));
+        return Result.success(enrich(ciMapper.selectList(w)));
+    }
+
+    private List<java.util.Map<String,Object>> enrich(List<ContinuousImprovement> list) {
+        List<java.util.Map<String,Object>> r = new java.util.ArrayList<>();
+        for (var ci : list) {
+            var m = new java.util.LinkedHashMap<String,Object>();
+            m.put("id", ci.getId());
+            m.put("teachingClassId", ci.getTeachingClassId());
+            m.put("problemAnalysis", ci.getProblemAnalysis());
+            m.put("improvementMeasures", ci.getImprovementMeasures());
+            m.put("createdBy", ci.getCreatedBy());
+            m.put("createdAt", ci.getCreatedAt());
+            m.put("status", ci.getStatus());
+            m.put("reviewedBy", ci.getReviewedBy());
+            m.put("reviewedAt", ci.getReviewedAt());
+            m.put("reviewerComment", ci.getReviewerComment());
+            m.put("cycleLabel", ci.getCycleLabel());
+            m.put("followUpAt", ci.getFollowUpAt());
+            r.add(m);
+        }
+        return r;
     }
 }
