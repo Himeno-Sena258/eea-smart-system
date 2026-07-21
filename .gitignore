@@ -83,3 +83,6 @@ temp/
 .codex
 .agents
 proto
+work
+outputs
+tools

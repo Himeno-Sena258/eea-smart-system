@@ -1,9 +1,25 @@
-import { type ChangeEvent, useEffect, useRef, useState } from "react"
-import { Building2, FileSpreadsheet, KeyRound, Plus, Search, ShieldCheck, UserCog } from "lucide-react"
+import { type ChangeEvent, type FormEvent, useEffect, useMemo, useRef, useState } from "react"
+import { Building2, FileSpreadsheet, KeyRound, Plus, Search, ShieldCheck, Trash2, UserCog } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { roleLabels } from "@/constants/role-options"
-import type { DictOption, Organization, OrganizationType, User } from "@/models"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { roleLabels, roleOptions as staticRoleOptions } from "@/constants/role-options"
+import type { CreateUserPayload, DictOption, ID, Organization, OrganizationType, RoleCode, UpdateUserPayload, User } from "@/models"
 import { useAuthStore, useBaseStore, useSystemStore } from "@/stores"
 
 const statusMetaMap = {
@@ -13,6 +29,40 @@ const statusMetaMap = {
 
 const countOrganizations = (nodes: Organization[]): number =>
   nodes.reduce((count, node) => count + 1 + countOrganizations(node.children ?? []), 0)
+
+const flattenOrganizations = (nodes: Organization[]): Organization[] =>
+  nodes.flatMap((node) => [node, ...flattenOrganizations(node.children ?? [])])
+
+const initialUserForm = {
+  username: "",
+  password: "",
+  realName: "",
+  email: "",
+  phone: "",
+  orgId: "",
+  roleCodes: [] as string[],
+  studentNo: "",
+  classId: "",
+}
+
+type UserFormState = typeof initialUserForm
+
+const toUserForm = (user: User): UserFormState => ({
+  username: user.username,
+  password: "",
+  realName: user.realName,
+  email: user.email ?? "",
+  phone: user.phone ?? "",
+  orgId: user.orgId ? String(user.orgId) : "",
+  roleCodes: user.roleCodes?.map(String) ?? [],
+  studentNo: user.studentNo ?? "",
+  classId: user.classId ? String(user.classId) : "",
+})
+
+const toOptionalId = (value: string): ID | undefined => {
+  if (!value) return undefined
+  return Number(value)
+}
 
 function OrganizationNode({
   node,
@@ -48,6 +98,11 @@ function RoleBadge({ roleOptions, user }: { roleOptions: DictOption<string>[]; u
 export function UsersPage() {
   const usersPage = useAuthStore((state) => state.usersPage)
   const fetchUsers = useAuthStore((state) => state.fetchUsers)
+  const createUser = useAuthStore((state) => state.createUser)
+  const updateUser = useAuthStore((state) => state.updateUser)
+  const updateUserStatus = useAuthStore((state) => state.updateUserStatus)
+  const resetUserPassword = useAuthStore((state) => state.resetUserPassword)
+  const deleteUser = useAuthStore((state) => state.deleteUser)
   const previewUserImport = useAuthStore((state) => state.previewUserImport)
   const submitUserImport = useAuthStore((state) => state.submitUserImport)
   const userImportPreview = useAuthStore((state) => state.userImportPreview)
@@ -55,7 +110,9 @@ export function UsersPage() {
   const authLoading = useAuthStore((state) => state.loading)
   const authError = useAuthStore((state) => state.error)
   const organizationTree = useBaseStore((state) => state.organizationTree)
+  const classesPage = useBaseStore((state) => state.classesPage)
   const fetchOrganizationTree = useBaseStore((state) => state.fetchOrganizationTree)
+  const fetchClasses = useBaseStore((state) => state.fetchClasses)
   const auditLogsPage = useSystemStore((state) => state.auditLogsPage)
   const fetchAuditLogs = useSystemStore((state) => state.fetchAuditLogs)
   const roleOptions = useSystemStore((state) => state.roleOptions)
@@ -65,14 +122,116 @@ export function UsersPage() {
   const auditLogs = auditLogsPage?.records ?? []
   const activeUsers = users.filter((user) => user.status === 1).length
   const organizationCount = countOrganizations(organizationTree)
+  const availableRoleOptions = roleOptions.length > 0
+    ? roleOptions
+    : staticRoleOptions.map((option) => ({ label: option.label, value: option.role }))
+  const organizationOptions = useMemo(() => flattenOrganizations(organizationTree), [organizationTree])
+  const classOptions = classesPage?.records ?? []
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [selectedFileName, setSelectedFileName] = useState("")
+  const [keyword, setKeyword] = useState("")
+  const [roleFilter, setRoleFilter] = useState("ALL")
+  const [userDialogOpen, setUserDialogOpen] = useState(false)
+  const [editingUser, setEditingUser] = useState<User | null>(null)
+  const [userForm, setUserForm] = useState<UserFormState>(initialUserForm)
+  const [resetDialogUser, setResetDialogUser] = useState<User | null>(null)
+  const [newPassword, setNewPassword] = useState("")
 
   useEffect(() => {
-    void fetchUsers({ pageNum: 1, pageSize: 20 })
+    void fetchUsers({
+      pageNum: 1,
+      pageSize: 20,
+      keyword: keyword.trim() || undefined,
+      roleCode: roleFilter === "ALL" ? undefined : roleFilter,
+    })
     void fetchOrganizationTree()
+    void fetchClasses({ pageNum: 1, pageSize: 100 })
     void fetchAuditLogs({ pageNum: 1, pageSize: 10 })
-  }, [fetchAuditLogs, fetchOrganizationTree, fetchUsers])
+  }, [fetchAuditLogs, fetchClasses, fetchOrganizationTree, fetchUsers, keyword, roleFilter])
+
+  const refreshPageData = async () => {
+    await fetchUsers({
+      pageNum: 1,
+      pageSize: 20,
+      keyword: keyword.trim() || undefined,
+      roleCode: roleFilter === "ALL" ? undefined : roleFilter,
+    })
+    await fetchOrganizationTree()
+    await fetchAuditLogs({ pageNum: 1, pageSize: 10 })
+  }
+
+  const openCreateDialog = () => {
+    setEditingUser(null)
+    setUserForm(initialUserForm)
+    setUserDialogOpen(true)
+  }
+
+  const openEditDialog = (user: User) => {
+    setEditingUser(user)
+    setUserForm(toUserForm(user))
+    setUserDialogOpen(true)
+  }
+
+  const updateUserFormField = (field: keyof UserFormState, value: string) => {
+    setUserForm((current) => ({ ...current, [field]: value }))
+  }
+
+  const toggleRoleCode = (roleCode: string) => {
+    setUserForm((current) => ({
+      ...current,
+      roleCodes: current.roleCodes.includes(roleCode)
+        ? current.roleCodes.filter((item) => item !== roleCode)
+        : [...current.roleCodes, roleCode],
+    }))
+  }
+
+  const handleSubmitUserForm = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    const payload = {
+      realName: userForm.realName.trim(),
+      email: userForm.email.trim() || undefined,
+      phone: userForm.phone.trim() || undefined,
+      orgId: toOptionalId(userForm.orgId),
+      roleCodes: userForm.roleCodes,
+      studentNo: userForm.studentNo.trim() || undefined,
+      classId: toOptionalId(userForm.classId),
+    }
+
+    if (editingUser) {
+      await updateUser(editingUser.id, payload satisfies UpdateUserPayload)
+    } else {
+      await createUser({
+        ...payload,
+        username: userForm.username.trim(),
+        password: userForm.password || undefined,
+      } satisfies CreateUserPayload)
+    }
+
+    setUserDialogOpen(false)
+    await refreshPageData()
+  }
+
+  const handleToggleStatus = async (user: User) => {
+    await updateUserStatus(user.id, { status: user.status === 0 ? 1 : 0 })
+    await refreshPageData()
+  }
+
+  const handleDeleteUser = async (user: User) => {
+    if (!window.confirm(`确认删除账号 ${user.username} 吗？`)) return
+
+    await deleteUser(user.id)
+    await refreshPageData()
+  }
+
+  const handleResetPassword = async () => {
+    if (!resetDialogUser) return
+
+    await resetUserPassword(resetDialogUser.id, { newPassword: newPassword.trim() || undefined })
+    setResetDialogUser(null)
+    setNewPassword("")
+    await fetchAuditLogs({ pageNum: 1, pageSize: 10 })
+  }
 
   const handleUserImportPreview = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -87,8 +246,7 @@ export function UsersPage() {
     if (!userImportPreview?.batchId) return
 
     await submitUserImport({ batchId: userImportPreview.batchId })
-    await fetchUsers({ pageNum: 1, pageSize: 20 })
-    await fetchAuditLogs({ pageNum: 1, pageSize: 10 })
+    await refreshPageData()
   }
 
   return (
@@ -108,7 +266,7 @@ export function UsersPage() {
             </p>
           </div>
         </div>
-        <Button className="bg-blue-700 text-white hover:bg-blue-800" type="button">
+        <Button className="bg-blue-700 text-white hover:bg-blue-800" onClick={openCreateDialog} type="button">
           <Plus size={16} />
           新增账号
         </Button>
@@ -239,9 +397,26 @@ export function UsersPage() {
             <div className="flex flex-col gap-3 border-b border-slate-200 bg-slate-50 p-4 lg:flex-row lg:items-center">
               <label className="relative block lg:w-72">
                 <Search className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-slate-400" size={16} />
-                <Input className="h-10 bg-white pl-9" placeholder="搜索工号/姓名" readOnly />
+                <Input
+                  className="h-10 bg-white pl-9"
+                  onChange={(event) => setKeyword(event.target.value)}
+                  placeholder="搜索工号/姓名"
+                  value={keyword}
+                />
               </label>
-              <Button variant="outline" type="button">所有角色</Button>
+              <Select onValueChange={setRoleFilter} value={roleFilter}>
+                <SelectTrigger className="h-10 w-40 bg-white">
+                  <SelectValue placeholder="所有角色" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">所有角色</SelectItem>
+                  {availableRoleOptions.map((option) => (
+                    <SelectItem key={String(option.value)} value={String(option.value)}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[760px] border-collapse text-left text-sm">
@@ -263,15 +438,22 @@ export function UsersPage() {
                       <tr className="border-b border-slate-100" key={user.id}>
                         <td className="p-4 font-mono text-slate-700">{user.username}</td>
                         <td className="p-4 font-extrabold text-slate-950">{user.realName}</td>
-                        <td className="p-4"><RoleBadge roleOptions={roleOptions} user={user} /></td>
+                        <td className="p-4"><RoleBadge roleOptions={availableRoleOptions} user={user} /></td>
                         <td className="p-4 text-slate-600">{user.orgName}</td>
                         <td className={`p-4 font-extrabold ${status.className}`}>{status.label}</td>
                         <td className="p-4 text-right">
                           <div className="inline-flex gap-2">
-                            <Button variant="outline" type="button">编辑</Button>
-                            <Button variant="outline" type="button">
+                            <Button onClick={() => openEditDialog(user)} variant="outline" type="button">编辑</Button>
+                            <Button onClick={() => handleToggleStatus(user)} variant="outline" type="button">
+                              {user.status === 0 ? "启用" : "禁用"}
+                            </Button>
+                            <Button onClick={() => setResetDialogUser(user)} variant="outline" type="button">
                               <KeyRound size={15} />
                               重置密码
+                            </Button>
+                            <Button onClick={() => handleDeleteUser(user)} variant="outline" type="button">
+                              <Trash2 size={15} />
+                              删除
                             </Button>
                           </div>
                         </td>
@@ -325,6 +507,173 @@ export function UsersPage() {
           </section>
         </div>
       </div>
+
+      <Dialog open={userDialogOpen} onOpenChange={setUserDialogOpen}>
+        <DialogContent className="max-h-[calc(100vh-80px)] !max-w-[680px] overflow-y-auto bg-white">
+          <DialogHeader>
+            <DialogTitle>{editingUser ? "编辑账号" : "新增账号"}</DialogTitle>
+            <DialogDescription>
+              {editingUser ? "修改用户基础信息和角色分配。" : "通过管理员开户接口创建用户。"}
+            </DialogDescription>
+          </DialogHeader>
+
+          <form className="grid gap-4" onSubmit={handleSubmitUserForm}>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Label className="grid gap-2">
+                <span>登录账号</span>
+                <Input
+                  disabled={Boolean(editingUser)}
+                  onChange={(event) => updateUserFormField("username", event.target.value)}
+                  required={!editingUser}
+                  value={userForm.username}
+                />
+              </Label>
+              <Label className="grid gap-2">
+                <span>初始密码</span>
+                <Input
+                  disabled={Boolean(editingUser)}
+                  onChange={(event) => updateUserFormField("password", event.target.value)}
+                  placeholder={editingUser ? "编辑时不修改密码" : "不填则由后端使用默认值"}
+                  type="password"
+                  value={userForm.password}
+                />
+              </Label>
+              <Label className="grid gap-2">
+                <span>真实姓名</span>
+                <Input
+                  onChange={(event) => updateUserFormField("realName", event.target.value)}
+                  required
+                  value={userForm.realName}
+                />
+              </Label>
+              <Label className="grid gap-2">
+                <span>手机号</span>
+                <Input
+                  onChange={(event) => updateUserFormField("phone", event.target.value)}
+                  value={userForm.phone}
+                />
+              </Label>
+              <Label className="grid gap-2">
+                <span>邮箱</span>
+                <Input
+                  onChange={(event) => updateUserFormField("email", event.target.value)}
+                  type="email"
+                  value={userForm.email}
+                />
+              </Label>
+              <div className="grid gap-2">
+                <Label>所属组织</Label>
+                <Select
+                  onValueChange={(value) => updateUserFormField("orgId", value === "NONE" ? "" : value)}
+                  value={userForm.orgId || "NONE"}
+                >
+                  <SelectTrigger className="h-10 w-full">
+                    <SelectValue placeholder="选择组织" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NONE">不选择</SelectItem>
+                    {organizationOptions.map((organization) => (
+                      <SelectItem key={organization.id} value={String(organization.id)}>
+                        {organization.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Label className="grid gap-2">
+                <span>学生学号</span>
+                <Input
+                  onChange={(event) => updateUserFormField("studentNo", event.target.value)}
+                  placeholder="学生角色必填"
+                  value={userForm.studentNo}
+                />
+              </Label>
+              <div className="grid gap-2">
+                <Label>行政班</Label>
+                <Select
+                  onValueChange={(value) => updateUserFormField("classId", value === "NONE" ? "" : value)}
+                  value={userForm.classId || "NONE"}
+                >
+                  <SelectTrigger className="h-10 w-full">
+                    <SelectValue placeholder="选择行政班" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NONE">不选择</SelectItem>
+                    {classOptions.map((classInfo) => (
+                      <SelectItem key={classInfo.id} value={String(classInfo.id)}>
+                        {classInfo.className}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid gap-2">
+              <Label>分配角色</Label>
+              <div className="grid gap-2 rounded-lg border border-slate-200 p-3 sm:grid-cols-2">
+                {availableRoleOptions.map((option) => (
+                  <label className="flex items-center gap-2 text-sm font-bold text-slate-700" key={String(option.value)}>
+                    <input
+                      checked={userForm.roleCodes.includes(String(option.value))}
+                      className="size-4 accent-blue-700"
+                      onChange={() => toggleRoleCode(String(option.value))}
+                      type="checkbox"
+                    />
+                    {option.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {authError ? (
+              <p className="m-0 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-bold text-red-700">
+                {authError}
+              </p>
+            ) : null}
+
+            <DialogFooter>
+              <Button
+                disabled={authLoading || userForm.roleCodes.length === 0}
+                type="submit"
+              >
+                {authLoading ? "提交中..." : "保存"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(resetDialogUser)} onOpenChange={(open) => !open && setResetDialogUser(null)}>
+        <DialogContent className="bg-white">
+          <DialogHeader>
+            <DialogTitle>重置密码</DialogTitle>
+            <DialogDescription>
+              {resetDialogUser ? `账号 ${resetDialogUser.username} 将被重置密码。` : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2">
+            <Label htmlFor="new-password">新密码</Label>
+            <Input
+              id="new-password"
+              onChange={(event) => setNewPassword(event.target.value)}
+              placeholder="不填则由后端使用默认值"
+              type="password"
+              value={newPassword}
+            />
+          </div>
+          {authError ? (
+            <p className="m-0 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-bold text-red-700">
+              {authError}
+            </p>
+          ) : null}
+          <DialogFooter>
+            <Button disabled={authLoading} onClick={handleResetPassword} type="button">
+              {authLoading ? "提交中..." : "确认重置"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   )
 }
