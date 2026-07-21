@@ -53,6 +53,11 @@ export interface ChangePasswordPayload {
   confirmPassword: string
 }
 
+export interface UpdateProfilePayload {
+  email?: string
+  phone?: string
+}
+
 export interface ResetPasswordPayload {
   newPassword?: string
 }

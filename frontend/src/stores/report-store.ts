@@ -3,7 +3,6 @@ import type {
   AssignReportSectionPayload,
   AutoFillReportResult,
   CreateReportPayload,
-  ExportReportResult,
   ID,
   ReportDataSource,
   ReportSection,
@@ -46,7 +45,7 @@ interface ReportStore extends RequestState, RequestActions {
   updateReportStatus: (id: ID, payload: UpdateReportStatusPayload) => Promise<string>
   deleteReport: (id: ID) => Promise<string>
   autoFillReport: (id: ID) => Promise<AutoFillReportResult>
-  exportReport: (id: ID) => Promise<ExportReportResult>
+  exportReport: (id: ID) => Promise<Blob>
   fetchSections: (reportId: ID) => Promise<ReportSection[]>
   createSection: (reportId: ID, payload: ReportSectionPayload) => Promise<ReportSection>
   updateSection: (sectionId: ID, payload: ReportSectionPayload) => Promise<string>

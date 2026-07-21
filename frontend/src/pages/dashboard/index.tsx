@@ -1,16 +1,17 @@
 import { useEffect, useMemo, useState } from "react"
 import {
   ArrowRight,
-  BadgeCheck,
-  Database,
-  Info,
+  Bell,
+  CheckCircle2,
+  Clock3,
   LayoutDashboard,
-  ShieldAlert,
+  ListChecks,
+  RefreshCw,
   UserRound,
 } from "lucide-react"
 import { Link } from "react-router-dom"
 import { roleLabels } from "@/constants/role-options"
-import type { RoleCode, RoleDashboard } from "@/models"
+import type { DashboardStat, RoleCode, RoleDashboard } from "@/models"
 import { getRoleDashboard } from "@/services"
 import { useUiStore } from "@/stores"
 
@@ -50,43 +51,30 @@ const quickLinksMap: Record<RoleCode, DashboardQuickLink[]> = {
   ],
 }
 
-const supportedFieldTextMap: Record<RoleCode, string[]> = {
-  ADMIN: ["title", "userId", "roles", "notice"],
-  DIRECTOR: ["title", "userId", "roles"],
-  COORDINATOR: ["title", "userId", "roles"],
-  INSTRUCTOR: ["title", "userId", "roles"],
-  STUDENT: ["title", "userId", "roles"],
+const toneClassMap: Record<DashboardTone, { card: string; text: string }> = {
+  blue: { card: "border-blue-200 bg-blue-50/70", text: "text-blue-700" },
+  green: { card: "border-emerald-200 bg-emerald-50/70", text: "text-emerald-700" },
+  amber: { card: "border-amber-200 bg-amber-50/80", text: "text-amber-700" },
+  slate: { card: "border-slate-200 bg-white", text: "text-slate-700" },
 }
 
-const pendingFieldTextMap: Record<RoleCode, string[]> = {
-  ADMIN: ["用户总数", "组织机构数", "系统运行状态", "审计摘要"],
-  DIRECTOR: ["培养方案统计", "毕业要求达成概览", "报告进度", "专业级预警"],
-  COORDINATOR: ["课程大纲审核状态", "课程目标绑定分布", "课程级预警", "教学班横向对比"],
-  INSTRUCTOR: ["授课教学班列表摘要", "成绩录入进度", "材料归档进度", "班级预警"],
-  STUDENT: ["个人课程达成度", "毕业要求指标点达成图", "待填问卷", "学习预警"],
-}
+const statToneList = [
+  "border-blue-200 bg-blue-50 text-blue-800",
+  "border-emerald-200 bg-emerald-50 text-emerald-800",
+  "border-amber-200 bg-amber-50 text-amber-800",
+  "border-slate-200 bg-white text-slate-950",
+]
 
-const toneClassMap: Record<DashboardTone, { card: string; text: string; badge: string }> = {
-  blue: {
-    card: "border-blue-200 bg-blue-50/70",
-    text: "text-blue-700",
-    badge: "bg-blue-100 text-blue-700",
-  },
-  green: {
-    card: "border-emerald-200 bg-emerald-50/70",
-    text: "text-emerald-700",
-    badge: "bg-emerald-100 text-emerald-700",
-  },
-  amber: {
-    card: "border-amber-200 bg-amber-50/80",
-    text: "text-amber-700",
-    badge: "bg-amber-100 text-amber-700",
-  },
-  slate: {
-    card: "border-slate-200 bg-white",
-    text: "text-slate-700",
-    badge: "bg-slate-100 text-slate-700",
-  },
+const generatedTime = (value?: string) => value?.slice(0, 16).replace("T", " ") ?? "-"
+
+function StatCard({ stat, index }: { stat: DashboardStat; index: number }) {
+  return (
+    <article className={`rounded-lg border p-4 ${statToneList[index % statToneList.length]}`}>
+      <p className="m-0 text-sm font-bold opacity-80">{stat.label}</p>
+      <strong className="mt-2 block text-3xl leading-none font-extrabold">{stat.value}</strong>
+      <p className="mt-3 text-xs font-semibold opacity-70">{stat.key}</p>
+    </article>
+  )
 }
 
 export function DashboardPage() {
@@ -96,7 +84,10 @@ export function DashboardPage() {
   const [error, setError] = useState<string | null>(null)
 
   const quickLinks = quickLinksMap[activeRole]
-  const rolesText = useMemo(() => dashboard?.roles?.join(" / ") || "-", [dashboard?.roles])
+  const rolesText = useMemo(() => dashboard?.roles?.join(" / ") || roleLabels[activeRole], [activeRole, dashboard?.roles])
+  const stats = dashboard?.stats ?? []
+  const todos = dashboard?.todos ?? []
+  const warnings = dashboard?.warnings ?? []
 
   useEffect(() => {
     setLoading(true)
@@ -118,91 +109,95 @@ export function DashboardPage() {
             <LayoutDashboard size={16} />
             角色工作台
           </p>
-          <div>
-            <h1 className="m-0 text-[34px] leading-tight font-extrabold tracking-normal text-slate-950">
-              {dashboard?.title ?? roleLabels[activeRole]}
-            </h1>
-          </div>
+          <h1 className="m-0 text-[34px] leading-tight font-extrabold tracking-normal text-slate-950">
+            {dashboard?.title ?? roleLabels[activeRole]}
+          </h1>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 text-xs font-extrabold text-slate-500">
+          <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1">
+            <UserRound size={13} />
+            {rolesText}
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1">
+            <Clock3 size={13} />
+            {generatedTime(dashboard?.generatedAt)}
+          </span>
+          {loading ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-1 text-blue-700">
+              <RefreshCw size={13} className="animate-spin" />
+              加载中
+            </span>
+          ) : null}
         </div>
       </header>
 
       {error ? (
         <p className="m-0 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700">{error}</p>
       ) : null}
+      {dashboard?.notice ? (
+        <p className="m-0 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm font-bold text-blue-700">{dashboard.notice}</p>
+      ) : null}
 
-      <section className="grid grid-cols-[repeat(auto-fit,minmax(190px,1fr))] gap-4">
-        <article className="rounded-lg border border-blue-200 bg-blue-50/70 p-5">
-          <p className="m-0 flex items-center gap-2 text-sm font-bold text-blue-700">
-            <UserRound size={16} />
-            当前用户ID
-          </p>
-          <strong className="mt-2 block text-3xl leading-none font-extrabold text-blue-800">
-            {loading ? "..." : dashboard?.userId ?? "-"}
-          </strong>
-          <p className="mt-3 text-xs font-semibold text-slate-500">来自后端 dashboard 接口</p>
-        </article>
-        <article className="rounded-lg border border-emerald-200 bg-emerald-50/70 p-5">
-          <p className="m-0 flex items-center gap-2 text-sm font-bold text-emerald-700">
-            <BadgeCheck size={16} />
-            当前角色
-          </p>
-          <strong className="mt-2 block text-2xl leading-none font-extrabold text-emerald-800">
-            {roleLabels[activeRole]}
-          </strong>
-          <p className="mt-3 text-xs font-semibold text-slate-500">{rolesText}</p>
-        </article>
-        <article className="rounded-lg border border-slate-200 bg-white p-5">
-          <p className="m-0 flex items-center gap-2 text-sm font-bold text-slate-600">
-            <Database size={16} />
-            已返回字段
-          </p>
-          <strong className="mt-2 block text-3xl leading-none font-extrabold text-slate-950">
-            {supportedFieldTextMap[activeRole].length}
-          </strong>
-          <p className="mt-3 text-xs font-semibold text-slate-500">
-            {supportedFieldTextMap[activeRole].join(" / ")}
-          </p>
-        </article>
+      <section className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4">
+        {stats.length > 0 ? (
+          stats.map((stat, index) => <StatCard key={stat.key} stat={stat} index={index} />)
+        ) : (
+          <article className="rounded-lg border border-dashed border-slate-200 bg-white p-5 text-sm font-bold text-slate-400">
+            {loading ? "正在读取工作台数据..." : "暂无统计数据"}
+          </article>
+        )}
       </section>
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
         <section className="rounded-lg border border-slate-200 bg-white p-5">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div>
-              <h2 className="m-0 flex items-center gap-2 text-lg font-extrabold text-slate-950">
-                <Info size={19} className="text-blue-700" />
-                后端已支持数据
-              </h2>
-              <p className="mt-1 text-sm text-slate-500">当前只展示后端真实返回字段，不再使用 mock 统计。</p>
-            </div>
-          </div>
-
-          <div className="grid gap-3">
-            {supportedFieldTextMap[activeRole].map((field) => (
-              <article className="rounded-lg border border-slate-200 bg-slate-50 p-4" key={field}>
-                <div className="flex items-center justify-between gap-3">
-                  <h3 className="m-0 text-base font-extrabold text-slate-950">{field}</h3>
-                  <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-extrabold text-emerald-700">
-                    已接入
-                  </span>
+          <h2 className="m-0 flex items-center gap-2 text-lg font-extrabold text-slate-950">
+            <ListChecks size={19} className="text-blue-700" />
+            待办事项
+          </h2>
+          <div className="mt-4 grid gap-3">
+            {todos.length > 0 ? todos.map((todo) => (
+              <article className="rounded-lg border border-slate-200 bg-slate-50 p-4" key={`${todo.type}-${todo.label}`}>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h3 className="m-0 text-base font-extrabold text-slate-950">{todo.label}</h3>
+                    <p className="mt-1 text-xs font-semibold text-slate-500">{todo.type}</p>
+                  </div>
+                  <strong className="text-xl font-extrabold text-blue-700">
+                    {todo.count ?? todo.progress ?? "-"}
+                    {todo.total !== undefined ? `/${todo.total}` : ""}
+                  </strong>
                 </div>
+                {todo.progress !== undefined ? (
+                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
+                    <div className="h-full rounded-full bg-blue-700" style={{ width: `${Math.min(100, Math.max(0, todo.progress))}%` }} />
+                  </div>
+                ) : null}
               </article>
-            ))}
+            )) : (
+              <p className="m-0 rounded-lg border border-dashed border-slate-200 p-4 text-sm font-bold text-slate-400">
+                暂无待办事项
+              </p>
+            )}
           </div>
         </section>
 
         <aside className="grid gap-4">
-          <section className="rounded-lg border border-amber-200 bg-amber-50 p-5">
-            <h2 className="m-0 flex items-center gap-2 text-lg font-extrabold text-amber-800">
-              <ShieldAlert size={19} />
-              待后端补充
+          <section className="rounded-lg border border-slate-200 bg-white p-5">
+            <h2 className="m-0 flex items-center gap-2 text-lg font-extrabold text-slate-950">
+              <Bell size={19} className="text-amber-600" />
+              预警提醒
             </h2>
             <div className="mt-4 grid gap-2">
-              {pendingFieldTextMap[activeRole].map((item) => (
-                <p className="m-0 rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm font-semibold text-amber-800" key={item}>
-                  {item}
+              {warnings.length > 0 ? warnings.map((warning) => (
+                <p className="m-0 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800" key={`${warning.type}-${warning.message}`}>
+                  {warning.level ? `${warning.level} / ` : ""}{warning.message}
                 </p>
-              ))}
+              )) : (
+                <p className="m-0 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-700">
+                  <CheckCircle2 className="mr-1 inline" size={16} />
+                  暂无预警
+                </p>
+              )}
             </div>
           </section>
 
@@ -214,7 +209,7 @@ export function DashboardPage() {
 
                 return (
                   <Link
-                    className="group rounded-lg border border-slate-200 p-3 no-underline transition hover:border-blue-200 hover:bg-blue-50"
+                    className={`group rounded-lg border p-3 no-underline transition hover:border-blue-200 hover:bg-blue-50 ${tone.card}`}
                     key={link.title}
                     to={link.targetPath}
                   >

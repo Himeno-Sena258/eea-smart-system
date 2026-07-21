@@ -5,6 +5,7 @@ import {
   LockKeyhole,
   LogOut,
   Mail,
+  Save,
   Phone,
   RefreshCw,
   ShieldCheck,
@@ -31,11 +32,15 @@ function Field({
   icon: Icon,
   label,
   value,
+  readOnly = true,
+  onChange,
   type = "text",
 }: {
   icon: typeof UserCircle
   label: string
   value: string
+  readOnly?: boolean
+  onChange?: (value: string) => void
   type?: string
 }) {
   return (
@@ -44,7 +49,13 @@ function Field({
         <Icon size={16} className="text-slate-400" aria-hidden="true" />
         {label}
       </span>
-      <Input className="h-10 bg-white text-sm" type={type} value={value || "-"} readOnly />
+      <Input
+        className="h-10 bg-white text-sm"
+        onChange={(event) => onChange?.(event.target.value)}
+        readOnly={readOnly}
+        type={type}
+        value={readOnly ? value || "-" : value}
+      />
     </label>
   )
 }
@@ -64,6 +75,7 @@ export function ProfilePage() {
   const currentUser = useAuthStore((state) => state.currentUser)
   const fetchCurrentUser = useAuthStore((state) => state.fetchCurrentUser)
   const changePassword = useAuthStore((state) => state.changePassword)
+  const updateCurrentUserProfile = useAuthStore((state) => state.updateCurrentUserProfile)
   const logout = useAuthStore((state) => state.logout)
   const loading = useAuthStore((state) => state.loading)
   const storeError = useAuthStore((state) => state.error)
@@ -73,6 +85,8 @@ export function ProfilePage() {
   const [oldPassword, setOldPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+  const [emailDraft, setEmailDraft] = useState("")
+  const [phoneDraft, setPhoneDraft] = useState("")
   const [message, setMessage] = useState<string | null>(null)
   const [localError, setLocalError] = useState<string | null>(null)
 
@@ -89,6 +103,11 @@ export function ProfilePage() {
     setLocalError(null)
     void fetchCurrentUser().catch((requestError: Error) => setLocalError(requestError.message))
   }, [fetchCurrentUser])
+
+  useEffect(() => {
+    setEmailDraft(currentUser?.email ?? "")
+    setPhoneDraft(currentUser?.phone ?? "")
+  }, [currentUser?.email, currentUser?.phone])
 
   const resetPasswordForm = () => {
     setOldPassword("")
@@ -116,6 +135,21 @@ export function ProfilePage() {
       setMessage(result)
     } catch (requestError) {
       setLocalError(requestError instanceof Error ? requestError.message : "修改密码失败")
+    }
+  }
+
+  const handleSaveProfile = async () => {
+    setMessage(null)
+    setLocalError(null)
+
+    try {
+      const result = await updateCurrentUserProfile({
+        email: emailDraft.trim() || undefined,
+        phone: phoneDraft.trim() || undefined,
+      })
+      setMessage(result)
+    } catch (requestError) {
+      setLocalError(requestError instanceof Error ? requestError.message : "保存个人资料失败")
     }
   }
 
@@ -197,18 +231,23 @@ export function ProfilePage() {
             <div className="mb-5 flex items-center justify-between gap-3 border-b border-slate-200 pb-4">
               <div>
                 <h2 className="m-0 text-lg font-extrabold text-slate-950">基础信息</h2>
-                <p className="mt-1 text-sm text-slate-500">当前账号资料来自后端用户信息接口。</p>
               </div>
-              <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-extrabold text-blue-700">
-                {roleNames}
-              </span>
+              <Button
+                className="bg-blue-700 text-white hover:bg-blue-800"
+                disabled={loading}
+                onClick={handleSaveProfile}
+                type="button"
+              >
+                <Save size={16} />
+                保存资料
+              </Button>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
               <Field icon={IdCard} label="账号" value={currentUser?.username ?? ""} />
               <Field icon={UserCircle} label="姓名" value={currentUser?.realName ?? ""} />
-              <Field icon={Mail} label="电子邮箱" value={currentUser?.email ?? ""} type="email" />
-              <Field icon={Phone} label="联系电话" value={currentUser?.phone ?? ""} />
+              <Field icon={Mail} label="电子邮箱" onChange={setEmailDraft} readOnly={false} value={emailDraft} type="email" />
+              <Field icon={Phone} label="联系电话" onChange={setPhoneDraft} readOnly={false} value={phoneDraft} />
               <div className="md:col-span-2">
                 <Field icon={Building2} label="所属机构" value={currentUser?.orgName ?? currentUser?.className ?? ""} />
               </div>

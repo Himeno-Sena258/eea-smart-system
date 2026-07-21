@@ -25,8 +25,11 @@ import type {
   SaveCourseIndicatorMatrixPayload,
   SaveCurriculumPayload,
   SaveTeachingContentsPayload,
+  CoordinatorCourse,
+  StudentCourse,
   StudentSyllabus,
   TeachingContentItem,
+  TeacherCourse,
 } from "@/models"
 
 const multipartHeaders = {
@@ -54,6 +57,30 @@ export const getCoursePage = async (query?: CourseQuery) => {
     url: "/courses",
     method: "GET",
     params: query,
+  })
+  return response.data
+}
+
+export const getCoordinatorCourseList = async () => {
+  const response = await request<CoordinatorCourse[]>({
+    url: "/coordinator/courses",
+    method: "GET",
+  })
+  return response.data
+}
+
+export const getTeacherCourseList = async () => {
+  const response = await request<TeacherCourse[]>({
+    url: "/teacher/courses",
+    method: "GET",
+  })
+  return response.data
+}
+
+export const getStudentCourseList = async () => {
+  const response = await request<StudentCourse[]>({
+    url: "/student/courses",
+    method: "GET",
   })
   return response.data
 }

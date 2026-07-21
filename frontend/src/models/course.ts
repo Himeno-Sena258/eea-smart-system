@@ -148,6 +148,34 @@ export interface StudentSyllabus {
   methods: StudentSyllabusMethod[]
 }
 
+export interface StudentCourse {
+  courseId: ID
+  courseName: string
+  courseCode: string
+  credits: number
+  teachingClassId: ID
+  teachingClassName: string
+  semester: string
+}
+
+export interface TeacherCourse {
+  courseId: ID
+  courseName: string
+  courseCode: string
+  credits: number
+  teachingClassCount: number
+}
+
+export interface CoordinatorCourse {
+  courseId: ID
+  courseName: string
+  courseCode?: string
+  credits?: number
+  hours?: number
+  syllabusId?: ID
+  updatedAt?: DateTimeString
+}
+
 export interface AssessmentMethodPayload {
   name: string
   weight: number

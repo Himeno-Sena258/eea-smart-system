@@ -11,6 +11,7 @@ import type {
   Role,
   ImportResult,
   SubmitUserImportPayload,
+  UpdateProfilePayload,
   UpdateUserPayload,
   UpdateUserStatusPayload,
   User,
@@ -64,6 +65,35 @@ export const changePassword = async (payload: ChangePasswordPayload) => {
     url: "/auth/password",
     method: "PUT",
     data: payload,
+  })
+  return response.data
+}
+
+export const updateCurrentUserProfile = async (payload: UpdateProfilePayload) => {
+  const response = await request<string>({
+    url: "/auth/me",
+    method: "PUT",
+    data: payload,
+  })
+  return response.data
+}
+
+export const uploadCurrentUserAvatar = async (file: File) => {
+  const formData = new FormData()
+  formData.append("file", file)
+  const response = await request<string>({
+    url: "/auth/me/avatar",
+    method: "POST",
+    data: formData,
+    headers: multipartHeaders,
+  })
+  return response.data
+}
+
+export const deleteCurrentUserAvatar = async () => {
+  const response = await request<string>({
+    url: "/auth/me/avatar",
+    method: "DELETE",
   })
   return response.data
 }
