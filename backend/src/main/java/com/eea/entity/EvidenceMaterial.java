@@ -37,6 +37,15 @@ public class EvidenceMaterial {
     @Schema(description = "样本档次: HIGH-优秀, MEDIUM-中等, LOW-不及格")
     private String levelTag;
 
+    @Schema(description = "MIME类型")
+    private String mimeType;
+
+    @Schema(description = "文件大小(字节)")
+    private Long fileSize;
+
+    @Schema(description = "预览地址")
+    private String previewUrl;
+
     @Schema(description = "上传教师ID")
     private Long uploadedBy;
 
