@@ -3,7 +3,8 @@ import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { roleLabels } from "@/constants/role-options"
-import type { Course, ID } from "@/models"
+import type { AssessmentMethod, Course, CourseObjective, ID, StudentSyllabus } from "@/models"
+import { getStudentSyllabusList } from "@/services"
 import { useBaseStore, useCourseStore, useUiStore } from "@/stores"
 
 const editableRoles = ["DIRECTOR", "COORDINATOR"]
@@ -72,10 +73,12 @@ function CourseList({
 
 export function CoursesPage() {
   const activeRole = useUiStore((state) => state.activeRole)
+  const isStudent = activeRole === "STUDENT"
   const programSchemes = useBaseStore((state) => state.programSchemes)
   const fetchProgramSchemes = useBaseStore((state) => state.fetchProgramSchemes)
   const fetchIndicatorTree = useBaseStore((state) => state.fetchIndicatorTree)
   const indicatorTree = useBaseStore((state) => state.indicatorTree)
+  const clearBaseError = useBaseStore((state) => state.clearError)
 
   const coursesPage = useCourseStore((state) => state.coursesPage)
   const objectives = useCourseStore((state) => state.objectives)
@@ -87,18 +90,65 @@ export function CoursesPage() {
   const fetchObjectives = useCourseStore((state) => state.fetchObjectives)
   const fetchIndicatorMatrix = useCourseStore((state) => state.fetchIndicatorMatrix)
   const fetchAssessmentMethods = useCourseStore((state) => state.fetchAssessmentMethods)
+  const clearCourseError = useCourseStore((state) => state.clearError)
 
   const [keyword, setKeyword] = useState("")
   const [selectedSchemeId, setSelectedSchemeId] = useState<ID | null>(null)
   const [selectedCourseId, setSelectedCourseId] = useState<ID | null>(null)
+  const [studentSyllabi, setStudentSyllabi] = useState<StudentSyllabus[]>([])
+  const [studentLoading, setStudentLoading] = useState(false)
+  const [studentError, setStudentError] = useState<string | null>(null)
 
-  const courses = coursesPage?.records ?? []
+  const studentCourses = useMemo<Course[]>(
+    () =>
+      studentSyllabi.map((syllabus) => ({
+        id: syllabus.courseId,
+        schemeId: 0,
+        courseCode: `课程 ${syllabus.courseId}`,
+        courseName: syllabus.courseName,
+        credits: syllabus.credits,
+        hours: syllabus.hours,
+        courseType: "本人课程",
+      })),
+    [studentSyllabi],
+  )
+  const courses = isStudent ? studentCourses : coursesPage?.records ?? []
   const selectedCourse = useMemo(
     () => courses.find((course) => course.id === selectedCourseId) ?? courses[0] ?? null,
     [courses, selectedCourseId],
   )
+  const selectedStudentSyllabus = useMemo(
+    () => studentSyllabi.find((syllabus) => syllabus.courseId === selectedCourse?.id) ?? null,
+    [selectedCourse?.id, studentSyllabi],
+  )
+  const displayObjectives = useMemo<CourseObjective[]>(
+    () =>
+      isStudent
+        ? selectedStudentSyllabus?.objectives.map((objective, index) => ({
+          id: selectedStudentSyllabus.courseId * 1000 + index + 1,
+          courseId: selectedStudentSyllabus.courseId,
+          objectiveCode: objective.code,
+          content: objective.content,
+        })) ?? []
+        : objectives,
+    [isStudent, objectives, selectedStudentSyllabus],
+  )
+  const displayAssessmentMethods = useMemo<AssessmentMethod[]>(
+    () =>
+      isStudent
+        ? selectedStudentSyllabus?.methods.map((method, index) => ({
+          id: selectedStudentSyllabus.courseId * 1000 + index + 501,
+          courseId: selectedStudentSyllabus.courseId,
+          name: method.name,
+          weight: method.weight,
+          items: [],
+        })) ?? []
+        : assessmentMethods,
+    [assessmentMethods, isStudent, selectedStudentSyllabus],
+  )
+  const displayIndicatorMatrix = isStudent ? [] : indicatorMatrix
   const canEdit = editableRoles.includes(activeRole)
-  const totalWeight = assessmentMethods.reduce((sum, method) => sum + method.weight, 0)
+  const totalWeight = displayAssessmentMethods.reduce((sum, method) => sum + method.weight, 0)
   const indicators = useMemo(() => indicatorTree.flatMap((requirement) => requirement.indicators), [indicatorTree])
   const indicatorNameMap = useMemo(
     () => Object.fromEntries(indicators.map((indicator) => [String(indicator.id), indicator.code])),
@@ -107,7 +157,14 @@ export function CoursesPage() {
   const objectiveIndicatorCodes = useMemo(() => {
     const map = new Map<string, string[]>()
 
-    indicatorMatrix.forEach((item) => {
+    if (isStudent && selectedStudentSyllabus) {
+      selectedStudentSyllabus.objectives.forEach((objective, index) => {
+        map.set(String(selectedStudentSyllabus.courseId * 1000 + index + 1), objective.indicatorCodes)
+      })
+      return map
+    }
+
+    displayIndicatorMatrix.forEach((item) => {
       const key = String(item.courseObjectiveId)
       const code = indicatorNameMap[String(item.indicatorPointId)]
       if (!code) return
@@ -116,26 +173,49 @@ export function CoursesPage() {
     })
 
     return map
-  }, [indicatorMatrix, indicatorNameMap])
+  }, [displayIndicatorMatrix, indicatorNameMap, isStudent, selectedStudentSyllabus])
 
   useEffect(() => {
+    if (isStudent) return
+
     void fetchProgramSchemes()
-  }, [fetchProgramSchemes])
+  }, [fetchProgramSchemes, isStudent])
 
   useEffect(() => {
+    if (!isStudent) return
+
+    clearBaseError()
+    clearCourseError()
+    setSelectedSchemeId(null)
+    setStudentLoading(true)
+    setStudentError(null)
+
+    void getStudentSyllabusList()
+      .then(setStudentSyllabi)
+      .catch((error: unknown) => {
+        setStudentSyllabi([])
+        setStudentError(error instanceof Error ? error.message : "学生课程大纲加载失败")
+      })
+      .finally(() => setStudentLoading(false))
+  }, [clearBaseError, clearCourseError, isStudent])
+
+  useEffect(() => {
+    if (isStudent) return
     if (selectedSchemeId || programSchemes.length === 0) return
 
     setSelectedSchemeId((programSchemes.find((scheme) => scheme.status === 1) ?? programSchemes[0]).id)
-  }, [programSchemes, selectedSchemeId])
+  }, [isStudent, programSchemes, selectedSchemeId])
 
   useEffect(() => {
+    if (isStudent) return
+
     void fetchCourses({
       pageNum: 1,
       pageSize: 100,
       keyword: keyword.trim() || undefined,
       schemeId: selectedSchemeId ?? undefined,
     })
-  }, [fetchCourses, keyword, selectedSchemeId])
+  }, [fetchCourses, isStudent, keyword, selectedSchemeId])
 
   useEffect(() => {
     if (!selectedCourse) {
@@ -148,12 +228,21 @@ export function CoursesPage() {
 
   useEffect(() => {
     if (!selectedCourse) return
+    if (isStudent) return
 
-    void fetchIndicatorTree(selectedCourse.schemeId)
-    void fetchObjectives(selectedCourse.id)
-    void fetchIndicatorMatrix(selectedCourse.id)
-    void fetchAssessmentMethods(selectedCourse.id)
-  }, [fetchAssessmentMethods, fetchIndicatorMatrix, fetchIndicatorTree, fetchObjectives, selectedCourse])
+    if (activeRole === "DIRECTOR") {
+      void fetchIndicatorTree(selectedCourse.schemeId)
+      void fetchIndicatorMatrix(selectedCourse.id)
+    }
+
+    if (activeRole === "COORDINATOR") {
+      void fetchObjectives(selectedCourse.id)
+      void fetchAssessmentMethods(selectedCourse.id)
+    }
+  }, [activeRole, fetchAssessmentMethods, fetchIndicatorMatrix, fetchIndicatorTree, fetchObjectives, isStudent, selectedCourse])
+
+  const displayError = isStudent ? studentError : error
+  const displayLoading = isStudent ? studentLoading : loading
 
   return (
     <section className="grid gap-5">
@@ -172,11 +261,11 @@ export function CoursesPage() {
         </div>
       </header>
 
-      {error ? (
-        <p className="m-0 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700">{error}</p>
+      {displayError ? (
+        <p className="m-0 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700">{displayError}</p>
       ) : null}
 
-      <div className="flex flex-wrap gap-2">
+      {!isStudent ? <div className="flex flex-wrap gap-2">
         {programSchemes.map((scheme) => (
           <button
             className={[
@@ -192,7 +281,7 @@ export function CoursesPage() {
             {scheme.versionName}
           </button>
         ))}
-      </div>
+      </div> : null}
 
       <div className="grid gap-5 xl:grid-cols-[260px_minmax(0,1fr)]">
         <CourseList
@@ -233,7 +322,7 @@ export function CoursesPage() {
                   课程目标
                 </h3>
                 <div className="mt-3 grid gap-3 lg:grid-cols-3">
-                  {objectives.map((objective) => (
+                  {displayObjectives.map((objective) => (
                     <article className="rounded-lg border border-slate-200 bg-slate-50 p-3" key={objective.id}>
                       <div className="mb-2 flex items-center justify-between gap-3">
                         <strong className="text-blue-700">{objective.objectiveCode}</strong>
@@ -244,9 +333,9 @@ export function CoursesPage() {
                       <p className="m-0 text-sm leading-6 text-slate-700">{objective.content}</p>
                     </article>
                   ))}
-                  {objectives.length === 0 ? (
+                  {displayObjectives.length === 0 ? (
                     <p className="m-0 rounded-lg border border-dashed border-slate-200 p-4 text-sm font-bold text-slate-400">
-                      {loading ? "正在加载课程目标..." : "暂无课程目标"}
+                      {displayLoading ? "正在加载课程目标..." : "暂无课程目标"}
                     </p>
                   ) : null}
                 </div>
@@ -262,7 +351,7 @@ export function CoursesPage() {
                   </span>
                 </div>
                 <div className="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-3">
-                  {assessmentMethods.map((method) => (
+                  {displayAssessmentMethods.map((method) => (
                     <article
                       className="rounded-lg border border-slate-200 p-3 text-center transition hover:border-blue-200 hover:bg-blue-50"
                       key={method.id}
@@ -310,9 +399,9 @@ export function CoursesPage() {
                   考核细项
                 </h2>
                 <div className="mt-3 grid max-h-[260px] gap-3 overflow-y-auto pr-1">
-                  {assessmentMethods.flatMap((method) =>
+                  {displayAssessmentMethods.flatMap((method) =>
                     (method.items ?? []).map((item) => {
-                      const objective = objectives.find((target) => target.id === item.courseObjectiveId)
+                      const objective = displayObjectives.find((target) => target.id === item.courseObjectiveId)
 
                       return (
                         <div className="rounded-lg border border-slate-200 p-3" key={item.id}>
@@ -329,7 +418,7 @@ export function CoursesPage() {
                       )
                     }),
                   )}
-                  {assessmentMethods.every((method) => !method.items || method.items.length === 0) ? (
+                  {displayAssessmentMethods.every((method) => !method.items || method.items.length === 0) ? (
                     <p className="m-0 rounded-lg border border-dashed border-slate-200 p-3 text-sm font-bold text-slate-400">
                       暂无考核细项
                     </p>
@@ -343,18 +432,18 @@ export function CoursesPage() {
                   指标点支撑
                 </h2>
                 <div className="mt-3 grid max-h-[260px] gap-3 overflow-y-auto pr-1">
-                  {indicatorMatrix.map((item) => (
+                  {displayIndicatorMatrix.map((item) => (
                     <div className="flex items-start gap-3 rounded-lg border border-slate-200 p-3" key={`${item.courseObjectiveId}-${item.indicatorPointId}`}>
                       <CheckCircle2 className="mt-0.5 text-emerald-600" size={17} />
                       <div>
                         <p className="m-0 text-sm font-extrabold text-slate-900">
-                          {objectives.find((objective) => objective.id === item.courseObjectiveId)?.objectiveCode ?? "CO"} 支撑 {indicatorNameMap[String(item.indicatorPointId)] ?? "-"}
+                          {displayObjectives.find((objective) => objective.id === item.courseObjectiveId)?.objectiveCode ?? "CO"} 支撑 {indicatorNameMap[String(item.indicatorPointId)] ?? "-"}
                         </p>
                         <p className="mt-1 text-xs leading-5 text-slate-500">权重 {item.weight.toFixed(2)}</p>
                       </div>
                     </div>
                   ))}
-                  {indicatorMatrix.length === 0 ? (
+                  {displayIndicatorMatrix.length === 0 ? (
                     <p className="m-0 rounded-lg border border-dashed border-slate-200 p-3 text-sm font-bold text-slate-400">
                       暂无指标点支撑关系
                     </p>
