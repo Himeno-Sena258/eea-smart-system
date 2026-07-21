@@ -51,6 +51,25 @@ export interface TeachingClass {
   className: string
 }
 
+export interface TeacherClass {
+  classId: ID
+  className: string
+  courseId: ID
+  courseName: string
+  semester: string
+  studentCount: number
+}
+
+export interface TeacherClassStudent {
+  studentId: ID
+  studentNo: string
+  studentName: string
+  adminClassName?: string
+  courseName?: string
+  semester?: string
+  selectStatus?: number
+}
+
 export interface TeachingClassPayload {
   courseId: ID
   teacherId: ID
@@ -95,6 +114,63 @@ export interface ScoreTable {
     courseObjectiveId: ID
   }>
   students: ScoreTableStudent[]
+}
+
+export interface TeacherScoreGridHeader {
+  itemId: ID
+  itemName: string
+  maxScore: number
+  coId: ID
+  coCode: string
+  methodName: string
+  methodWeight: number
+}
+
+export interface TeacherScoreGridRow {
+  studentId: ID
+  studentNo: string
+  studentName: string
+  itemScores: Record<ID, number | null>
+}
+
+export interface TeacherScoreGrid {
+  classId: ID
+  headers: TeacherScoreGridHeader[]
+  rows: TeacherScoreGridRow[]
+}
+
+export interface TeacherFinalScore {
+  studentId: ID
+  studentNo: string
+  studentName: string
+  homeworkScore: number | null
+  experimentScore: number | null
+  examScore: number | null
+  totalScore: number | null
+  isPassed: number
+}
+
+export interface StudentScoreItemDetail {
+  itemId: ID
+  itemName: string
+  score: number | null
+  maxScore: number | null
+  objectiveCode: string
+  methodName: string
+}
+
+export interface StudentCourseScore {
+  courseId: ID
+  courseName: string
+  teachingClassId: ID
+  teachingClassName: string
+  semester: string
+  homeworkScore: number | null
+  experimentScore: number | null
+  examScore: number | null
+  totalScore: number | null
+  passed: boolean
+  items?: StudentScoreItemDetail[] | null
 }
 
 export type ProcessRecordType = "ATTENDANCE" | "PERFORMANCE" | "HOMEWORK" | string
