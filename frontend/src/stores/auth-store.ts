@@ -29,7 +29,7 @@ import {
   getUserDetail,
   getUserPage,
   login,
-  logout,
+  logout as logoutRequest,
   previewUserImport,
   resetUserPassword,
   submitUserImport,
@@ -118,14 +118,24 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       writeStoredCurrentUser(currentUser)
       return currentUser
     }, (currentUser) => ({ currentUser })),
-  logout: () =>
-    runRequest(set, logout, () => {
+  logout: async () => {
+    set({ loading: true, error: null })
+
+    let result = "已退出登录"
+    try {
+      result = await logoutRequest()
+    } finally {
       writeStoredCurrentUser(null)
-      return {
+      set({
         currentUser: null,
         currentUserDetail: null,
-      }
-    }),
+        loading: false,
+        error: null,
+      })
+    }
+
+    return result
+  },
   fetchCurrentUser: () =>
     runRequest(set, getCurrentUser, (currentUser) => {
       writeStoredCurrentUser(currentUser)
