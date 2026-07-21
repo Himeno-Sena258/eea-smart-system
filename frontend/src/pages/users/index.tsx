@@ -261,9 +261,6 @@ export function UsersPage() {
             <h1 className="m-0 text-[34px] leading-tight font-extrabold tracking-normal text-slate-950">
               系统用户与组织架构管理
             </h1>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              管理员专属页面，操作用户开户、权限分配与组织树维护。
-            </p>
           </div>
         </div>
         <Button className="bg-blue-700 text-white hover:bg-blue-800" onClick={openCreateDialog} type="button">

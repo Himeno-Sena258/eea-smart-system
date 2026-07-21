@@ -268,9 +268,6 @@ export function SurveysPage() {
             <h1 className="m-0 text-[34px] leading-tight font-extrabold tracking-normal text-slate-950">
               问卷调查与间接评价
             </h1>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              当前接入后端问卷列表、开放关闭、答卷提交、答卷列表和统计接口。
-            </p>
           </div>
         </div>
       </header>

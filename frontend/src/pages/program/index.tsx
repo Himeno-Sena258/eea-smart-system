@@ -90,9 +90,6 @@ export function ProgramPage() {
             <h1 className="m-0 text-[34px] leading-tight font-extrabold tracking-normal text-slate-950">
               培养方案与课程体系
             </h1>
-            <p className="mt-2 text-base leading-7 text-slate-600">
-              从真实接口读取培养方案、毕业要求、指标点、课程体系与课程支撑矩阵。
-            </p>
           </div>
         </div>
         <Button className="bg-blue-700 text-white hover:bg-blue-800" disabled type="button">

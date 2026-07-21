@@ -255,9 +255,6 @@ export function CoursesPage() {
           <h1 className="m-0 text-[34px] leading-tight font-extrabold tracking-normal text-slate-950">
             课程主数据
           </h1>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
-            展示真实接口中的课程、课程目标、指标点支撑关系与考核方式。
-          </p>
         </div>
       </header>
 

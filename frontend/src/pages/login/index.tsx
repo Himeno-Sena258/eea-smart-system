@@ -141,7 +141,6 @@ export function LoginPage() {
         <div className="grid gap-2.5">
           <p className="m-0 text-[13px] font-extrabold text-teal-700">EEA Smart System</p>
           <h1 className="m-0 text-[34px] leading-tight font-extrabold tracking-normal text-slate-950">登录</h1>
-          <p className="m-0 text-base leading-7 text-slate-600">使用管理员开通的账号进入工程教育认证工作台。</p>
         </div>
 
         <form className="grid gap-4" onSubmit={handleSubmit}>
