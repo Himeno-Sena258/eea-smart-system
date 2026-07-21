@@ -2,14 +2,15 @@ import { AlertTriangle, CheckCircle2, ClipboardList, FileText, RefreshCw, Send, 
 import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { roleLabels } from "@/constants/role-options"
-import type { ContinuousImprovement, ID, TeacherClass, TeacherCoAttainment, TeachingClass, TeachingImprovement } from "@/models"
+import type { ContinuousImprovement, ID, TeacherClass, TeacherCoAttainment, TeachingImprovement } from "@/models"
 import {
   generateImprovement,
+  getCoordinatorImprovementList,
+  getDirectorImprovementList,
   getImprovementList,
   getTeacherClassList,
   getTeacherCoAttainmentList,
   getTeacherImprovementList,
-  getTeachingClassPage,
   saveTeacherImprovement,
 } from "@/services"
 import { useUiStore } from "@/stores"
@@ -35,13 +36,6 @@ type DisplayRecord = {
 const toClassOptionFromTeacher = (item: TeacherClass): ClassOption => ({
   id: item.classId,
   label: `${item.courseName} / ${item.className}`,
-  courseName: item.courseName,
-  semester: item.semester,
-})
-
-const toClassOptionFromCommon = (item: TeachingClass): ClassOption => ({
-  id: item.id,
-  label: `${item.courseName ?? `课程 ${item.courseId}`} / ${item.className}`,
   courseName: item.courseName,
   semester: item.semester,
 })
@@ -116,8 +110,8 @@ export function ImprovementsPage() {
 
   const selectedClass = classOptions.find((item) => item.id === selectedClassId) ?? classOptions[0] ?? null
   const canEdit = activeRole === "INSTRUCTOR"
-  const canReviewByClass = activeRole === "DIRECTOR" || activeRole === "COORDINATOR"
-  const isSupported = canEdit || canReviewByClass
+  const canReviewAggregate = activeRole === "DIRECTOR" || activeRole === "COORDINATOR"
+  const isSupported = canEdit || canReviewAggregate
   const lowCos = useMemo(
     () => lowAttainments
       .filter((item) => Number(item.attainmentVal ?? 0) < Number(item.warningThreshold ?? 0.68))
@@ -153,21 +147,29 @@ export function ImprovementsPage() {
     if (!isSupported) return
 
     setLoading(true)
-    const loadClasses = canEdit
-      ? getTeacherClassList().then((data) => data.map(toClassOptionFromTeacher))
-      : getTeachingClassPage({ pageNum: 1, pageSize: 50 }).then((page) => page.records.map(toClassOptionFromCommon))
+    if (canReviewAggregate) {
+      const loadRecords = activeRole === "DIRECTOR" ? getDirectorImprovementList() : getCoordinatorImprovementList()
 
-    void loadClasses
+      void loadRecords
+        .then((data) => {
+          setRecords(data.map((record) => normalizeCommonRecord(record, `教学班 ${record.teachingClassId}`)))
+        })
+        .catch((requestError: Error) => setError(requestError.message))
+        .finally(() => setLoading(false))
+      return
+    }
+
+    void getTeacherClassList().then((data) => data.map(toClassOptionFromTeacher))
       .then((options) => {
         setClassOptions(options)
         setSelectedClassId(options[0]?.id ?? null)
       })
       .catch((requestError: Error) => setError(requestError.message))
       .finally(() => setLoading(false))
-  }, [activeRole, canEdit, isSupported])
+  }, [activeRole, canEdit, canReviewAggregate, isSupported])
 
   useEffect(() => {
-    if (!selectedClass || !isSupported) return
+    if (!selectedClass || !isSupported || canReviewAggregate) return
 
     setLoading(true)
     setError(null)
@@ -180,7 +182,7 @@ export function ImprovementsPage() {
       })
       .catch((requestError: Error) => setError(requestError.message))
       .finally(() => setLoading(false))
-  }, [selectedClass, canEdit, isSupported])
+  }, [selectedClass, canEdit, canReviewAggregate, isSupported])
 
   const handleGenerateDraft = async () => {
     if (!selectedClass) return
@@ -228,7 +230,7 @@ export function ImprovementsPage() {
           当前角色暂无持续改进接口
         </h2>
         <p className="mt-2 text-sm leading-6 font-semibold">
-          后端目前只支持授课教师提交班级改进记录，以及按教学班查询改进记录；{roleLabels[activeRole]} 暂无独立视图接口。
+          {roleLabels[activeRole]} 暂无持续改进接口。
         </p>
       </section>
     )
@@ -244,7 +246,7 @@ export function ImprovementsPage() {
           </p>
           <div>
             <h1 className="m-0 text-[34px] leading-tight font-extrabold tracking-normal text-slate-950">
-              {canEdit ? "班级教学改进任务单" : "按教学班查看持续改进"}
+              {canEdit ? "班级教学改进任务单" : "持续改进记录"}
             </h1>
           </div>
         </div>
@@ -272,7 +274,9 @@ export function ImprovementsPage() {
             <ClipboardList size={16} />
             教学班
           </p>
-          <strong className="mt-2 block text-lg font-extrabold text-slate-950">{classOptions.length}</strong>
+          <strong className="mt-2 block text-lg font-extrabold text-slate-950">
+            {canEdit ? classOptions.length : new Set(records.map((record) => record.className)).size}
+          </strong>
         </article>
         <article className="rounded-lg border border-red-200 bg-red-50 p-3">
           <p className="m-0 flex items-center gap-2 text-sm font-bold text-red-700">
@@ -290,7 +294,7 @@ export function ImprovementsPage() {
         </article>
       </section>
 
-      {classOptions.length > 0 ? (
+      {canEdit && classOptions.length > 0 ? (
         <section className="flex flex-wrap gap-2">
           {classOptions.map((item) => (
             <button
@@ -371,7 +375,7 @@ export function ImprovementsPage() {
         </div>
       ) : null}
 
-      {canReviewByClass ? (
+      {canReviewAggregate ? (
         <section className="grid gap-3">
           {records.length > 0 ? records.map((record) => (
             <RecordCard key={record.id} record={record} />
@@ -385,7 +389,7 @@ export function ImprovementsPage() {
 
       <section className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 font-semibold text-amber-800">
         <FileText className="mr-2 inline" size={16} />
-        当前后端没有全专业/全课程持续改进聚合接口，也没有审核状态字段，所以本页只展示后端已支持的按教学班查询与教师提交能力。
+        当前聚合接口未返回课程名、班级名和审核字段，页面仅展示后端已返回的改进内容。
       </section>
     </section>
   )

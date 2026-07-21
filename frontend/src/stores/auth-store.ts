@@ -10,6 +10,7 @@ import type {
   ResetPasswordPayload,
   Role,
   SubmitUserImportPayload,
+  UpdateProfilePayload,
   UpdateUserPayload,
   UpdateUserStatusPayload,
   User,
@@ -34,6 +35,7 @@ import {
   resetUserPassword,
   submitUserImport,
   updateRole,
+  updateCurrentUserProfile,
   updateUser,
   updateUserStatus,
   type RolePayload,
@@ -79,6 +81,7 @@ interface AuthStore extends RequestState, RequestActions {
   logout: () => Promise<string>
   fetchCurrentUser: () => Promise<User>
   changePassword: (payload: ChangePasswordPayload) => Promise<string>
+  updateCurrentUserProfile: (payload: UpdateProfilePayload) => Promise<string>
   resetUserPassword: (id: ID, payload: ResetPasswordPayload) => Promise<string>
   fetchRoles: () => Promise<Role[]>
   fetchRoleDetail: (id: ID) => Promise<Role>
@@ -142,6 +145,14 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       return { currentUser }
     }),
   changePassword: (payload) => runRequest(set, () => changePassword(payload)),
+  updateCurrentUserProfile: (payload) =>
+    runRequest(set, async () => {
+      const result = await updateCurrentUserProfile(payload)
+      const currentUser = await getCurrentUser()
+      writeStoredCurrentUser(currentUser)
+      set({ currentUser })
+      return result
+    }),
   resetUserPassword: (id, payload) => runRequest(set, () => resetUserPassword(id, payload)),
   fetchRoles: () => runRequest(set, getRoleList, (roles) => ({ roles })),
   fetchRoleDetail: (id) => runRequest(set, () => getRoleDetail(id), (currentRole) => ({ currentRole })),

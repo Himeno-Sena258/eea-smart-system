@@ -1,10 +1,11 @@
 import { Download, FileText, FolderOpen, Save, Send, Sparkles } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
-import type { ExportReportResult, ID, ReportDataSource, ReportSection, SelfEvaluationReport } from "@/models"
+import type { ID, ReportDataSource, ReportSection, SelfEvaluationReport } from "@/models"
 import {
   autoFillReport,
   exportReport,
+  getMyReportSections,
   getReportDataSourceList,
   getReportList,
   getReportSectionList,
@@ -91,11 +92,11 @@ export function ReportsPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
-  const [exportPreview, setExportPreview] = useState<ExportReportResult | null>(null)
 
   const canListReports = activeRole === "DIRECTOR" || activeRole === "ADMIN"
   const canEdit = activeRole === "DIRECTOR" || activeRole === "INSTRUCTOR"
   const canDirectorAction = activeRole === "DIRECTOR"
+  const isTeacherView = activeRole === "INSTRUCTOR"
 
   const activeReport = useMemo(
     () => reports.find((report) => report.id === activeReportId) ?? reports[0] ?? null,
@@ -122,6 +123,23 @@ export function ReportsPage() {
   }, [canListReports])
 
   useEffect(() => {
+    if (!isTeacherView) return
+
+    setLoading(true)
+    setError(null)
+    setReports([])
+    setActiveReportId(null)
+    void getMyReportSections()
+      .then((data) => {
+        setSections(data)
+        setActiveSectionId((current) => current ?? data[0]?.id ?? null)
+      })
+      .catch((requestError: Error) => setError(requestError.message))
+      .finally(() => setLoading(false))
+  }, [isTeacherView])
+
+  useEffect(() => {
+    if (isTeacherView) return
     if (!activeReport) {
       setSections([])
       return
@@ -136,7 +154,7 @@ export function ReportsPage() {
       })
       .catch((requestError: Error) => setError(requestError.message))
       .finally(() => setLoading(false))
-  }, [activeReport])
+  }, [activeReport, isTeacherView])
 
   useEffect(() => {
     if (!activeSection) {
@@ -152,6 +170,12 @@ export function ReportsPage() {
   }, [activeSection])
 
   const refreshSections = async () => {
+    if (isTeacherView) {
+      const nextSections = await getMyReportSections()
+      setSections(nextSections)
+      return
+    }
+
     if (!activeReport) return
     const nextSections = await getReportSectionList(activeReport.id)
     setSections(nextSections)
@@ -220,9 +244,16 @@ export function ReportsPage() {
     setError(null)
     setMessage(null)
     try {
-      const result = await exportReport(activeReport.id)
-      setExportPreview(result)
-      setMessage("导出预览已生成")
+      const blob = await exportReport(activeReport.id)
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement("a")
+      anchor.href = url
+      anchor.download = `${activeReport.title || "self-evaluation-report"}.docx`
+      document.body.appendChild(anchor)
+      anchor.click()
+      anchor.remove()
+      URL.revokeObjectURL(url)
+      setMessage("自评报告已开始下载")
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "导出失败")
     } finally {
@@ -230,7 +261,7 @@ export function ReportsPage() {
     }
   }
 
-  if (!canListReports) {
+  if (!canListReports && !isTeacherView) {
     return (
       <section className="grid gap-5">
         <header className="grid gap-2">
@@ -241,7 +272,7 @@ export function ReportsPage() {
           <h1 className="m-0 text-[34px] leading-tight font-extrabold tracking-normal text-slate-950">自评报告</h1>
         </header>
         <section className="rounded-lg border border-amber-200 bg-amber-50 p-5 text-sm leading-6 font-semibold text-amber-800">
-          当前后端没有“我的分配章节/可编辑报告列表”接口，授课教师无法从前端发现自己应编写的报告章节。需要后端补充后才能接入该角色视图。
+          当前角色没有自评报告协同接口，暂不能接入真实服务。
         </section>
       </section>
     )
@@ -257,7 +288,7 @@ export function ReportsPage() {
           </p>
           <div>
             <h1 className="m-0 text-[34px] leading-tight font-extrabold tracking-normal text-slate-950">
-              {activeReport?.title ?? "暂无自评报告"}
+              {isTeacherView ? "我的分配章节" : activeReport?.title ?? "暂无自评报告"}
             </h1>
           </div>
         </div>
@@ -316,7 +347,6 @@ export function ReportsPage() {
               onClick={() => {
                 setActiveReportId(report.id)
                 setActiveSectionId(null)
-                setExportPreview(null)
               }}
               type="button"
             >
@@ -358,15 +388,15 @@ export function ReportsPage() {
               <h2 className="text-center text-2xl font-extrabold text-slate-950">
                 {activeSection ? `${activeSection.sectionCode}. ${activeSection.title}` : "暂无章节"}
               </h2>
+              {activeSection?.reportTitle ? (
+                <p className="mt-2 text-center text-sm font-semibold text-slate-500">{activeSection.reportTitle}</p>
+              ) : null}
               <textarea
                 className="mt-6 min-h-[260px] w-full resize-y rounded-lg border border-slate-200 bg-white p-5 text-sm leading-7 text-slate-700 outline-none transition focus:border-blue-400 focus:ring-3 focus:ring-blue-100"
                 onChange={(event) => setContentDraft(event.target.value)}
                 readOnly={!canEdit || !activeSection}
                 value={contentDraft}
               />
-              <div className="my-5 rounded-lg border-2 border-dashed border-amber-300 bg-amber-50 p-4 text-sm leading-6 font-semibold text-amber-800">
-                后端导出接口当前返回 JSON 预览信息，尚未对接真实 Word/PDF 文件服务。
-              </div>
             </article>
 
             <aside className="grid content-start gap-4">
@@ -399,14 +429,6 @@ export function ReportsPage() {
                   <p className="m-0">报告版本: {activeReport?.version ?? "-"}</p>
                 </div>
               </section>
-
-              {exportPreview ? (
-                <section className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-                  <h3 className="m-0 text-base font-extrabold text-blue-900">导出预览</h3>
-                  <p className="mt-2 text-sm leading-6 text-blue-700">{exportPreview.exportFormat}</p>
-                  <p className="mt-2 text-xs font-bold text-blue-600">章节数 {exportPreview.sections.length}</p>
-                </section>
-              ) : null}
             </aside>
           </div>
         </section>

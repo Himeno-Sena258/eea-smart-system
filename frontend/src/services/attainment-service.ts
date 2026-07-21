@@ -48,6 +48,24 @@ export const getImprovementList = async (teachingClassId: ID) => {
   return response.data
 }
 
+export const getDirectorImprovementList = async (schemeId?: ID) => {
+  const response = await request<ContinuousImprovement[]>({
+    url: "/director/improvements",
+    method: "GET",
+    params: schemeId ? { schemeId } : undefined,
+  })
+  return response.data
+}
+
+export const getCoordinatorImprovementList = async (courseId?: ID) => {
+  const response = await request<ContinuousImprovement[]>({
+    url: "/coordinator/improvements",
+    method: "GET",
+    params: courseId ? { courseId } : undefined,
+  })
+  return response.data
+}
+
 export const createImprovement = async (
   teachingClassId: ID,
   payload: ContinuousImprovementPayload,

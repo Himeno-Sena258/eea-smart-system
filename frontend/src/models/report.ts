@@ -35,6 +35,7 @@ export interface UpdateReportStatusPayload {
 export interface ReportSection {
   id: ID
   reportId: ID
+  reportTitle?: string
   sectionCode: string
   title: string
   content: string

@@ -1,9 +1,8 @@
-import { request } from "./http"
+import { download, request } from "./http"
 import type {
   AssignReportSectionPayload,
   AutoFillReportResult,
   CreateReportPayload,
-  ExportReportResult,
   ID,
   ReportDataSource,
   ReportSection,
@@ -76,8 +75,12 @@ export const autoFillReport = async (id: ID) => {
 }
 
 export const exportReport = async (id: ID) => {
-  const response = await request<ExportReportResult>({
-    url: `/self-evaluation/reports/${id}/export`,
+  return download(`/self-evaluation/reports/${id}/export`)
+}
+
+export const getMyReportSections = async () => {
+  const response = await request<ReportSection[]>({
+    url: "/self-evaluation/sections/my",
     method: "GET",
   })
   return response.data

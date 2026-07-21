@@ -3,8 +3,8 @@ import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { roleLabels } from "@/constants/role-options"
-import type { AssessmentMethod, Course, CourseObjective, ID, StudentSyllabus } from "@/models"
-import { getStudentSyllabusList } from "@/services"
+import type { AssessmentMethod, CoordinatorCourse, Course, CourseObjective, ID, StudentCourse, StudentSyllabus, TeacherCourse } from "@/models"
+import { getCoordinatorCourseList, getStudentCourseList, getStudentSyllabusList, getTeacherCourseList } from "@/services"
 import { useBaseStore, useCourseStore, useUiStore } from "@/stores"
 
 const editableRoles = ["DIRECTOR", "COORDINATOR"]
@@ -73,6 +73,9 @@ function CourseList({
 
 export function CoursesPage() {
   const activeRole = useUiStore((state) => state.activeRole)
+  const isDirector = activeRole === "DIRECTOR"
+  const isCoordinator = activeRole === "COORDINATOR"
+  const isTeacher = activeRole === "INSTRUCTOR"
   const isStudent = activeRole === "STUDENT"
   const programSchemes = useBaseStore((state) => state.programSchemes)
   const fetchProgramSchemes = useBaseStore((state) => state.fetchProgramSchemes)
@@ -96,26 +99,22 @@ export function CoursesPage() {
   const [selectedSchemeId, setSelectedSchemeId] = useState<ID | null>(null)
   const [selectedCourseId, setSelectedCourseId] = useState<ID | null>(null)
   const [studentSyllabi, setStudentSyllabi] = useState<StudentSyllabus[]>([])
-  const [studentLoading, setStudentLoading] = useState(false)
-  const [studentError, setStudentError] = useState<string | null>(null)
+  const [roleCourses, setRoleCourses] = useState<Course[]>([])
+  const [roleLoading, setRoleLoading] = useState(false)
+  const [roleError, setRoleError] = useState<string | null>(null)
 
-  const studentCourses = useMemo<Course[]>(
-    () =>
-      studentSyllabi.map((syllabus) => ({
-        id: syllabus.courseId,
-        schemeId: 0,
-        courseCode: `课程 ${syllabus.courseId}`,
-        courseName: syllabus.courseName,
-        credits: syllabus.credits,
-        hours: syllabus.hours,
-        courseType: "本人课程",
-      })),
-    [studentSyllabi],
+  const courses = isDirector ? coursesPage?.records ?? [] : roleCourses
+  const filteredCourses = useMemo(
+    () => courses.filter((course) => {
+      const value = keyword.trim().toLowerCase()
+      if (!value || isDirector) return true
+      return `${course.courseCode} ${course.courseName}`.toLowerCase().includes(value)
+    }),
+    [courses, isDirector, keyword],
   )
-  const courses = isStudent ? studentCourses : coursesPage?.records ?? []
   const selectedCourse = useMemo(
-    () => courses.find((course) => course.id === selectedCourseId) ?? courses[0] ?? null,
-    [courses, selectedCourseId],
+    () => filteredCourses.find((course) => course.id === selectedCourseId) ?? filteredCourses[0] ?? null,
+    [filteredCourses, selectedCourseId],
   )
   const selectedStudentSyllabus = useMemo(
     () => studentSyllabi.find((syllabus) => syllabus.courseId === selectedCourse?.id) ?? null,
@@ -176,38 +175,83 @@ export function CoursesPage() {
   }, [displayIndicatorMatrix, indicatorNameMap, isStudent, selectedStudentSyllabus])
 
   useEffect(() => {
-    if (isStudent) return
+    if (!isDirector) return
 
     void fetchProgramSchemes()
-  }, [fetchProgramSchemes, isStudent])
+  }, [fetchProgramSchemes, isDirector])
 
   useEffect(() => {
-    if (!isStudent) return
-
     clearBaseError()
     clearCourseError()
     setSelectedSchemeId(null)
-    setStudentLoading(true)
-    setStudentError(null)
+    setRoleCourses([])
+    setRoleLoading(true)
+    setRoleError(null)
 
-    void getStudentSyllabusList()
-      .then(setStudentSyllabi)
+    if (isDirector) {
+      setRoleLoading(false)
+      return
+    }
+
+    const request =
+      isStudent
+        ? Promise.all([getStudentCourseList(), getStudentSyllabusList()]).then(([courseList, syllabusList]) => {
+          setStudentSyllabi(syllabusList)
+          return courseList.map((course: StudentCourse): Course => {
+            const syllabus = syllabusList.find((item) => String(item.courseId) === String(course.courseId))
+            return {
+              id: course.courseId,
+              schemeId: 0,
+              courseCode: course.courseCode,
+              courseName: course.courseName,
+              credits: course.credits,
+              hours: syllabus?.hours ?? 0,
+              courseType: course.teachingClassName,
+              semester: course.semester,
+            }
+          })
+        })
+        : isCoordinator
+          ? getCoordinatorCourseList().then((courseList) => courseList.map((course: CoordinatorCourse): Course => ({
+            id: course.courseId,
+            schemeId: 0,
+            courseCode: course.courseCode ?? `课程 ${course.courseId}`,
+            courseName: course.courseName,
+            credits: course.credits ?? 0,
+            hours: course.hours ?? 0,
+            courseType: "负责课程",
+          })))
+          : isTeacher
+            ? getTeacherCourseList().then((courseList) => courseList.map((course: TeacherCourse): Course => ({
+              id: course.courseId,
+              schemeId: 0,
+              courseCode: course.courseCode,
+              courseName: course.courseName,
+              credits: course.credits,
+              hours: 0,
+              courseType: `${course.teachingClassCount} 个教学班`,
+            })))
+            : Promise.resolve([])
+
+    void request
+      .then(setRoleCourses)
       .catch((error: unknown) => {
+        setRoleCourses([])
         setStudentSyllabi([])
-        setStudentError(error instanceof Error ? error.message : "学生课程大纲加载失败")
+        setRoleError(error instanceof Error ? error.message : "课程列表加载失败")
       })
-      .finally(() => setStudentLoading(false))
-  }, [clearBaseError, clearCourseError, isStudent])
+      .finally(() => setRoleLoading(false))
+  }, [clearBaseError, clearCourseError, isCoordinator, isDirector, isStudent, isTeacher])
 
   useEffect(() => {
-    if (isStudent) return
+    if (!isDirector) return
     if (selectedSchemeId || programSchemes.length === 0) return
 
     setSelectedSchemeId((programSchemes.find((scheme) => scheme.status === 1) ?? programSchemes[0]).id)
-  }, [isStudent, programSchemes, selectedSchemeId])
+  }, [isDirector, programSchemes, selectedSchemeId])
 
   useEffect(() => {
-    if (isStudent) return
+    if (!isDirector) return
 
     void fetchCourses({
       pageNum: 1,
@@ -215,7 +259,7 @@ export function CoursesPage() {
       keyword: keyword.trim() || undefined,
       schemeId: selectedSchemeId ?? undefined,
     })
-  }, [fetchCourses, isStudent, keyword, selectedSchemeId])
+  }, [fetchCourses, isDirector, keyword, selectedSchemeId])
 
   useEffect(() => {
     if (!selectedCourse) {
@@ -230,19 +274,19 @@ export function CoursesPage() {
     if (!selectedCourse) return
     if (isStudent) return
 
-    if (activeRole === "DIRECTOR") {
+    if (isDirector) {
       void fetchIndicatorTree(selectedCourse.schemeId)
       void fetchIndicatorMatrix(selectedCourse.id)
     }
 
-    if (activeRole === "COORDINATOR") {
+    if (isCoordinator) {
       void fetchObjectives(selectedCourse.id)
       void fetchAssessmentMethods(selectedCourse.id)
     }
-  }, [activeRole, fetchAssessmentMethods, fetchIndicatorMatrix, fetchIndicatorTree, fetchObjectives, isStudent, selectedCourse])
+  }, [fetchAssessmentMethods, fetchIndicatorMatrix, fetchIndicatorTree, fetchObjectives, isCoordinator, isDirector, isStudent, selectedCourse])
 
-  const displayError = isStudent ? studentError : error
-  const displayLoading = isStudent ? studentLoading : loading
+  const displayError = isDirector ? error : roleError
+  const displayLoading = isDirector ? loading : roleLoading
 
   return (
     <section className="grid gap-5">
@@ -262,7 +306,7 @@ export function CoursesPage() {
         <p className="m-0 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700">{displayError}</p>
       ) : null}
 
-      {!isStudent ? <div className="flex flex-wrap gap-2">
+      {isDirector ? <div className="flex flex-wrap gap-2">
         {programSchemes.map((scheme) => (
           <button
             className={[
@@ -282,7 +326,7 @@ export function CoursesPage() {
 
       <div className="grid gap-5 xl:grid-cols-[260px_minmax(0,1fr)]">
         <CourseList
-          courses={courses}
+          courses={filteredCourses}
           keyword={keyword}
           onKeywordChange={setKeyword}
           onSelect={setSelectedCourseId}
