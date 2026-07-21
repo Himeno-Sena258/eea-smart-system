@@ -1,4 +1,3 @@
-import type { AutoFillConfig } from "./course"
 import type { DateTimeString, ID } from "./common"
 
 export type ReportStatus = 0 | 1 | 2 | 3
@@ -20,7 +19,7 @@ export interface CreateReportPayload {
   schemeId: ID
   title: string
   version: string
-  createdBy: ID
+  createdBy?: ID
 }
 
 export interface UpdateReportPayload {
@@ -65,9 +64,19 @@ export interface ReportDataSource {
   sectionId?: ID
   sourceType: ReportDataSourceType
   sourceKey: string
-  autoFillConfig: AutoFillConfig
+  autoFillConfig: string
 }
 
-export interface SaveReportDataSourcesPayload {
-  dataSources: ReportDataSource[]
+export type SaveReportDataSourcesPayload = ReportDataSource[]
+
+export interface AutoFillReportResult {
+  reportId: ID
+  filledSections: unknown[]
+  message: string
+}
+
+export interface ExportReportResult {
+  report: SelfEvaluationReport | null
+  sections: ReportSection[]
+  exportFormat: string
 }
