@@ -78,7 +78,7 @@ interface AuthStore extends RequestState, RequestActions {
   login: (payload: LoginPayload) => Promise<User>
   logout: () => Promise<string>
   fetchCurrentUser: () => Promise<User>
-  changePassword: (payload: ChangePasswordPayload) => Promise<boolean>
+  changePassword: (payload: ChangePasswordPayload) => Promise<string>
   resetUserPassword: (id: ID, payload: ResetPasswordPayload) => Promise<string>
   fetchRoles: () => Promise<Role[]>
   fetchRoleDetail: (id: ID) => Promise<Role>

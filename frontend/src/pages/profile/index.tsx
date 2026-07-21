@@ -6,78 +6,17 @@ import {
   LogOut,
   Mail,
   Phone,
+  RefreshCw,
+  ShieldCheck,
   UserCircle,
 } from "lucide-react"
-import { useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { roleLabels } from "@/constants/role-options"
 import type { RoleCode } from "@/models"
 import { useAuthStore, useUiStore } from "@/stores"
-
-interface ProfileMock {
-  name: string
-  username: string
-  email: string
-  phone: string
-  organization: string
-  identity: string
-  avatar: string
-}
-
-const profileMockMap: Record<RoleCode, ProfileMock> = {
-  ADMIN: {
-    name: "系统管理员",
-    username: "admin",
-    email: "admin@example.edu.cn",
-    phone: "13800138000",
-    organization: "教务与认证管理中心",
-    identity: "系统运维",
-    avatar: "AD",
-  },
-  DIRECTOR: {
-    name: "李主任",
-    username: "director01",
-    email: "director@example.edu.cn",
-    phone: "13800138001",
-    organization: "计算机学院 / 软件工程专业",
-    identity: "专业负责人",
-    avatar: "DIR",
-  },
-  COORDINATOR: {
-    name: "王教授",
-    username: "coordinator01",
-    email: "coordinator@example.edu.cn",
-    phone: "13800138002",
-    organization: "计算机学院 / 软件工程专业",
-    identity: "课程负责人",
-    avatar: "CO",
-  },
-  INSTRUCTOR: {
-    name: "张老师",
-    username: "teacher01",
-    email: "teacher@example.edu.cn",
-    phone: "13800138003",
-    organization: "计算机学院 / 软件工程专业",
-    identity: "授课教师",
-    avatar: "INS",
-  },
-  STUDENT: {
-    name: "刘同学",
-    username: "20240001",
-    email: "student@example.edu.cn",
-    phone: "13800138004",
-    organization: "软件工程 2024 级 1 班",
-    identity: "学生",
-    avatar: "STU",
-  },
-}
-
-const securityItems = [
-  { title: "登录密码", description: "建议定期更新密码，避免与其他系统复用。", icon: LockKeyhole, action: "修改密码" },
-  { title: "账号状态", description: "当前账号启用中，可正常访问已授权功能。", icon: CheckCircle2, action: "查看状态" },
-  { title: "退出登录", description: "结束当前会话并返回登录页面。", icon: LogOut, action: "退出" },
-]
 
 function Field({
   icon: Icon,
@@ -96,62 +35,133 @@ function Field({
         <Icon size={16} className="text-slate-400" aria-hidden="true" />
         {label}
       </span>
-      <Input className="h-10 bg-white text-sm" type={type} value={value} readOnly />
+      <Input className="h-10 bg-white text-sm" type={type} value={value || "-"} readOnly />
     </label>
   )
 }
 
+const getPrimaryRole = (roles: Array<RoleCode | string> | undefined, activeRole: RoleCode) =>
+  roles?.find((role): role is RoleCode => role in roleLabels) ?? activeRole
+
+const getInitials = (name?: string, username?: string) => {
+  const source = name || username || "用户"
+  if (/^[A-Za-z0-9]+$/.test(source)) return source.slice(0, 2).toUpperCase()
+  return source.slice(0, 2)
+}
+
 export function ProfilePage() {
+  const navigate = useNavigate()
   const activeRole = useUiStore((state) => state.activeRole)
   const currentUser = useAuthStore((state) => state.currentUser)
-  const profile = useMemo(() => {
-    const mock = profileMockMap[activeRole]
+  const fetchCurrentUser = useAuthStore((state) => state.fetchCurrentUser)
+  const changePassword = useAuthStore((state) => state.changePassword)
+  const logout = useAuthStore((state) => state.logout)
+  const loading = useAuthStore((state) => state.loading)
+  const storeError = useAuthStore((state) => state.error)
+  const [oldPassword, setOldPassword] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [message, setMessage] = useState<string | null>(null)
+  const [localError, setLocalError] = useState<string | null>(null)
 
-    return {
-      ...mock,
-      name: currentUser?.realName ?? mock.name,
-      username: currentUser?.username ?? mock.username,
-      email: currentUser?.email ?? mock.email,
-      phone: currentUser?.phone ?? mock.phone,
-      organization: currentUser?.orgName ?? currentUser?.className ?? mock.organization,
+  const primaryRole = getPrimaryRole(currentUser?.roleCodes, activeRole)
+  const roleNames = useMemo(() => {
+    if (currentUser?.roleNames?.length) return currentUser.roleNames.join(" / ")
+    if (currentUser?.roleCodes?.length) return currentUser.roleCodes.map((role) => roleLabels[role as RoleCode] ?? role).join(" / ")
+    return roleLabels[activeRole]
+  }, [activeRole, currentUser?.roleCodes, currentUser?.roleNames])
+
+  useEffect(() => {
+    setLocalError(null)
+    void fetchCurrentUser().catch((requestError: Error) => setLocalError(requestError.message))
+  }, [fetchCurrentUser])
+
+  const handleChangePassword = async () => {
+    setMessage(null)
+    setLocalError(null)
+
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      setLocalError("请完整填写旧密码、新密码和确认密码。")
+      return
     }
-  }, [activeRole, currentUser])
+    if (newPassword !== confirmPassword) {
+      setLocalError("两次输入的新密码不一致。")
+      return
+    }
+
+    try {
+      const result = await changePassword({ oldPassword, newPassword, confirmPassword })
+      setOldPassword("")
+      setNewPassword("")
+      setConfirmPassword("")
+      setMessage(result)
+    } catch (requestError) {
+      setLocalError(requestError instanceof Error ? requestError.message : "修改密码失败")
+    }
+  }
+
+  const handleLogout = async () => {
+    setMessage(null)
+    setLocalError(null)
+    try {
+      await logout()
+      navigate("/login", { replace: true })
+    } catch (requestError) {
+      setLocalError(requestError instanceof Error ? requestError.message : "退出登录失败")
+    }
+  }
 
   return (
     <section className="grid gap-6">
-      <header className="grid gap-2">
-        <p className="m-0 inline-flex items-center gap-2 text-[13px] font-extrabold text-blue-700">
-          <UserCircle size={16} />
-          个人中心
-        </p>
-        <div>
-          <h1 className="m-0 text-[34px] leading-tight font-extrabold tracking-normal text-slate-950">
-            管理个人资料与账号安全
-          </h1>
+      <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="grid gap-2">
+          <p className="m-0 inline-flex items-center gap-2 text-[13px] font-extrabold text-blue-700">
+            <UserCircle size={16} />
+            个人中心
+          </p>
+          <div>
+            <h1 className="m-0 text-[34px] leading-tight font-extrabold tracking-normal text-slate-950">
+              账号资料与安全
+            </h1>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              已接入当前用户信息、修改密码和退出登录接口。
+            </p>
+          </div>
         </div>
+        <Button disabled={loading} onClick={() => void fetchCurrentUser()} variant="outline" type="button">
+          <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+          刷新资料
+        </Button>
       </header>
+
+      {localError || storeError ? (
+        <p className="m-0 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700">{localError ?? storeError}</p>
+      ) : null}
+      {message ? (
+        <p className="m-0 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-700">{message}</p>
+      ) : null}
 
       <div className="grid gap-6 xl:grid-cols-[260px_minmax(0,1fr)]">
         <aside className="h-fit rounded-lg border border-slate-200 bg-white p-5 text-center shadow-sm">
           <div className="mx-auto grid size-18 place-items-center rounded-full bg-blue-700 text-xl font-extrabold text-white shadow-sm">
-            {profile.avatar}
+            {getInitials(currentUser?.realName, currentUser?.username)}
           </div>
-          <h2 className="mt-3 text-lg font-extrabold text-slate-950">{profile.name}</h2>
-          <p className="mt-1 text-sm font-semibold text-slate-500">{profile.identity}</p>
+          <h2 className="mt-3 text-lg font-extrabold text-slate-950">{currentUser?.realName ?? "-"}</h2>
+          <p className="mt-1 text-sm font-semibold text-slate-500">{roleLabels[primaryRole] ?? primaryRole}</p>
 
           <div className="mt-4 grid gap-3 border-t border-slate-200 pt-4 text-left text-sm">
             <div className="flex items-start gap-3">
               <CheckCircle2 className="mt-0.5 text-emerald-600" size={17} aria-hidden="true" />
               <div>
                 <p className="font-extrabold text-slate-800">账号状态</p>
-                <p className="mt-0.5 text-slate-500">正常启用</p>
+                <p className="mt-0.5 text-slate-500">{currentUser?.status === 0 ? "已停用" : "正常启用"}</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <Building2 className="mt-0.5 text-slate-400" size={17} aria-hidden="true" />
               <div>
                 <p className="font-extrabold text-slate-800">所属机构</p>
-                <p className="mt-0.5 text-slate-500">{profile.organization}</p>
+                <p className="mt-0.5 text-slate-500">{currentUser?.orgName ?? currentUser?.className ?? "-"}</p>
               </div>
             </div>
           </div>
@@ -161,57 +171,57 @@ export function ProfilePage() {
           <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
             <div className="mb-5 flex items-center justify-between gap-3 border-b border-slate-200 pb-4">
               <div>
-                <h2 className="m-0 text-lg font-extrabold text-slate-950">基础信息设置</h2>
+                <h2 className="m-0 text-lg font-extrabold text-slate-950">基础信息</h2>
+                <p className="mt-1 text-sm text-slate-500">当前后端仅支持读取个人资料，暂未提供个人资料保存接口。</p>
               </div>
               <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-extrabold text-blue-700">
-                {roleLabels[activeRole]}
+                {roleNames}
               </span>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <Field icon={IdCard} label="账号" value={profile.username} />
-              <Field icon={UserCircle} label="姓名" value={profile.name} />
-              <Field icon={Mail} label="电子邮箱" value={profile.email} type="email" />
-              <Field icon={Phone} label="联系电话" value={profile.phone} />
+              <Field icon={IdCard} label="账号" value={currentUser?.username ?? ""} />
+              <Field icon={UserCircle} label="姓名" value={currentUser?.realName ?? ""} />
+              <Field icon={Mail} label="电子邮箱" value={currentUser?.email ?? ""} type="email" />
+              <Field icon={Phone} label="联系电话" value={currentUser?.phone ?? ""} />
               <div className="md:col-span-2">
-                <Field icon={Building2} label="所属机构" value={profile.organization} />
+                <Field icon={Building2} label="所属机构" value={currentUser?.orgName ?? currentUser?.className ?? ""} />
               </div>
-            </div>
-
-            <div className="mt-5 flex justify-end">
-              <Button className="bg-blue-700 px-4 text-white hover:bg-blue-800" type="button">
-                保存修改
-              </Button>
             </div>
           </section>
 
-          <div className="grid gap-6">
-            <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="m-0 text-lg font-extrabold text-slate-950">账号安全</h2>
-              <div className="mt-4 grid gap-3">
-                {securityItems.map((item) => {
-                  const Icon = item.icon
-
-                  return (
-                    <article className="flex flex-col gap-3 rounded-lg border border-slate-200 p-4 sm:flex-row sm:items-center sm:justify-between" key={item.title}>
-                      <div className="flex items-start gap-3">
-                        <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-600">
-                          <Icon size={18} aria-hidden="true" />
-                        </div>
-                        <div>
-                          <h3 className="m-0 text-base font-extrabold text-slate-950">{item.title}</h3>
-                          <p className="mt-1 text-sm leading-6 text-slate-500">{item.description}</p>
-                        </div>
-                      </div>
-                      <Button variant="outline" type="button">
-                        {item.action}
-                      </Button>
-                    </article>
-                  )
-                })}
+          <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="m-0 flex items-center gap-2 text-lg font-extrabold text-slate-950">
+              <ShieldCheck size={19} className="text-blue-700" />
+              账号安全
+            </h2>
+            <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
+              <div className="grid gap-3 md:grid-cols-3">
+                <label className="grid gap-1.5">
+                  <span className="text-sm font-bold text-slate-700">旧密码</span>
+                  <Input autoComplete="current-password" onChange={(event) => setOldPassword(event.target.value)} type="password" value={oldPassword} />
+                </label>
+                <label className="grid gap-1.5">
+                  <span className="text-sm font-bold text-slate-700">新密码</span>
+                  <Input autoComplete="new-password" onChange={(event) => setNewPassword(event.target.value)} type="password" value={newPassword} />
+                </label>
+                <label className="grid gap-1.5">
+                  <span className="text-sm font-bold text-slate-700">确认新密码</span>
+                  <Input autoComplete="new-password" onChange={(event) => setConfirmPassword(event.target.value)} type="password" value={confirmPassword} />
+                </label>
               </div>
-            </section>
-          </div>
+              <div className="flex flex-col justify-end gap-2">
+                <Button className="bg-blue-700 text-white hover:bg-blue-800" disabled={loading} onClick={handleChangePassword} type="button">
+                  <LockKeyhole size={16} />
+                  修改密码
+                </Button>
+                <Button disabled={loading} onClick={handleLogout} variant="outline" type="button">
+                  <LogOut size={16} />
+                  退出登录
+                </Button>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
     </section>

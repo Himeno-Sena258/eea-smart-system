@@ -60,7 +60,7 @@ export const getCurrentUser = async () => {
 }
 
 export const changePassword = async (payload: ChangePasswordPayload) => {
-  const response = await request<boolean>({
+  const response = await request<string>({
     url: "/auth/password",
     method: "PUT",
     data: payload,
