@@ -35,10 +35,37 @@ const typeLabelMap: Record<string, string> = {
 
 const formatDate = (value?: string) => value?.slice(0, 10) ?? "-"
 
+const parseOptions = (options?: JsonValue | string) => {
+  if (!options) return []
+  if (Array.isArray(options)) return options.map(String)
+  if (typeof options !== "string") return []
+
+  try {
+    const parsed = JSON.parse(options) as unknown
+    return Array.isArray(parsed) ? parsed.map(String) : []
+  } catch {
+    return []
+  }
+}
+
+const parseAnswerJson = (value?: string) => {
+  if (!value) return {}
+  try {
+    const parsed = JSON.parse(value) as unknown
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? parsed as Record<string, JsonValue>
+      : {}
+  } catch {
+    return {}
+  }
+}
+
 function SurveyStatsDialog({
+  questions,
   statistics,
   trigger,
 }: {
+  questions: SurveyQuestion[]
   statistics: SurveyStatistics | null
   trigger: ReactNode
 }) {
@@ -53,9 +80,7 @@ function SurveyStatsDialog({
           <DialogTitle className="text-xl font-extrabold text-slate-950">
             {statistics?.title ?? "问卷统计"}
           </DialogTitle>
-          <DialogDescription>
-            当前后端返回总答卷数与原始答卷 JSON，暂未提供题目分布和均分统计。
-          </DialogDescription>
+          <DialogDescription>按问卷题目查看已提交答卷。</DialogDescription>
         </DialogHeader>
 
         <div className="grid min-h-0 flex-1 gap-3 overflow-y-auto p-4">
@@ -74,19 +99,34 @@ function SurveyStatsDialog({
             </article>
           </section>
 
-          {(statistics?.answers ?? []).map((answer) => (
-            <article className="rounded-lg border border-slate-200 p-3" key={answer.id}>
-              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                <h3 className="m-0 text-sm font-extrabold text-slate-950">答卷 #{answer.id}</h3>
-                <p className="m-0 text-xs font-semibold text-slate-500">
-                  用户 {answer.userId} / {formatDate(answer.submittedAt)}
-                </p>
-              </div>
-              <pre className="mt-3 max-h-40 overflow-auto rounded-lg bg-slate-950 p-3 text-xs leading-5 text-slate-100">
-                {answer.rawAnswersJson}
-              </pre>
-            </article>
-          ))}
+          {(statistics?.answers ?? []).map((answer) => {
+            const parsedAnswer = parseAnswerJson(answer.rawAnswersJson)
+            const entries = questions.length > 0
+              ? questions.map((question) => ({
+                  label: `${question.questionCode}. ${question.title}`,
+                  value: parsedAnswer[question.questionCode],
+                }))
+              : Object.entries(parsedAnswer).map(([key, value]) => ({ label: key, value }))
+
+            return (
+              <article className="rounded-lg border border-slate-200 p-3" key={answer.id}>
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                  <h3 className="m-0 text-sm font-extrabold text-slate-950">答卷 #{answer.id}</h3>
+                  <p className="m-0 text-xs font-semibold text-slate-500">
+                    用户 {answer.userId} / {formatDate(answer.submittedAt)}
+                  </p>
+                </div>
+                <div className="mt-3 grid gap-2">
+                  {entries.map((entry) => (
+                    <div className="rounded-lg bg-slate-50 p-3 text-sm" key={entry.label}>
+                      <p className="m-0 font-bold text-slate-500">{entry.label}</p>
+                      <p className="mt-1 font-extrabold text-slate-950">{String(entry.value ?? "未填写")}</p>
+                    </div>
+                  ))}
+                </div>
+              </article>
+            )
+          })}
 
           {(statistics?.answers ?? []).length === 0 ? (
             <p className="m-0 rounded-lg border border-dashed border-slate-200 p-4 text-center text-sm font-bold text-slate-400">
@@ -131,46 +171,49 @@ function SurveyCard({
 function AnswerDialog({
   survey,
   onSubmitted,
-  questions,
   trigger,
 }: {
   survey: SurveyQuestionnaire
   onSubmitted: () => void
-  questions: SurveyQuestion[]
   trigger: ReactNode
 }) {
-  const [rawAnswer, setRawAnswer] = useState('{\n  "feedback": "课程目标达成情况良好"\n}')
   const [answers, setAnswers] = useState<Record<string, string>>({})
-  const [dialogQuestions, setDialogQuestions] = useState<SurveyQuestion[]>(questions)
+  const [dialogQuestions, setDialogQuestions] = useState<SurveyQuestion[]>([])
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [loadingQuestions, setLoadingQuestions] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    setDialogQuestions(questions)
+    setLoadingQuestions(true)
+    setError(null)
+    setAnswers({})
     void getSurveyQuestions(survey.id)
       .then(setDialogQuestions)
       .catch((requestError: Error) => setError(requestError.message))
-  }, [questions, survey.id])
+      .finally(() => setLoadingQuestions(false))
+  }, [survey.id])
 
   const handleSubmit = async () => {
     setError(null)
     setMessage(null)
 
     try {
-      const payload = dialogQuestions.length > 0
-        ? Object.fromEntries(dialogQuestions.map((question) => [question.questionCode, answers[question.questionCode] ?? ""])) as Record<string, JsonValue>
-        : JSON.parse(rawAnswer) as Record<string, JsonValue>
+      if (dialogQuestions.length === 0) {
+        setError("当前问卷还没有配置题目")
+        return
+      }
+
+      const payload = Object.fromEntries(dialogQuestions.map((question) => [
+        question.questionCode,
+        answers[question.questionCode] ?? "",
+      ])) as Record<string, JsonValue>
       setSubmitting(true)
       await submitSurveyAnswer(survey.id, payload)
       setMessage("提交成功")
       onSubmitted()
     } catch (requestError) {
-      if (requestError instanceof SyntaxError) {
-        setError("答案必须是合法 JSON")
-      } else {
-        setError(requestError instanceof Error ? requestError.message : "提交失败")
-      }
+      setError(requestError instanceof Error ? requestError.message : "提交失败")
     } finally {
       setSubmitting(false)
     }
@@ -182,39 +225,91 @@ function AnswerDialog({
       <DialogContent className="bg-white shadow-2xl ring-1 ring-slate-200 sm:max-w-[560px]">
         <DialogHeader>
           <DialogTitle className="text-xl font-extrabold text-slate-950">{survey.title}</DialogTitle>
-          <DialogDescription>
-            后端当前以原始 JSON 保存答卷，暂未提供题目明细结构。
-          </DialogDescription>
+          <DialogDescription>请按题目填写本次问卷。</DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-3">
-          {dialogQuestions.length > 0 ? (
+          {loadingQuestions ? (
+            <p className="m-0 rounded-lg border border-dashed border-slate-200 p-4 text-center text-sm font-bold text-slate-400">
+              正在加载题目...
+            </p>
+          ) : dialogQuestions.length > 0 ? (
             <div className="grid max-h-[360px] gap-3 overflow-y-auto pr-1">
-              {dialogQuestions.map((question) => (
-                <label className="grid gap-2 rounded-lg border border-slate-200 p-3" key={question.id ?? question.questionCode}>
-                  <span className="text-sm font-extrabold text-slate-950">
-                    {question.questionCode}. {question.title}
-                  </span>
-                  <input
-                    className="h-10 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none transition focus:border-blue-400 focus:ring-3 focus:ring-blue-100"
-                    onChange={(event) => setAnswers((current) => ({ ...current, [question.questionCode]: event.target.value }))}
-                    placeholder={question.questionType === "SCORE" ? "请输入评分" : "请输入答案"}
-                    value={answers[question.questionCode] ?? ""}
-                  />
-                </label>
-              ))}
+              {dialogQuestions.map((question) => {
+                const options = parseOptions(question.options)
+                const value = answers[question.questionCode] ?? ""
+
+                return (
+                  <article className="grid gap-2 rounded-lg border border-slate-200 p-3" key={question.id ?? question.questionCode}>
+                    <span className="text-sm font-extrabold text-slate-950">
+                      {question.questionCode}. {question.title}
+                    </span>
+                    {question.questionType === "TEXT" ? (
+                      <textarea
+                        className="min-h-24 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm leading-6 outline-none transition focus:border-blue-400 focus:ring-3 focus:ring-blue-100"
+                        onChange={(event) => setAnswers((current) => ({ ...current, [question.questionCode]: event.target.value }))}
+                        placeholder="请输入文字反馈"
+                        value={value}
+                      />
+                    ) : question.questionType === "SCORE" ? (
+                      <div className="flex flex-wrap gap-2">
+                        {(options.length > 0 ? options : ["1", "2", "3", "4", "5"]).map((option) => {
+                          const checked = value === option
+
+                          return (
+                            <button
+                              className={
+                                checked
+                                  ? "grid size-10 place-items-center rounded-full border border-blue-600 bg-blue-600 text-sm font-extrabold text-white shadow-sm"
+                                  : "grid size-10 place-items-center rounded-full border border-slate-200 bg-white text-sm font-extrabold text-slate-600 transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700"
+                              }
+                              key={option}
+                              onClick={() => setAnswers((current) => ({ ...current, [question.questionCode]: option }))}
+                              type="button"
+                            >
+                              {option}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    ) : options.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {options.map((option) => (
+                          <button
+                            className={
+                              value === option
+                                ? "rounded-full border border-blue-600 bg-blue-600 px-4 py-2 text-sm font-extrabold text-white shadow-sm"
+                                : "rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-extrabold text-slate-600 transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700"
+                            }
+                            key={option}
+                            onClick={() => setAnswers((current) => ({ ...current, [question.questionCode]: option }))}
+                            type="button"
+                          >
+                            {option}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <input
+                        className="h-10 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none transition focus:border-blue-400 focus:ring-3 focus:ring-blue-100"
+                        onChange={(event) => setAnswers((current) => ({ ...current, [question.questionCode]: event.target.value }))}
+                        placeholder={question.questionType === "SCORE" ? "请输入评分" : "请输入答案"}
+                        value={value}
+                      />
+                    )}
+                  </article>
+                )
+              })}
             </div>
           ) : (
-            <textarea
-              className="min-h-48 rounded-lg border border-slate-200 bg-slate-50 p-3 font-mono text-sm leading-6 text-slate-700 outline-none transition focus:border-blue-400 focus:ring-3 focus:ring-blue-100"
-              onChange={(event) => setRawAnswer(event.target.value)}
-              value={rawAnswer}
-            />
+            <p className="m-0 rounded-lg border border-dashed border-slate-200 p-4 text-center text-sm font-bold text-slate-400">
+              当前问卷还没有配置题目
+            </p>
           )}
           {error ? <p className="m-0 text-sm font-bold text-red-600">{error}</p> : null}
           {message ? <p className="m-0 text-sm font-bold text-emerald-600">{message}</p> : null}
           <div className="flex justify-end">
-            <Button className="bg-orange-500 text-white hover:bg-orange-600" disabled={submitting} onClick={handleSubmit} type="button">
+            <Button className="bg-orange-500 text-white hover:bg-orange-600" disabled={submitting || loadingQuestions || dialogQuestions.length === 0} onClick={handleSubmit} type="button">
               <Send size={16} />
               提交答卷
             </Button>
@@ -370,6 +465,7 @@ export function SurveysPage() {
                   </Button>
                 ) : null}
                 <SurveyStatsDialog
+                  questions={questions}
                   statistics={statistics}
                   trigger={<Button variant="outline" type="button"><Eye size={16} />查看答卷</Button>}
                 />
@@ -393,11 +489,22 @@ export function SurveysPage() {
               </article>
             </div>
 
-            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
-              <p className="m-0 text-sm leading-6 font-semibold text-amber-800">
-                后端当前没有问卷题目明细表，统计接口也没有提供按题目的均分、分布和文本聚合；这里仅展示真实返回的答卷数量与原始答卷。
+            {questions.length > 0 ? (
+              <div className="mt-4 grid gap-2">
+                {questions.map((question) => (
+                  <article className="rounded-lg border border-slate-200 bg-slate-50 p-3" key={question.id ?? question.questionCode}>
+                    <p className="m-0 text-sm font-extrabold text-slate-950">
+                      {question.questionCode}. {question.title}
+                    </p>
+                    <p className="mt-1 text-xs font-semibold text-slate-500">{question.questionType}</p>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-4 rounded-lg border border-dashed border-slate-200 p-4 text-center text-sm font-bold text-slate-400">
+                当前问卷还没有配置题目
               </p>
-            </div>
+            )}
           </section>
         </div>
       ) : null}
@@ -415,7 +522,6 @@ export function SurveysPage() {
                 </div>
                 <AnswerDialog
                   onSubmitted={() => void refreshSurveys()}
-                  questions={questions}
                   survey={survey}
                   trigger={<Button className="bg-orange-500 text-white hover:bg-orange-600" type="button"><Send size={16} />填写答卷</Button>}
                 />

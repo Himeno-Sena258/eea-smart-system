@@ -1,6 +1,6 @@
 ﻿
-# DROP DATABASE IF EXISTS obe_system;
-# CREATE DATABASE obe_system DEFAULT CHARACTER SET utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- DROP DATABASE IF EXISTS obe_system;
+-- CREATE DATABASE obe_system DEFAULT CHARACTER SET utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE DATABASE IF NOT EXISTS `obe_system` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE `obe_system`;
 
@@ -127,7 +127,7 @@ CREATE TABLE `course` (
     `hours` int NOT NULL COMMENT '总学时',
     `scheme_id` bigint NOT NULL COMMENT '关联培养方案ID',
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_course_code` (`course_code`),
+    UNIQUE KEY `uk_course_scheme_code` (`scheme_id`, `course_code`),
     CONSTRAINT `fk_course_scheme` FOREIGN KEY (`scheme_id`) REFERENCES `program_scheme` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='课程信息表';
 

@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * §11 持续改进模块
@@ -20,6 +21,9 @@ public class ImprovementController {
 
     @Autowired private ContinuousImprovementMapper ciMapper;
     @Autowired private CourseAttainmentMapper caMapper;
+    @Autowired private TeachingClassMapper teachingClassMapper;
+    @Autowired private CourseMapper courseMapper;
+    @Autowired private SysUserMapper sysUserMapper;
 
     @GetMapping("/teaching-classes/{teachingClassId}/improvements")
     @Operation(summary = "查询持续改进记录")
@@ -87,6 +91,19 @@ public class ImprovementController {
     public Result<List<java.util.Map<String,Object>>> directorImprovements(
             @RequestParam(required = false) Long schemeId) {
         QueryWrapper<ContinuousImprovement> w = new QueryWrapper<>();
+        if (schemeId != null) {
+            List<Course> courses = courseMapper.selectList(new QueryWrapper<Course>().eq("scheme_id", schemeId));
+            List<Long> courseIds = courses.stream().map(Course::getId).collect(Collectors.toList());
+            if (courseIds.isEmpty()) {
+                return Result.success(new ArrayList<>());
+            }
+            List<TeachingClass> classes = teachingClassMapper.selectList(new QueryWrapper<TeachingClass>().in("course_id", courseIds));
+            List<Long> classIds = classes.stream().map(TeachingClass::getId).collect(Collectors.toList());
+            if (classIds.isEmpty()) {
+                return Result.success(new ArrayList<>());
+            }
+            w.in("teaching_class_id", classIds);
+        }
         w.orderByDesc("created_at");
         return Result.success(enrich(ciMapper.selectList(w)));
     }
@@ -97,6 +114,14 @@ public class ImprovementController {
     public Result<List<java.util.Map<String,Object>>> coordinatorImprovements(
             @RequestParam(required = false) Long courseId) {
         QueryWrapper<ContinuousImprovement> w = new QueryWrapper<>();
+        if (courseId != null) {
+            List<TeachingClass> classes = teachingClassMapper.selectList(new QueryWrapper<TeachingClass>().eq("course_id", courseId));
+            List<Long> classIds = classes.stream().map(TeachingClass::getId).collect(Collectors.toList());
+            if (classIds.isEmpty()) {
+                return Result.success(new ArrayList<>());
+            }
+            w.in("teaching_class_id", classIds);
+        }
         w.orderByDesc("created_at");
         return Result.success(enrich(ciMapper.selectList(w)));
     }
@@ -105,18 +130,34 @@ public class ImprovementController {
         List<java.util.Map<String,Object>> r = new java.util.ArrayList<>();
         for (var ci : list) {
             var m = new java.util.LinkedHashMap<String,Object>();
+            TeachingClass teachingClass = ci.getTeachingClassId() == null ? null : teachingClassMapper.selectById(ci.getTeachingClassId());
+            Course course = teachingClass == null || teachingClass.getCourseId() == null ? null : courseMapper.selectById(teachingClass.getCourseId());
+            SysUser teacher = teachingClass == null || teachingClass.getTeacherId() == null ? null : sysUserMapper.selectById(teachingClass.getTeacherId());
+            SysUser creator = ci.getCreatedBy() == null ? null : sysUserMapper.selectById(ci.getCreatedBy());
+            SysUser reviewer = ci.getReviewedBy() == null ? null : sysUserMapper.selectById(ci.getReviewedBy());
+
             m.put("id", ci.getId());
             m.put("teachingClassId", ci.getTeachingClassId());
+            m.put("teachingClassName", teachingClass == null ? null : teachingClass.getClassName());
+            m.put("courseId", course == null ? null : course.getId());
+            m.put("courseName", course == null ? null : course.getCourseName());
+            m.put("teacherId", teacher == null ? null : teacher.getId());
+            m.put("teacherName", teacher == null ? null : teacher.getRealName());
             m.put("problemAnalysis", ci.getProblemAnalysis());
             m.put("improvementMeasures", ci.getImprovementMeasures());
+            m.put("lowAttainmentCos", ci.getLowAttainmentCos());
             m.put("createdBy", ci.getCreatedBy());
+            m.put("creatorName", creator == null ? null : creator.getRealName());
             m.put("createdAt", ci.getCreatedAt());
             m.put("status", ci.getStatus());
             m.put("reviewedBy", ci.getReviewedBy());
+            m.put("reviewerName", reviewer == null ? null : reviewer.getRealName());
             m.put("reviewedAt", ci.getReviewedAt());
             m.put("reviewerComment", ci.getReviewerComment());
             m.put("cycleLabel", ci.getCycleLabel());
             m.put("followUpAt", ci.getFollowUpAt());
+            m.put("followUpResult", ci.getFollowUpResult());
+            m.put("updatedAt", ci.getUpdatedAt());
             r.add(m);
         }
         return r;

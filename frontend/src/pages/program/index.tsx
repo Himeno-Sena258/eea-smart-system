@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { CheckCircle2, ClipboardList, FilePlus2, GitBranch, Layers3, ShieldCheck } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { CheckCircle2, ClipboardList, GitBranch, Layers3, ShieldCheck } from "lucide-react"
 import type { CourseIndicatorMatrixItem, ID, IndicatorTreeItem, ProgramScheme } from "@/models"
 import { getCourseIndicatorMatrix } from "@/services"
 import { useBaseStore, useCourseStore } from "@/stores"
@@ -80,7 +79,7 @@ export function ProgramPage() {
 
   return (
     <section className="grid gap-6">
-      <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <header className="grid gap-2">
         <div className="grid gap-2">
           <p className="m-0 inline-flex items-center gap-2 text-[13px] font-extrabold text-blue-700">
             <ClipboardList size={16} />
@@ -92,10 +91,6 @@ export function ProgramPage() {
             </h1>
           </div>
         </div>
-        <Button className="bg-blue-700 text-white hover:bg-blue-800" disabled type="button">
-          <FilePlus2 size={16} />
-          新建版本
-        </Button>
       </header>
 
       {baseError || courseError ? (
@@ -187,7 +182,7 @@ export function ProgramPage() {
 
         <div className="grid gap-6">
           <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="mb-4 flex flex-col gap-3 border-b border-slate-200 pb-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="mb-4 border-b border-slate-200 pb-4">
               <div>
                 <h2 className="m-0 text-lg font-extrabold text-slate-950">
                   当前方案: {activeScheme?.versionName ?? "未选择"}
@@ -196,9 +191,6 @@ export function ProgramPage() {
                   {activeScheme?.majorName ?? "未关联专业"} / {activeScheme?.grade ?? "-"} 级
                 </p>
               </div>
-              <Button disabled variant="outline" type="button">
-                编辑基础信息
-              </Button>
             </div>
 
             <div className="grid gap-4 lg:grid-cols-3">
@@ -225,14 +217,11 @@ export function ProgramPage() {
           </section>
 
           <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="mb-4">
               <h2 className="m-0 flex items-center gap-2 text-lg font-extrabold text-slate-950">
                 <GitBranch size={19} className="text-blue-700" />
                 课程-指标点支撑矩阵
               </h2>
-              <Button className="bg-blue-700 text-white hover:bg-blue-800" disabled type="button">
-                保存矩阵
-              </Button>
             </div>
             <div className="overflow-x-auto rounded-lg border border-slate-200">
               <table className="w-full min-w-[860px] border-collapse text-center text-sm">
