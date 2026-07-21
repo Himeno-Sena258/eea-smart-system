@@ -16,18 +16,27 @@ export interface DashboardStat {
   key: string
   label: string
   value: string | number
+  unit?: string
+  status?: string
 }
 
 export interface DashboardTodo {
-  type: string
-  label: string
+  id?: string
+  type?: string
+  title?: string
+  label?: string
+  targetPath?: string
+  priority?: string
   count?: number
   total?: number
   progress?: number
 }
 
 export interface DashboardWarning {
-  type: string
+  id?: string
+  type?: string
   level?: string
+  title?: string
   message: string
+  targetPath?: string
 }

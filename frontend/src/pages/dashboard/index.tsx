@@ -11,7 +11,7 @@ import {
 } from "lucide-react"
 import { Link } from "react-router-dom"
 import { roleLabels } from "@/constants/role-options"
-import type { DashboardStat, RoleCode, RoleDashboard } from "@/models"
+import type { DashboardStat, DashboardTodo, DashboardWarning, RoleCode, RoleDashboard } from "@/models"
 import { getRoleDashboard } from "@/services"
 import { useUiStore } from "@/stores"
 
@@ -42,12 +42,12 @@ const quickLinksMap: Record<RoleCode, DashboardQuickLink[]> = {
   INSTRUCTOR: [
     { title: "成绩录入", description: "进入教学班分项成绩网格", targetPath: "/teaching-classes", tone: "blue" },
     { title: "持续改进", description: "提交教学班改进分析", targetPath: "/improvements", tone: "amber" },
-    { title: "个人中心", description: "查看授课教师账号信息", targetPath: "/profile", tone: "slate" },
+    { title: "达成度分析", description: "查看教学班 CO 达成度", targetPath: "/attainment", tone: "green" },
   ],
   STUDENT: [
     { title: "我的成绩", description: "查看课程总评和分项明细", targetPath: "/teaching-classes", tone: "blue" },
     { title: "问卷评价", description: "查看和填写开放问卷", targetPath: "/surveys", tone: "amber" },
-    { title: "个人中心", description: "查看学生账号信息", targetPath: "/profile", tone: "slate" },
+    { title: "达成度分析", description: "查看个人毕业要求达成度", targetPath: "/attainment", tone: "green" },
   ],
 }
 
@@ -66,14 +66,52 @@ const statToneList = [
 ]
 
 const generatedTime = (value?: string) => value?.slice(0, 16).replace("T", " ") ?? "-"
+const todoTitle = (todo: DashboardTodo) => todo.label ?? todo.title ?? todo.id ?? "待办事项"
+const todoMeta = (todo: DashboardTodo) => todo.type ?? todo.priority ?? todo.id ?? "-"
+const warningText = (warning: DashboardWarning) => warning.message ?? warning.title ?? warning.type ?? "预警提醒"
 
 function StatCard({ stat, index }: { stat: DashboardStat; index: number }) {
   return (
     <article className={`rounded-lg border p-4 ${statToneList[index % statToneList.length]}`}>
       <p className="m-0 text-sm font-bold opacity-80">{stat.label}</p>
-      <strong className="mt-2 block text-3xl leading-none font-extrabold">{stat.value}</strong>
+      <strong className="mt-2 block text-3xl leading-none font-extrabold">
+        {stat.value}
+        {"unit" in stat && typeof stat.unit === "string" ? <span className="ml-1 text-base">{stat.unit}</span> : null}
+      </strong>
       <p className="mt-3 text-xs font-semibold opacity-70">{stat.key}</p>
     </article>
+  )
+}
+
+function TodoCard({ todo }: { todo: DashboardTodo }) {
+  const body = (
+    <article className="rounded-lg border border-slate-200 bg-slate-50 p-4 transition hover:border-blue-200 hover:bg-blue-50">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 className="m-0 text-base font-extrabold text-slate-950">{todoTitle(todo)}</h3>
+          <p className="mt-1 text-xs font-semibold text-slate-500">{todoMeta(todo)}</p>
+        </div>
+        {todo.count !== undefined || todo.progress !== undefined || todo.total !== undefined ? (
+          <strong className="text-xl font-extrabold text-blue-700">
+            {todo.count ?? todo.progress ?? ""}
+            {todo.total !== undefined ? `/${todo.total}` : ""}
+          </strong>
+        ) : null}
+      </div>
+      {todo.progress !== undefined ? (
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
+          <div className="h-full rounded-full bg-blue-700" style={{ width: `${Math.min(100, Math.max(0, todo.progress))}%` }} />
+        </div>
+      ) : null}
+    </article>
+  )
+
+  if (!todo.targetPath) return body
+
+  return (
+    <Link className="block no-underline" to={todo.targetPath}>
+      {body}
+    </Link>
   )
 }
 
@@ -155,27 +193,11 @@ export function DashboardPage() {
             待办事项
           </h2>
           <div className="mt-4 grid gap-3">
-            {todos.length > 0 ? todos.map((todo) => (
-              <article className="rounded-lg border border-slate-200 bg-slate-50 p-4" key={`${todo.type}-${todo.label}`}>
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <h3 className="m-0 text-base font-extrabold text-slate-950">{todo.label}</h3>
-                    <p className="mt-1 text-xs font-semibold text-slate-500">{todo.type}</p>
-                  </div>
-                  <strong className="text-xl font-extrabold text-blue-700">
-                    {todo.count ?? todo.progress ?? "-"}
-                    {todo.total !== undefined ? `/${todo.total}` : ""}
-                  </strong>
-                </div>
-                {todo.progress !== undefined ? (
-                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
-                    <div className="h-full rounded-full bg-blue-700" style={{ width: `${Math.min(100, Math.max(0, todo.progress))}%` }} />
-                  </div>
-                ) : null}
-              </article>
-            )) : (
+            {todos.length > 0 ? (
+              todos.map((todo) => <TodoCard key={todo.id ?? `${todo.type}-${todo.title}-${todo.label}`} todo={todo} />)
+            ) : (
               <p className="m-0 rounded-lg border border-dashed border-slate-200 p-4 text-sm font-bold text-slate-400">
-                暂无待办事项
+                后端当前没有返回待办事项
               </p>
             )}
           </div>
@@ -189,13 +211,13 @@ export function DashboardPage() {
             </h2>
             <div className="mt-4 grid gap-2">
               {warnings.length > 0 ? warnings.map((warning) => (
-                <p className="m-0 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800" key={`${warning.type}-${warning.message}`}>
-                  {warning.level ? `${warning.level} / ` : ""}{warning.message}
+                <p className="m-0 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800" key={`${warning.type}-${warningText(warning)}`}>
+                  {warning.level ? `${warning.level} / ` : ""}{warningText(warning)}
                 </p>
               )) : (
                 <p className="m-0 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-700">
                   <CheckCircle2 className="mr-1 inline" size={16} />
-                  暂无预警
+                  后端当前没有返回预警
                 </p>
               )}
             </div>
