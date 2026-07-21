@@ -581,18 +581,32 @@ export function CoursesPage() {
                   课程资源
                 </h2>
                 <div className="mt-3 grid max-h-[220px] gap-2 overflow-y-auto pr-1">
-                  {displayResources.map((item) => (
-                    <a
-                      className="rounded-lg border border-slate-200 p-3 text-sm font-bold text-slate-900 no-underline transition hover:border-blue-200 hover:bg-blue-50"
-                      href={item.filePath}
-                      key={item.id}
-                      rel="noreferrer"
-                      target="_blank"
-                    >
-                      <span className="block">{item.fileName}</span>
-                      <span className="mt-1 block text-xs text-slate-500">{item.resourceType} / {item.description ?? "无说明"}</span>
-                    </a>
-                  ))}
+                  {displayResources.map((item) => {
+                    const resourceHref = item.previewUrl || (/^https?:\/\//.test(item.filePath) ? item.filePath : "")
+                    const className = "rounded-lg border border-slate-200 p-3 text-sm font-bold text-slate-900 no-underline transition hover:border-blue-200 hover:bg-blue-50"
+                    const content = (
+                      <>
+                        <span className="block">{item.fileName}</span>
+                        <span className="mt-1 block text-xs text-slate-500">{item.resourceType} / {item.description ?? "无说明"}</span>
+                      </>
+                    )
+
+                    return resourceHref ? (
+                      <a
+                        className={className}
+                        href={resourceHref}
+                        key={item.id}
+                        rel="noreferrer"
+                        target="_blank"
+                      >
+                        {content}
+                      </a>
+                    ) : (
+                      <div className={className} key={item.id}>
+                        {content}
+                      </div>
+                    )
+                  })}
                   {displayResources.length === 0 ? (
                     <p className="m-0 rounded-lg border border-dashed border-slate-200 p-3 text-sm font-bold text-slate-400">
                       暂无课程资源
@@ -601,7 +615,7 @@ export function CoursesPage() {
                 </div>
               </section>
 
-              <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+              {!isStudent ? <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
                 <h2 className="m-0 flex items-center gap-2 text-lg font-extrabold text-slate-950">
                   <Settings2 size={19} className="text-blue-700" />
                   考核细项
@@ -632,9 +646,9 @@ export function CoursesPage() {
                     </p>
                   ) : null}
                 </div>
-              </section>
+              </section> : null}
 
-              <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+              {!isStudent ? <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
                 <h2 className="m-0 flex items-center gap-2 text-lg font-extrabold text-slate-950">
                   <Settings2 size={19} className="text-blue-700" />
                   评分标准
@@ -657,9 +671,9 @@ export function CoursesPage() {
                     </p>
                   ) : null}
                 </div>
-              </section>
+              </section> : null}
 
-              <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+              {!isStudent ? <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
                 <h2 className="m-0 flex items-center gap-2 text-lg font-extrabold text-slate-950">
                   <GitBranch size={19} className="text-blue-700" />
                   指标点支撑
@@ -682,7 +696,7 @@ export function CoursesPage() {
                     </p>
                   ) : null}
                 </div>
-              </section>
+              </section> : null}
             </aside>
           </div>
         </div>

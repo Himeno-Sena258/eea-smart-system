@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, ClipboardList, FileText, RefreshCw, Send, Sparkles, TrendingUp } from "lucide-react"
+import { AlertTriangle, CheckCircle2, ClipboardList, RefreshCw, Send, Sparkles, TrendingUp } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { roleLabels } from "@/constants/role-options"
@@ -25,12 +25,22 @@ type ClassOption = {
 type DisplayRecord = {
   id: ID
   className: string
+  courseName?: string
+  teacherName?: string
   lowAttainmentCos?: string
   problemAnalysis: string
   improvementMeasures: string
   creatorName?: string
   createdBy?: ID
   createdAt?: string
+  status?: number
+  reviewedBy?: ID
+  reviewerName?: string
+  reviewedAt?: string
+  reviewerComment?: string
+  cycleLabel?: string
+  followUpAt?: string
+  followUpResult?: string
 }
 
 const toClassOptionFromTeacher = (item: TeacherClass): ClassOption => ({
@@ -53,27 +63,50 @@ const normalizeTeacherRecord = (record: TeachingImprovement): DisplayRecord => (
 
 const normalizeCommonRecord = (record: ContinuousImprovement, className: string): DisplayRecord => ({
   id: record.id,
-  className,
+  className: record.teachingClassName ?? className,
+  courseName: record.courseName,
+  teacherName: record.teacherName,
+  lowAttainmentCos: record.lowAttainmentCos,
   problemAnalysis: record.problemAnalysis,
   improvementMeasures: record.improvementMeasures,
+  creatorName: record.creatorName,
   createdBy: record.createdBy,
   createdAt: record.createdAt,
+  status: record.status,
+  reviewedBy: record.reviewedBy,
+  reviewerName: record.reviewerName,
+  reviewedAt: record.reviewedAt,
+  reviewerComment: record.reviewerComment,
+  cycleLabel: record.cycleLabel,
+  followUpAt: record.followUpAt,
+  followUpResult: record.followUpResult,
 })
 
 const formatDate = (value?: string) => value?.slice(0, 16).replace("T", " ") ?? "-"
+const improvementStatusLabels: Record<number, string> = {
+  0: "待审核",
+  1: "审核通过",
+  2: "需修改",
+}
 
 function RecordCard({ record }: { record: DisplayRecord }) {
+  const statusLabel = record.status === undefined ? "已提交" : improvementStatusLabels[record.status] ?? `状态 ${record.status}`
+  const classTitle = record.courseName ? `${record.courseName} / ${record.className}` : record.className
+
   return (
     <article className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <span className="inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-xs font-extrabold text-blue-700">
-            已提交
+            {statusLabel}
           </span>
-          <h3 className="mt-2 text-base font-extrabold text-slate-950">{record.className}</h3>
+          <h3 className="mt-2 text-base font-extrabold text-slate-950">{classTitle}</h3>
           <p className="mt-1 text-sm text-slate-500">
             {record.creatorName ?? (record.createdBy ? `教师ID ${record.createdBy}` : "提交人 -")} / {formatDate(record.createdAt)}
           </p>
+          {record.teacherName ? (
+            <p className="mt-1 text-xs font-bold text-slate-400">任课教师：{record.teacherName}</p>
+          ) : null}
         </div>
         {record.lowAttainmentCos ? (
           <div className="rounded-lg bg-red-50 px-3 py-2 text-right text-red-700">
@@ -92,6 +125,34 @@ function RecordCard({ record }: { record: DisplayRecord }) {
           <p className="mt-1 text-sm leading-6 text-slate-600">{record.improvementMeasures}</p>
         </div>
       </div>
+      {(record.reviewedAt || record.reviewerComment || record.followUpResult) ? (
+        <div className="mt-3 grid gap-2 rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-600 md:grid-cols-3">
+          <p className="m-0">
+            <span className="font-extrabold text-slate-400">审核人：</span>
+            {record.reviewerName ?? (record.reviewedBy ? `用户 ${record.reviewedBy}` : "-")}
+          </p>
+          <p className="m-0">
+            <span className="font-extrabold text-slate-400">审核时间：</span>
+            {formatDate(record.reviewedAt)}
+          </p>
+          <p className="m-0">
+            <span className="font-extrabold text-slate-400">跟踪时间：</span>
+            {formatDate(record.followUpAt)}
+          </p>
+          {record.reviewerComment ? (
+            <p className="m-0 md:col-span-3">
+              <span className="font-extrabold text-slate-400">审核意见：</span>
+              {record.reviewerComment}
+            </p>
+          ) : null}
+          {record.followUpResult ? (
+            <p className="m-0 md:col-span-3">
+              <span className="font-extrabold text-slate-400">跟踪结果：</span>
+              {record.followUpResult}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
     </article>
   )
 }
@@ -386,11 +447,6 @@ export function ImprovementsPage() {
           )}
         </section>
       ) : null}
-
-      <section className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 font-semibold text-amber-800">
-        <FileText className="mr-2 inline" size={16} />
-        当前聚合接口未返回课程名、班级名和审核字段，页面仅展示后端已返回的改进内容。
-      </section>
     </section>
   )
 }

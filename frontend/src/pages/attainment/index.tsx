@@ -106,9 +106,12 @@ const toCoordinatorRequirementResult = (courseId: ID | null, rows: CoordinatorCo
   })),
 })
 
-const toStudentRequirementResult = (rows: StudentAttainment[]): RequirementAttainmentResult => ({
-  schemeId: 0,
-  items: rows.map((row, index) => ({
+const toStudentRequirementResult = (rows: StudentAttainment[]): RequirementAttainmentResult => {
+  const rowsWithData = rows.filter((row) => row.attainmentValue !== null && row.attainmentValue !== undefined)
+
+  return {
+    schemeId: 0,
+    items: rowsWithData.map((row, index) => ({
     requirementId: index + 1,
     requirementCode: row.indicatorCode,
     title: row.indicatorContent || row.indicatorCode,
@@ -118,8 +121,9 @@ const toStudentRequirementResult = (rows: StudentAttainment[]): RequirementAttai
       code: row.indicatorCode,
       attainmentVal: Number(row.attainmentValue ?? 0),
     }],
-  })),
-})
+    })),
+  }
+}
 
 export function AttainmentPage() {
   const activeRole = useUiStore((state) => state.activeRole)

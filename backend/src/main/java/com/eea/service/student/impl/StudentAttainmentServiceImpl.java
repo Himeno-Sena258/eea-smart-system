@@ -79,8 +79,12 @@ public class StudentAttainmentServiceImpl implements StudentAttainmentService {
             }
         }
 
-        // 4. 取所有指标点，组装结果
-        List<GradIndicatorPoint> allPoints = indicatorPointMapper.selectList(null);
+        // 4. 只返回该学生成绩实际支撑到的指标点，避免其他方案/无成绩指标被前端展示为 0。
+        if (indicatorScores.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<GradIndicatorPoint> allPoints = indicatorPointMapper.selectBatchIds(new ArrayList<>(indicatorScores.keySet()));
+        allPoints.sort(Comparator.comparing(GradIndicatorPoint::getCode));
         Map<Long, GradRequirement> reqMap = new HashMap<>();
         for (GradIndicatorPoint ip : allPoints) {
             if (!reqMap.containsKey(ip.getReqId())) {
@@ -111,16 +115,6 @@ public class StudentAttainmentServiceImpl implements StudentAttainmentService {
     }
 
     private List<StudentAttainmentVO> buildEmpty(BigDecimal threshold) {
-        List<GradIndicatorPoint> allPoints = indicatorPointMapper.selectList(null);
-        List<StudentAttainmentVO> result = new ArrayList<>();
-        for (GradIndicatorPoint ip : allPoints) {
-            GradRequirement req = gradRequirementMapper.selectById(ip.getReqId());
-            result.add(new StudentAttainmentVO(
-                    ip.getCode(), ip.getContent(), threshold,
-                    null, false,
-                    req != null ? req.getTitle() : ""
-            ));
-        }
-        return result;
+        return Collections.emptyList();
     }
 }

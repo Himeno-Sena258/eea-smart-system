@@ -429,15 +429,20 @@ public class TeacherServiceImpl implements TeacherService {
             vo.setCoCode(co.getObjectiveCode());
             vo.setCoDescription(co.getContent());
 
-            // 查询所绑定的二级指标点代码
-            CourseObjIndicatorMap mapRel = courseObjIndicatorMapMapper.selectOne(
+            // 一个课程目标可能支撑多个毕业要求指标点。
+            List<CourseObjIndicatorMap> mapRels = courseObjIndicatorMapMapper.selectList(
                     new LambdaQueryWrapper<CourseObjIndicatorMap>().eq(CourseObjIndicatorMap::getCourseObjectiveId, co.getId())
             );
-            if (mapRel != null) {
-                GradIndicatorPoint ip = gradIndicatorPointMapper.selectById(mapRel.getIndicatorPointId());
-                vo.setIndicatorPointCode(ip != null ? ip.getCode() : "指标点");
-            } else {
+            if (mapRels.isEmpty()) {
                 vo.setIndicatorPointCode("未绑定");
+            } else {
+                String indicatorCodes = mapRels.stream()
+                        .map(rel -> gradIndicatorPointMapper.selectById(rel.getIndicatorPointId()))
+                        .filter(Objects::nonNull)
+                        .map(GradIndicatorPoint::getCode)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.joining(", "));
+                vo.setIndicatorPointCode(indicatorCodes.isEmpty() ? "指标点" : indicatorCodes);
             }
 
             vo.setTargetMaxScore(targetMaxSum.setScale(2, RoundingMode.HALF_UP));

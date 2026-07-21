@@ -66,9 +66,30 @@ const statToneList = [
 ]
 
 const generatedTime = (value?: string) => value?.slice(0, 16).replace("T", " ") ?? "-"
+const statDescriptionMap: Record<string, string> = {
+  auditLogCount: "系统运行记录",
+  courseCount: "课程范围",
+  orgCount: "组织架构",
+  passedCount: "学习进展",
+  requirementCount: "毕业要求体系",
+  roleCount: "权限配置",
+  schemeCount: "方案建设",
+  surveyProgress: "评价反馈",
+  tcCount: "教学运行",
+  userCount: "账号基础数据",
+}
+const priorityLabelMap: Record<string, string> = {
+  HIGH: "高优先级",
+  MEDIUM: "中优先级",
+  LOW: "低优先级",
+}
 const todoTitle = (todo: DashboardTodo) => todo.label ?? todo.title ?? todo.id ?? "待办事项"
-const todoMeta = (todo: DashboardTodo) => todo.type ?? todo.priority ?? todo.id ?? "-"
+const todoMeta = (todo: DashboardTodo) => {
+  if (todo.priority && priorityLabelMap[todo.priority]) return priorityLabelMap[todo.priority]
+  return todo.type ?? "待处理"
+}
 const warningText = (warning: DashboardWarning) => warning.message ?? warning.title ?? warning.type ?? "预警提醒"
+const warningLevelText = (level?: string) => level ? priorityLabelMap[level] ?? level : ""
 
 function StatCard({ stat, index }: { stat: DashboardStat; index: number }) {
   return (
@@ -78,7 +99,7 @@ function StatCard({ stat, index }: { stat: DashboardStat; index: number }) {
         {stat.value}
         {"unit" in stat && typeof stat.unit === "string" ? <span className="ml-1 text-base">{stat.unit}</span> : null}
       </strong>
-      <p className="mt-3 text-xs font-semibold opacity-70">{stat.key}</p>
+      <p className="mt-3 text-xs font-semibold opacity-70">{stat.status ?? statDescriptionMap[stat.key] ?? "业务统计"}</p>
     </article>
   )
 }
@@ -197,7 +218,7 @@ export function DashboardPage() {
               todos.map((todo) => <TodoCard key={todo.id ?? `${todo.type}-${todo.title}-${todo.label}`} todo={todo} />)
             ) : (
               <p className="m-0 rounded-lg border border-dashed border-slate-200 p-4 text-sm font-bold text-slate-400">
-                后端当前没有返回待办事项
+                当前暂无待办事项
               </p>
             )}
           </div>
@@ -212,12 +233,12 @@ export function DashboardPage() {
             <div className="mt-4 grid gap-2">
               {warnings.length > 0 ? warnings.map((warning) => (
                 <p className="m-0 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800" key={`${warning.type}-${warningText(warning)}`}>
-                  {warning.level ? `${warning.level} / ` : ""}{warningText(warning)}
+                  {warningLevelText(warning.level) ? `${warningLevelText(warning.level)} / ` : ""}{warningText(warning)}
                 </p>
               )) : (
                 <p className="m-0 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-700">
                   <CheckCircle2 className="mr-1 inline" size={16} />
-                  后端当前没有返回预警
+                  当前暂无预警事项
                 </p>
               )}
             </div>

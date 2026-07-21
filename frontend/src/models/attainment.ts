@@ -150,9 +150,11 @@ export interface ContinuousImprovement {
   problemAnalysis: string
   improvementMeasures: string
   createdBy: ID
+  creatorName?: string
   createdAt: DateTimeString
   status?: number
   reviewedBy?: ID
+  reviewerName?: string
   reviewedAt?: DateTimeString
   reviewerComment?: string
   updatedAt?: DateTimeString
