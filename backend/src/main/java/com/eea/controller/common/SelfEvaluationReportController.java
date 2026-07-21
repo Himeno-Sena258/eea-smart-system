@@ -6,9 +6,12 @@ import com.eea.entity.*;
 import com.eea.mapper.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
+import org.apache.poi.xwpf.usermodel.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.OutputStream;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -177,17 +180,62 @@ public class SelfEvaluationReportController {
 
     @GetMapping("/self-evaluation/reports/{id}/export")
     @RequireRoles("DIRECTOR")
-    @Operation(summary = "导出报告")
-    public Result<Map<String, Object>> exportReport(@PathVariable Long id) {
-        Report report = reportMapper.selectById(id);
-        QueryWrapper<ReportSection> w = new QueryWrapper<>();
-        w.eq("report_id", id).orderByAsc("section_code");
-        List<ReportSection> sections = sectionMapper.selectList(w);
+    @Operation(summary = "导出报告（Word文档）")
+    public void exportReport(@PathVariable Long id, HttpServletResponse response) {
+        try {
+            Report report = reportMapper.selectById(id);
+            QueryWrapper<ReportSection> w = new QueryWrapper<>();
+            w.eq("report_id", id).orderByAsc("section_code");
+            List<ReportSection> sections = sectionMapper.selectList(w);
 
-        Map<String, Object> data = new LinkedHashMap<>();
-        data.put("report", report);
-        data.put("sections", sections);
-        data.put("exportFormat", "Word/PDF 导出功能待对接文件服务");
-        return Result.success(data);
+            XWPFDocument doc = new XWPFDocument();
+            XWPFParagraph title = doc.createParagraph();
+            title.setAlignment(ParagraphAlignment.CENTER);
+            XWPFRun tr = title.createRun(); tr.setBold(true); tr.setFontSize(18);
+            tr.setText(report != null ? report.getTitle() : "自评报告");
+
+            for (ReportSection s : sections) {
+                XWPFParagraph p = doc.createParagraph();
+                XWPFRun r = p.createRun(); r.setBold(true); r.setFontSize(14);
+                r.setText(s.getSectionCode() + " " + s.getTitle());
+                if (s.getContent() != null) {
+                    XWPFParagraph cp = doc.createParagraph();
+                    cp.createRun().setText(s.getContent());
+                }
+            }
+
+            response.setContentType("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+            response.setHeader("Content-Disposition", "attachment; filename=report_" + id + ".docx");
+            OutputStream os = response.getOutputStream();
+            doc.write(os); os.close(); doc.close();
+        } catch (Exception e) {
+            throw new RuntimeException("导出失败: " + e.getMessage());
+        }
+    }
+
+    // ===== P0: 教师"我的章节"入口 =====
+    @GetMapping("/self-evaluation/sections/my")
+    @Operation(summary = "我的自评报告章节", description = "查询当前登录教师被分配的所有报告章节")
+    public Result<List<Map<String,Object>>> mySections() {
+        Long userId = UserContext.getUserId();
+        QueryWrapper<ReportSection> w = new QueryWrapper<>();
+        w.eq("assigned_to", userId).orderByAsc("section_code");
+        List<ReportSection> sections = sectionMapper.selectList(w);
+        List<Map<String,Object>> list = new ArrayList<>();
+        for (ReportSection s : sections) {
+            Report r = reportMapper.selectById(s.getReportId());
+            Map<String,Object> m = new LinkedHashMap<>();
+            m.put("id", s.getId());
+            m.put("reportId", s.getReportId());
+            m.put("reportTitle", r != null ? r.getTitle() : "");
+            m.put("sectionCode", s.getSectionCode());
+            m.put("title", s.getTitle());
+            m.put("content", s.getContent());
+            m.put("status", s.getStatus());
+            m.put("assignedTo", s.getAssignedTo());
+            m.put("updatedAt", s.getUpdatedAt());
+            list.add(m);
+        }
+        return Result.success(list);
     }
 }

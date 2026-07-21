@@ -79,4 +79,26 @@ public class ImprovementController {
                 : "以下课程目标达成度低于阈值(0.68)，建议分析原因：" + String.join(", ", lowCOs));
         return Result.success(draft);
     }
+
+    // ===== P1: 全专业级改进聚合 (DIRECTOR) =====
+    @GetMapping("/director/improvements")
+    @com.eea.common.RequireRoles({"DIRECTOR","ADMIN"})
+    @Operation(summary = "P1 全专业改进记录")
+    public Result<List<ContinuousImprovement>> directorImprovements(
+            @RequestParam(required = false) Long schemeId) {
+        QueryWrapper<ContinuousImprovement> w = new QueryWrapper<>();
+        w.orderByDesc("created_at");
+        return Result.success(ciMapper.selectList(w));
+    }
+
+    // ===== P1: 课程级改进聚合 (COORDINATOR) =====
+    @GetMapping("/coordinator/improvements")
+    @com.eea.common.RequireRoles({"COORDINATOR","ADMIN"})
+    @Operation(summary = "P1 课程级改进记录")
+    public Result<List<ContinuousImprovement>> coordinatorImprovements(
+            @RequestParam(required = false) Long courseId) {
+        QueryWrapper<ContinuousImprovement> w = new QueryWrapper<>();
+        w.orderByDesc("created_at");
+        return Result.success(ciMapper.selectList(w));
+    }
 }

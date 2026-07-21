@@ -54,4 +54,35 @@ public class AuthController {
         authService.changePassword(userId, dto);
         return Result.success("密码修改成功");
     }
+
+    @PutMapping("/me")
+    @Operation(summary = "修改个人资料", description = "当前用户修改自己的邮箱和手机号")
+    public Result<String> updateProfile(@RequestBody com.eea.dto.UpdateProfileDTO dto) {
+        Long userId = UserContext.getUserId();
+        if (userId == null) return Result.error(401, "未登录");
+        authService.updateProfile(userId, dto);
+        return Result.success("个人资料修改成功");
+    }
+
+    // ===== P2: 头像 =====
+    @Autowired private com.eea.mapper.SysUserMapper sysUserMapper;
+
+    @PostMapping("/me/avatar")
+    @Operation(summary = "上传头像", description = "上传头像图片，返回头像URL")
+    public Result<String> uploadAvatar(@RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
+        Long userId = UserContext.getUserId();
+        String url = "/uploads/avatar/" + userId + "_" + System.currentTimeMillis() + ".png";
+        var user = sysUserMapper.selectById(userId);
+        if (user != null) { user.setAvatarUrl(url); sysUserMapper.updateById(user); }
+        return Result.success(url);
+    }
+
+    @DeleteMapping("/me/avatar")
+    @Operation(summary = "删除头像")
+    public Result<String> deleteAvatar() {
+        Long userId = UserContext.getUserId();
+        var user = sysUserMapper.selectById(userId);
+        if (user != null) { user.setAvatarUrl(null); sysUserMapper.updateById(user); }
+        return Result.success("头像已删除");
+    }
 }
