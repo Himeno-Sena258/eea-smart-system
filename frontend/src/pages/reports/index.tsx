@@ -1,12 +1,11 @@
 import { Download, FileText, FolderOpen, Save, Send, Sparkles } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
-import type { ID, ReportDataSource, ReportSection, SelfEvaluationReport } from "@/models"
+import type { ID, ReportSection, SelfEvaluationReport } from "@/models"
 import {
   autoFillReport,
   exportReport,
   getMyReportSections,
-  getReportDataSourceList,
   getReportList,
   getReportSectionList,
   updateReportSection,
@@ -28,6 +27,7 @@ const reportStatusMap = {
 } as const
 
 const formatDate = (value?: string) => value?.slice(0, 10) ?? "-"
+const formatAssignee = (section?: ReportSection | null) => section?.assigneeName || (section?.assignedTo ? `用户 ${section.assignedTo}` : "-")
 
 function SectionNav({
   sections,
@@ -67,7 +67,7 @@ function SectionNav({
                   {status.label}
                 </span>
               </div>
-              <span className="text-xs font-semibold text-slate-500">负责人ID {section.assignedTo ?? "-"}</span>
+              <span className="text-xs font-semibold text-slate-500">负责人 {formatAssignee(section)}</span>
             </button>
           )
         })}
@@ -87,7 +87,6 @@ export function ReportsPage() {
   const [activeReportId, setActiveReportId] = useState<ID | null>(null)
   const [sections, setSections] = useState<ReportSection[]>([])
   const [activeSectionId, setActiveSectionId] = useState<ID | null>(null)
-  const [dataSources, setDataSources] = useState<ReportDataSource[]>([])
   const [contentDraft, setContentDraft] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -158,15 +157,11 @@ export function ReportsPage() {
 
   useEffect(() => {
     if (!activeSection) {
-      setDataSources([])
       setContentDraft("")
       return
     }
 
     setContentDraft(activeSection.content ?? "")
-    void getReportDataSourceList(activeSection.id)
-      .then(setDataSources)
-      .catch((requestError: Error) => setError(requestError.message))
   }, [activeSection])
 
   const refreshSections = async () => {
@@ -365,7 +360,7 @@ export function ReportsPage() {
               <p className="m-0 text-sm font-extrabold text-slate-600">
                 正在编辑: {activeSection ? `${activeSection.sectionCode}. ${activeSection.title}` : "未选择章节"}
               </p>
-              <p className="mt-1 text-xs font-semibold text-slate-500">负责人ID {activeSection?.assignedTo ?? "-"}</p>
+              <p className="mt-1 text-xs font-semibold text-slate-500">负责人 {formatAssignee(activeSection)}</p>
             </div>
             <div className="flex flex-wrap gap-2">
               {canEdit ? (
@@ -383,7 +378,7 @@ export function ReportsPage() {
             </div>
           </div>
 
-          <div className="grid flex-1 gap-5 overflow-y-auto p-6 2xl:grid-cols-[minmax(0,1fr)_280px]">
+          <div className="grid flex-1 gap-5 overflow-y-auto p-6 2xl:grid-cols-[minmax(0,1fr)_260px]">
             <article className="mx-auto w-full max-w-3xl">
               <h2 className="text-center text-2xl font-extrabold text-slate-950">
                 {activeSection ? `${activeSection.sectionCode}. ${activeSection.title}` : "暂无章节"}
@@ -401,30 +396,10 @@ export function ReportsPage() {
 
             <aside className="grid content-start gap-4">
               <section className="rounded-lg border border-slate-200 p-4">
-                <h3 className="m-0 text-base font-extrabold text-slate-950">数据源</h3>
-                <div className="mt-3 grid gap-2">
-                  {dataSources.length > 0 ? (
-                    dataSources.map((source) => (
-                      <div className="rounded-lg bg-slate-50 p-3" key={`${source.sourceType}-${source.sourceKey}`}>
-                        <p className="m-0 text-sm font-extrabold text-blue-700">{source.sourceType}</p>
-                        <p className="mt-1 text-xs break-all text-slate-500">{source.sourceKey}</p>
-                        {source.autoFillConfig ? (
-                          <pre className="mt-2 max-h-24 overflow-auto rounded bg-white p-2 text-[11px] leading-4 text-slate-500">
-                            {source.autoFillConfig}
-                          </pre>
-                        ) : null}
-                      </div>
-                    ))
-                  ) : (
-                    <p className="rounded-lg bg-slate-50 p-3 text-sm text-slate-500">当前章节暂无绑定数据源。</p>
-                  )}
-                </div>
-              </section>
-
-              <section className="rounded-lg border border-slate-200 p-4">
                 <h3 className="m-0 text-base font-extrabold text-slate-950">协作状态</h3>
                 <div className="mt-3 grid gap-2 text-sm font-semibold text-slate-600">
                   <p className="m-0">章节状态: {activeSection ? statusMetaMap[activeSection.status].label : "-"}</p>
+                  <p className="m-0">负责人: {formatAssignee(activeSection)}</p>
                   <p className="m-0">最近更新: {formatDate(activeSection?.updatedAt)}</p>
                   <p className="m-0">报告版本: {activeReport?.version ?? "-"}</p>
                 </div>

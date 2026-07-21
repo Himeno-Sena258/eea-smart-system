@@ -25,6 +25,7 @@ public class SelfEvaluationReportController {
     @Autowired private ReportMapper reportMapper;
     @Autowired private ReportSectionMapper sectionMapper;
     @Autowired private ReportDataSourceMapper dsMapper;
+    @Autowired private SysUserMapper sysUserMapper;
 
     // ===== 报告主表 =====
     @GetMapping("/self-evaluation/reports")
@@ -84,10 +85,10 @@ public class SelfEvaluationReportController {
     // ===== 报告章节 =====
     @GetMapping("/self-evaluation/reports/{reportId}/sections")
     @Operation(summary = "查询报告章节列表")
-    public Result<List<ReportSection>> listSections(@PathVariable Long reportId) {
+    public Result<List<Map<String,Object>>> listSections(@PathVariable Long reportId) {
         QueryWrapper<ReportSection> w = new QueryWrapper<>();
         w.eq("report_id", reportId).orderByAsc("section_code");
-        return Result.success(sectionMapper.selectList(w));
+        return Result.success(enrichSections(sectionMapper.selectList(w)));
     }
 
     @PostMapping("/self-evaluation/reports/{reportId}/sections")
@@ -221,9 +222,14 @@ public class SelfEvaluationReportController {
         QueryWrapper<ReportSection> w = new QueryWrapper<>();
         w.eq("assigned_to", userId).orderByAsc("section_code");
         List<ReportSection> sections = sectionMapper.selectList(w);
+        return Result.success(enrichSections(sections));
+    }
+
+    private List<Map<String,Object>> enrichSections(List<ReportSection> sections) {
         List<Map<String,Object>> list = new ArrayList<>();
         for (ReportSection s : sections) {
             Report r = reportMapper.selectById(s.getReportId());
+            SysUser assignee = s.getAssignedTo() == null ? null : sysUserMapper.selectById(s.getAssignedTo());
             Map<String,Object> m = new LinkedHashMap<>();
             m.put("id", s.getId());
             m.put("reportId", s.getReportId());
@@ -233,9 +239,15 @@ public class SelfEvaluationReportController {
             m.put("content", s.getContent());
             m.put("status", s.getStatus());
             m.put("assignedTo", s.getAssignedTo());
+            m.put("assigneeName", assignee != null ? assignee.getRealName() : "");
+            m.put("dueAt", s.getDueAt());
+            m.put("submittedAt", s.getSubmittedAt());
+            m.put("reviewedBy", s.getReviewedBy());
+            m.put("reviewedAt", s.getReviewedAt());
+            m.put("reviewComment", s.getReviewComment());
             m.put("updatedAt", s.getUpdatedAt());
             list.add(m);
         }
-        return Result.success(list);
+        return list;
     }
 }

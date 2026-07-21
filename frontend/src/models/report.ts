@@ -41,6 +41,7 @@ export interface ReportSection {
   content: string
   status: ReportSectionStatus
   assignedTo?: ID
+  assigneeName?: string
   updatedAt?: DateTimeString
 }
 
