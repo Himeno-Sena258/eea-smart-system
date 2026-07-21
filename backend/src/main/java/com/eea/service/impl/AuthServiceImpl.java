@@ -119,6 +119,7 @@ public class AuthServiceImpl implements AuthService {
                 .orgName(orgName)
                 .roleCodes(roleCodes)
                 .roleNames(roleNames)
+                .avatarUrl(user.getAvatarUrl())
                 .build();
     }
 

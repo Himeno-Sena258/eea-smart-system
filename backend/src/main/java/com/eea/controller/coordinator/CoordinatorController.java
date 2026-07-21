@@ -4,11 +4,13 @@ import com.eea.common.RequireRoles;
 import com.eea.common.Result;
 import com.eea.common.UserContext;
 import com.eea.dto.*;
+import com.eea.entity.*;
 import com.eea.service.coordinator.CoordinatorService;
 import com.eea.vo.*;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import java.util.List;
+import java.util.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -120,13 +122,31 @@ public class CoordinatorController {
     // ===== P1: 课程达成度 =====
     @GetMapping("/courses/{courseId}/attainment")
     @Operation(summary = "P1 课程达成度汇总")
-    public Result<java.util.Map<String,Object>> courseAttainment(@PathVariable Long courseId) {
-        var data = new java.util.LinkedHashMap<String,Object>();
-        data.put("courseId", courseId);
-        // 查询 course_attainment 表中该课程下所有教学班的达成度
-        var w = new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<com.eea.entity.CourseAttainment>();
-        w.eq("teaching_class_id", courseId); // 简化实现
-        data.put("items", coordinatorService.listObjectives(courseId));
-        return Result.success(data);
+    public Result<List<java.util.Map<String,Object>>> courseAttainment(@PathVariable Long courseId) {
+        // 查该课程下所有教学班的 course_attainment
+        var tcW = new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<TeachingClass>();
+        tcW.eq("course_id", courseId);
+        var tcs = teachingClassMapper.selectList(tcW);
+        var result = new java.util.ArrayList<java.util.Map<String,Object>>();
+        for (var tc : tcs) {
+            var caW = new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<CourseAttainment>();
+            caW.eq("teaching_class_id", tc.getId());
+            var attainments = courseAttainmentMapper.selectList(caW);
+            for (var ca : attainments) {
+                var m = new java.util.LinkedHashMap<String,Object>();
+                m.put("courseId", courseId);
+                m.put("teachingClassId", tc.getId());
+                m.put("teachingClassName", tc.getClassName());
+                m.put("courseObjectiveId", ca.getCourseObjectiveId());
+                m.put("objectiveCode", "CO"+ca.getCourseObjectiveId());
+                m.put("attainmentVal", ca.getAttainmentVal());
+                m.put("warningThreshold", 0.68);
+                m.put("calculatedAt", ca.getCalculatedAt());
+                result.add(m);
+            }
+        }
+        return Result.success(result);
     }
+    @Autowired private com.eea.mapper.TeachingClassMapper teachingClassMapper;
+    @Autowired private com.eea.mapper.CourseAttainmentMapper courseAttainmentMapper;
 }

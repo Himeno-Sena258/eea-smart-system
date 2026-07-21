@@ -40,4 +40,5 @@ public class UserInfoVO {
 
     @Schema(description = "拥有的角色中文名称列表(如 [系统管理员, 专业负责人])")
     private List<String> roleNames;
+    private String avatarUrl;
 }
