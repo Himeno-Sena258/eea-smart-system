@@ -1,17 +1,6 @@
-﻿-- =================================================================================
--- 工程教育专业认证智能服务系统 - 统一建表脚本 (合并自V1~V9)
--- 适用数据库: MySQL 8.0+
--- 字符集: utf8mb4 / utf8mb4_unicode_ci
---
--- 【说明】
--- 本文件将原 V1~V9 九个迁移脚本中所有 CREATE TABLE / ALTER TABLE 合并至此，
--- 同时修复了以下问题：
---   P0: course_obj_indicator_map.weight decimal(3,2) → decimal(4,3)
---   P1: V9 四张新表补齐 FOREIGN KEY 约束
---   P1: process_record 补齐 FOREIGN KEY 约束
---   P1: ALTER TABLE ADD COLUMN 全部合入原始 CREATE TABLE
--- =================================================================================
-
+﻿
+# DROP DATABASE IF EXISTS obe_system;
+# CREATE DATABASE obe_system DEFAULT CHARACTER SET utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE DATABASE IF NOT EXISTS `obe_system` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE `obe_system`;
 
