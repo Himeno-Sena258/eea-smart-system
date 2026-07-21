@@ -303,11 +303,22 @@ export const getIndicatorList = async (requirementId: ID) => {
 }
 
 export const getIndicatorTree = async (schemeId: ID) => {
-  const response = await request<IndicatorTreeItem[]>({
-    url: `/program-schemes/${schemeId}/indicators/tree`,
+  type RequirementWithIndicators = GradRequirement & {
+    reqCode?: string
+    indicators?: GradIndicatorPoint[]
+    indicatorPoints?: GradIndicatorPoint[]
+  }
+
+  const response = await request<RequirementWithIndicators[]>({
+    url: `/program-schemes/${schemeId}/requirements`,
     method: "GET",
   })
-  return response.data
+
+  return response.data.map((requirement) => ({
+    ...requirement,
+    code: requirement.code ?? requirement.reqCode ?? "",
+    indicators: requirement.indicators ?? requirement.indicatorPoints ?? [],
+  })) satisfies IndicatorTreeItem[]
 }
 
 export const createIndicator = async (requirementId: ID, payload: GradIndicatorPointPayload) => {

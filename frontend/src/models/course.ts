@@ -128,6 +128,26 @@ export interface AssessmentMethod {
   items?: AssessmentItem[]
 }
 
+export interface StudentSyllabusObjective {
+  code: string
+  content: string
+  indicatorCodes: string[]
+}
+
+export interface StudentSyllabusMethod {
+  name: string
+  weight: number
+}
+
+export interface StudentSyllabus {
+  courseId: ID
+  courseName: string
+  credits: number
+  hours: number
+  objectives: StudentSyllabusObjective[]
+  methods: StudentSyllabusMethod[]
+}
+
 export interface AssessmentMethodPayload {
   name: string
   weight: number

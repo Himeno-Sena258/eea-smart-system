@@ -14,6 +14,7 @@ import type {
   CourseResourcePayload,
   CourseSyllabus,
   CourseSyllabusPayload,
+  CurriculumCourseItem,
   EvidenceMaterial,
   EvidenceMaterialPayload,
   ID,
@@ -24,6 +25,7 @@ import type {
   SaveCourseIndicatorMatrixPayload,
   SaveCurriculumPayload,
   SaveTeachingContentsPayload,
+  StudentSyllabus,
   TeachingContentItem,
 } from "@/models"
 
@@ -103,11 +105,50 @@ export const importCourses = async (file: File) => {
 }
 
 export const getCurriculum = async (schemeId: ID) => {
-  const response = await request<Course[]>({
-    url: `/program-schemes/${schemeId}/curriculum`,
+  const [coursesResponse, curriculumResponse] = await Promise.all([
+    request<Course[]>({
+      url: `/program-schemes/${schemeId}/courses`,
+      method: "GET",
+    }),
+    request<CurriculumCourseItem[]>({
+      url: `/program-schemes/${schemeId}/curriculum`,
+      method: "GET",
+    }),
+  ])
+
+  const curriculumMap = new Map(curriculumResponse.data.map((item) => [String(item.courseId), item]))
+
+  return coursesResponse.data.map((course) => {
+    const curriculumItem = curriculumMap.get(String(course.id))
+
+    return {
+      ...course,
+      courseType: curriculumItem?.courseType ?? course.courseType,
+      semester: curriculumItem?.semester ?? course.semester,
+      sortOrder: curriculumItem?.sortOrder ?? course.sortOrder,
+    }
+  })
+}
+
+interface DirectorObeMatrix {
+  rows: Array<{
+    courseId: ID
+    cells: CourseIndicatorMatrixItem[]
+  }>
+}
+
+export const getCourseIndicatorMatrix = async (courseId: ID) => {
+  const courseResponse = await request<Course>({
+    url: `/courses/${courseId}`,
     method: "GET",
   })
-  return response.data
+
+  const matrixResponse = await request<DirectorObeMatrix>({
+    url: `/director/schemes/${courseResponse.data.schemeId}/matrix`,
+    method: "GET",
+  })
+
+  return matrixResponse.data.rows.find((row) => String(row.courseId) === String(courseId))?.cells ?? []
 }
 
 export const saveCurriculum = async (schemeId: ID, payload: SaveCurriculumPayload) => {
@@ -119,32 +160,29 @@ export const saveCurriculum = async (schemeId: ID, payload: SaveCurriculumPayloa
   return response.data
 }
 
-export const getCourseIndicatorMatrix = async (courseId: ID) => {
-  const response = await request<CourseIndicatorMatrixItem[]>({
-    url: `/courses/${courseId}/indicator-matrix`,
-    method: "GET",
-  })
-  return response.data
-}
-
 export const saveCourseIndicatorMatrix = async (
   courseId: ID,
   payload: SaveCourseIndicatorMatrixPayload,
 ) => {
-  const response = await request<CourseIndicatorMatrixItem[]>({
-    url: `/courses/${courseId}/indicator-matrix`,
-    method: "PUT",
-    data: payload,
+  const courseResponse = await request<Course>({
+    url: `/courses/${courseId}`,
+    method: "GET",
   })
-  return response.data
+
+  await request<string>({
+    url: `/director/schemes/${courseResponse.data.schemeId}/matrix/save`,
+    method: "POST",
+    data: {
+      matrixItems: payload.items,
+    },
+  })
+
+  return getCourseIndicatorMatrix(courseId)
 }
 
 export const clearCourseIndicatorMatrix = async (courseId: ID) => {
-  const response = await request<boolean>({
-    url: `/courses/${courseId}/indicator-matrix`,
-    method: "DELETE",
-  })
-  return response.data
+  void courseId
+  throw new Error("后端暂未提供清空单门课程指标矩阵的接口")
 }
 
 export const getCourseSyllabus = async (courseId: ID) => {
@@ -208,7 +246,7 @@ export const downloadCourseResource = async (id: ID) => {
 
 export const getCourseObjectiveList = async (courseId: ID) => {
   const response = await request<CourseObjective[]>({
-    url: `/courses/${courseId}/objectives`,
+    url: `/coordinator/courses/${courseId}/objectives`,
     method: "GET",
   })
   return response.data
@@ -216,7 +254,7 @@ export const getCourseObjectiveList = async (courseId: ID) => {
 
 export const createCourseObjective = async (courseId: ID, payload: CourseObjectivePayload) => {
   const response = await request<CourseObjective>({
-    url: `/courses/${courseId}/objectives`,
+    url: `/coordinator/courses/${courseId}/objectives`,
     method: "POST",
     data: payload,
   })
@@ -234,7 +272,7 @@ export const updateCourseObjective = async (id: ID, payload: CourseObjectivePayl
 
 export const deleteCourseObjective = async (id: ID) => {
   const response = await request<boolean>({
-    url: `/course-objectives/${id}`,
+    url: `/coordinator/objectives/${id}`,
     method: "DELETE",
   })
   return response.data
@@ -259,19 +297,36 @@ export const saveTeachingContents = async (courseId: ID, payload: SaveTeachingCo
 
 export const getAssessmentMethodList = async (courseId: ID) => {
   const response = await request<AssessmentMethod[]>({
-    url: `/courses/${courseId}/assessment-methods`,
+    url: `/coordinator/courses/${courseId}/methods`,
+    method: "GET",
+  })
+  return response.data
+}
+
+export const getStudentSyllabusList = async () => {
+  const response = await request<StudentSyllabus[]>({
+    url: "/student/syllabus",
+    method: "GET",
+  })
+  return response.data
+}
+
+export const getStudentSyllabusDetail = async (courseId: ID) => {
+  const response = await request<StudentSyllabus>({
+    url: `/student/syllabus/${courseId}`,
     method: "GET",
   })
   return response.data
 }
 
 export const saveAssessmentMethods = async (courseId: ID, payload: SaveAssessmentMethodsPayload) => {
-  const response = await request<AssessmentMethod[]>({
-    url: `/courses/${courseId}/assessment-methods`,
-    method: "PUT",
+  await request<string>({
+    url: `/coordinator/courses/${courseId}/methods`,
+    method: "POST",
     data: payload,
   })
-  return response.data
+
+  return getAssessmentMethodList(courseId)
 }
 
 export const createAssessmentItem = async (methodId: ID, payload: AssessmentItemPayload) => {
