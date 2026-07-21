@@ -47,6 +47,12 @@ export interface SurveyAnswer {
   submittedAt: DateTimeString
 }
 
+export interface MySurveyAnswer {
+  id: ID
+  questionnaireId: ID
+  submittedAt: DateTimeString
+}
+
 export interface SurveyStatistics {
   questionnaireId: ID
   title: string

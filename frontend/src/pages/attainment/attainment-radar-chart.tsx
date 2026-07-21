@@ -6,8 +6,8 @@ interface AttainmentRadarChartProps {
   threshold?: number
 }
 
-const chartWidth = 760
-const chartHeight = 460
+const chartWidth = 1160
+const chartHeight = 500
 const center = chartWidth / 2
 const centerY = chartHeight / 2
 const radius = 125
@@ -37,8 +37,23 @@ const toCenterPoints = (items: RequirementAttainmentItem[]) => items.map(() => `
 
 const toAxisLabel = (item: RequirementAttainmentItem) => {
   const title = item.title === item.requirementCode ? "" : item.title
-  const summary = title.length > 12 ? `${title.slice(0, 12)}...` : title
-  return summary ? `${item.requirementCode} ${summary}` : item.requirementCode
+  return title ? `${item.requirementCode} ${title}` : item.requirementCode
+}
+
+const splitLabelLines = (label: string, maxChars = 18) => {
+  const lines: string[] = []
+  let current = ""
+
+  for (const char of label) {
+    current += char
+    if (current.length >= maxChars) {
+      lines.push(current)
+      current = ""
+    }
+  }
+
+  if (current) lines.push(current)
+  return lines
 }
 
 function AttainmentMetricList({
@@ -152,7 +167,7 @@ export function AttainmentRadarChart({ result, threshold = 0.68 }: AttainmentRad
 
   return (
     <div className="grid gap-4">
-      <svg className="mx-auto block h-auto w-full max-w-[860px]" viewBox={`0 0 ${chartWidth} ${chartHeight}`} role="img" aria-label="毕业要求达成雷达图">
+      <svg className="mx-auto block h-auto w-full max-w-[1280px]" viewBox={`0 0 ${chartWidth} ${chartHeight}`} role="img" aria-label="毕业要求达成雷达图">
         <g>
           {levels.map((level) => (
             <polygon
@@ -220,15 +235,18 @@ export function AttainmentRadarChart({ result, threshold = 0.68 }: AttainmentRad
         })}
 
         {items.map((item, index) => {
-          const label = getPoint(index, items.length, 1.16)
+          const label = getPoint(index, items.length, 1.34)
           const isRight = label.x > center + 12
           const isLeft = label.x < center - 12
+          const labelLines = splitLabelLines(toAxisLabel(item), items.length > 6 ? 15 : 18)
+          const lineHeight = items.length > 6 ? 14 : 15
+          const labelStartY = label.y - ((labelLines.length - 1) * lineHeight) / 2
 
           return (
             <text
               dominantBaseline="middle"
               fill="rgb(51 65 85)"
-              fontSize="12"
+              fontSize={items.length > 6 ? "10.5" : "12"}
               fontWeight="700"
               key={item.requirementId}
               opacity="0"
@@ -236,10 +254,18 @@ export function AttainmentRadarChart({ result, threshold = 0.68 }: AttainmentRad
               x={center}
               y={centerY}
             >
-              {toAxisLabel(item)}
+              {labelLines.map((line, lineIndex) => (
+                <tspan
+                  dy={lineIndex === 0 ? 0 : lineHeight}
+                  key={`${item.requirementId}-${lineIndex}`}
+                  x={label.x}
+                >
+                  {line}
+                </tspan>
+              ))}
               <animate attributeName="opacity" begin={`${620 + index * 60}ms`} dur="300ms" fill="freeze" from="0" to="1" />
               <animate attributeName="x" begin={`${620 + index * 60}ms`} dur="360ms" fill="freeze" from={center} to={label.x} />
-              <animate attributeName="y" begin={`${620 + index * 60}ms`} dur="360ms" fill="freeze" from={centerY} to={label.y} />
+              <animate attributeName="y" begin={`${620 + index * 60}ms`} dur="360ms" fill="freeze" from={centerY} to={labelStartY} />
             </text>
           )
         })}

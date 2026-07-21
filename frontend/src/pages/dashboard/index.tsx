@@ -65,7 +65,14 @@ const statToneList = [
   "border-slate-200 bg-white text-slate-950",
 ]
 
-const generatedTime = (value?: string) => value?.slice(0, 16).replace("T", " ") ?? "-"
+const formatLiveTime = (date: Date) => {
+  const pad = (value: number) => String(value).padStart(2, "0")
+  return [
+    date.getFullYear(),
+    pad(date.getMonth() + 1),
+    pad(date.getDate()),
+  ].join("-") + ` ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+}
 const statDescriptionMap: Record<string, string> = {
   auditLogCount: "系统运行记录",
   courseCount: "课程范围",
@@ -139,6 +146,7 @@ function TodoCard({ todo }: { todo: DashboardTodo }) {
 export function DashboardPage() {
   const activeRole = useUiStore((state) => state.activeRole)
   const [dashboard, setDashboard] = useState<RoleDashboard | null>(null)
+  const [currentTime, setCurrentTime] = useState(() => new Date())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -160,6 +168,11 @@ export function DashboardPage() {
       .finally(() => setLoading(false))
   }, [activeRole])
 
+  useEffect(() => {
+    const timer = window.setInterval(() => setCurrentTime(new Date()), 1000)
+    return () => window.clearInterval(timer)
+  }, [])
+
   return (
     <section className="grid gap-6">
       <header className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
@@ -179,7 +192,7 @@ export function DashboardPage() {
           </span>
           <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1">
             <Clock3 size={13} />
-            {generatedTime(dashboard?.generatedAt)}
+            {formatLiveTime(currentTime)}
           </span>
           {loading ? (
             <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-1 text-blue-700">

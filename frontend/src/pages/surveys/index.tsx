@@ -1,4 +1,4 @@
-import { BarChart3, ClipboardCheck, Eye, Send, ToggleLeft, ToggleRight } from "lucide-react"
+import { BarChart3, CheckCircle2, ClipboardCheck, Eye, Send, ToggleLeft, ToggleRight } from "lucide-react"
 import { type ReactNode, useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
@@ -9,9 +9,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import type { ID, JsonValue, SurveyQuestion, SurveyQuestionnaire, SurveyStatistics } from "@/models"
+import type { ID, JsonValue, MySurveyAnswer, SurveyQuestion, SurveyQuestionnaire, SurveyStatistics } from "@/models"
 import {
   closeSurvey,
+  getMySurveyAnswers,
   getSurveyPage,
   getSurveyQuestions,
   getSurveyStatistics,
@@ -174,9 +175,10 @@ function AnswerDialog({
   trigger,
 }: {
   survey: SurveyQuestionnaire
-  onSubmitted: () => void
+  onSubmitted: (surveyId: ID) => void | Promise<void>
   trigger: ReactNode
 }) {
+  const [open, setOpen] = useState(false)
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [dialogQuestions, setDialogQuestions] = useState<SurveyQuestion[]>([])
   const [message, setMessage] = useState<string | null>(null)
@@ -185,14 +187,17 @@ function AnswerDialog({
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
+    if (!open) return
+
     setLoadingQuestions(true)
     setError(null)
+    setMessage(null)
     setAnswers({})
     void getSurveyQuestions(survey.id)
       .then(setDialogQuestions)
       .catch((requestError: Error) => setError(requestError.message))
       .finally(() => setLoadingQuestions(false))
-  }, [survey.id])
+  }, [open, survey.id])
 
   const handleSubmit = async () => {
     setError(null)
@@ -211,7 +216,9 @@ function AnswerDialog({
       setSubmitting(true)
       await submitSurveyAnswer(survey.id, payload)
       setMessage("提交成功")
-      onSubmitted()
+      window.alert("问卷提交成功")
+      await onSubmitted(survey.id)
+      setOpen(false)
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "提交失败")
     } finally {
@@ -220,7 +227,7 @@ function AnswerDialog({
   }
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="bg-white shadow-2xl ring-1 ring-slate-200 sm:max-w-[560px]">
         <DialogHeader>
@@ -326,6 +333,8 @@ export function SurveysPage() {
   const [selectedId, setSelectedId] = useState<ID | null>(null)
   const [questions, setQuestions] = useState<SurveyQuestion[]>([])
   const [statistics, setStatistics] = useState<SurveyStatistics | null>(null)
+  const [myAnswers, setMyAnswers] = useState<MySurveyAnswer[]>([])
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -335,6 +344,10 @@ export function SurveysPage() {
     [selectedId, surveys],
   )
   const openSurveys = surveys.filter((survey) => survey.status === 1)
+  const submittedAnswerMap = useMemo(
+    () => new Map(myAnswers.map((answer) => [String(answer.questionnaireId), answer])),
+    [myAnswers],
+  )
 
   const refreshSurveys = async () => {
     setLoading(true)
@@ -350,9 +363,28 @@ export function SurveysPage() {
     }
   }
 
+  const refreshMyAnswers = async () => {
+    try {
+      const answers = await getMySurveyAnswers()
+      setMyAnswers(answers)
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "加载提交状态失败")
+    }
+  }
+
   useEffect(() => {
     void refreshSurveys()
   }, [])
+
+  useEffect(() => {
+    if (activeRole !== "STUDENT") {
+      setMyAnswers([])
+      setSuccessMessage(null)
+      return
+    }
+
+    void refreshMyAnswers()
+  }, [activeRole])
 
   useEffect(() => {
     if (!selectedSurvey) {
@@ -395,6 +427,15 @@ export function SurveysPage() {
     }
   }
 
+  const handleSurveySubmitted = async (surveyId: ID) => {
+    setSuccessMessage("问卷已提交")
+    setMyAnswers((current) => {
+      const withoutCurrent = current.filter((answer) => String(answer.questionnaireId) !== String(surveyId))
+      return [{ id: surveyId, questionnaireId: surveyId, submittedAt: new Date().toISOString() }, ...withoutCurrent]
+    })
+    await refreshMyAnswers()
+  }
+
   return (
     <section className="grid gap-5">
       <header className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
@@ -413,6 +454,11 @@ export function SurveysPage() {
 
       {error ? (
         <p className="m-0 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700">{error}</p>
+      ) : null}
+      {successMessage ? (
+        <p className="m-0 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-700">
+          {successMessage}
+        </p>
       ) : null}
 
       <section className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-3">
@@ -511,23 +557,55 @@ export function SurveysPage() {
 
       {activeRole === "STUDENT" ? (
         <section className="grid content-start gap-3">
-          {openSurveys.map((survey) => (
-            <article className="rounded-lg border border-l-4 border-orange-400 bg-white p-3.5 shadow-sm" key={survey.id}>
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                  <h2 className="m-0 text-lg font-extrabold text-orange-800">{survey.title}</h2>
-                  <p className="mt-1 text-sm text-slate-500">
-                    发布时间: {formatDate(survey.createdAt)} / {typeLabelMap[survey.type] ?? survey.type}
-                  </p>
+          {openSurveys.map((survey) => {
+            const submittedAnswer = submittedAnswerMap.get(String(survey.id))
+
+            return (
+              <article
+                className={
+                  submittedAnswer
+                    ? "rounded-lg border border-l-4 border-emerald-400 bg-white p-3.5 shadow-sm"
+                    : "rounded-lg border border-l-4 border-orange-400 bg-white p-3.5 shadow-sm"
+                }
+                key={survey.id}
+              >
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <h2
+                      className={
+                        submittedAnswer
+                          ? "m-0 text-lg font-extrabold text-emerald-800"
+                          : "m-0 text-lg font-extrabold text-orange-800"
+                      }
+                    >
+                      {survey.title}
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-500">
+                      发布时间: {formatDate(survey.createdAt)} / {typeLabelMap[survey.type] ?? survey.type}
+                    </p>
+                    {submittedAnswer ? (
+                      <p className="mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-extrabold text-emerald-700">
+                        <CheckCircle2 size={14} />
+                        已提交 / {formatDate(submittedAnswer.submittedAt)}
+                      </p>
+                    ) : null}
+                  </div>
+                  {submittedAnswer ? (
+                    <span className="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-extrabold text-emerald-700">
+                      <CheckCircle2 size={14} />
+                      已完成
+                    </span>
+                  ) : (
+                    <AnswerDialog
+                      onSubmitted={handleSurveySubmitted}
+                      survey={survey}
+                      trigger={<Button className="bg-orange-500 text-white hover:bg-orange-600" type="button"><Send size={16} />填写答卷</Button>}
+                    />
+                  )}
                 </div>
-                <AnswerDialog
-                  onSubmitted={() => void refreshSurveys()}
-                  survey={survey}
-                  trigger={<Button className="bg-orange-500 text-white hover:bg-orange-600" type="button"><Send size={16} />填写答卷</Button>}
-                />
-              </div>
-            </article>
-          ))}
+              </article>
+            )
+          })}
           {openSurveys.length === 0 ? (
             <p className="m-0 rounded-lg border border-dashed border-slate-200 bg-white p-5 text-center text-sm font-bold text-slate-400">
               暂无开放问卷
