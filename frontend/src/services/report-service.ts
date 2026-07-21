@@ -1,10 +1,10 @@
-import { download, request } from "./http"
+import { request } from "./http"
 import type {
   AssignReportSectionPayload,
+  AutoFillReportResult,
   CreateReportPayload,
+  ExportReportResult,
   ID,
-  PageQuery,
-  PageResult,
   ReportDataSource,
   ReportSection,
   ReportSectionPayload,
@@ -15,8 +15,8 @@ import type {
   UpdateReportStatusPayload,
 } from "@/models"
 
-export const getReportPage = async (query?: PageQuery) => {
-  const response = await request<PageResult<SelfEvaluationReport>>({
+export const getReportList = async (query?: { schemeId?: ID }) => {
+  const response = await request<SelfEvaluationReport[]>({
     url: "/self-evaluation/reports",
     method: "GET",
     params: query,
@@ -42,7 +42,7 @@ export const getReportDetail = async (id: ID) => {
 }
 
 export const updateReport = async (id: ID, payload: UpdateReportPayload) => {
-  const response = await request<SelfEvaluationReport>({
+  const response = await request<string>({
     url: `/self-evaluation/reports/${id}`,
     method: "PUT",
     data: payload,
@@ -51,16 +51,16 @@ export const updateReport = async (id: ID, payload: UpdateReportPayload) => {
 }
 
 export const updateReportStatus = async (id: ID, payload: UpdateReportStatusPayload) => {
-  const response = await request<SelfEvaluationReport>({
+  const response = await request<string>({
     url: `/self-evaluation/reports/${id}/status`,
     method: "PUT",
-    data: payload,
+    params: payload,
   })
   return response.data
 }
 
 export const deleteReport = async (id: ID) => {
-  const response = await request<boolean>({
+  const response = await request<string>({
     url: `/self-evaluation/reports/${id}`,
     method: "DELETE",
   })
@@ -68,7 +68,7 @@ export const deleteReport = async (id: ID) => {
 }
 
 export const autoFillReport = async (id: ID) => {
-  const response = await request<SelfEvaluationReport>({
+  const response = await request<AutoFillReportResult>({
     url: `/self-evaluation/reports/${id}/auto-fill`,
     method: "POST",
   })
@@ -76,7 +76,11 @@ export const autoFillReport = async (id: ID) => {
 }
 
 export const exportReport = async (id: ID) => {
-  return download(`/self-evaluation/reports/${id}/export`)
+  const response = await request<ExportReportResult>({
+    url: `/self-evaluation/reports/${id}/export`,
+    method: "GET",
+  })
+  return response.data
 }
 
 export const getReportSectionList = async (reportId: ID) => {
@@ -97,7 +101,7 @@ export const createReportSection = async (reportId: ID, payload: ReportSectionPa
 }
 
 export const updateReportSection = async (sectionId: ID, payload: ReportSectionPayload) => {
-  const response = await request<ReportSection>({
+  const response = await request<string>({
     url: `/self-evaluation/sections/${sectionId}`,
     method: "PUT",
     data: payload,
@@ -109,10 +113,10 @@ export const assignReportSection = async (
   sectionId: ID,
   payload: AssignReportSectionPayload,
 ) => {
-  const response = await request<ReportSection>({
+  const response = await request<string>({
     url: `/self-evaluation/sections/${sectionId}/assign`,
     method: "PUT",
-    data: payload,
+    params: payload,
   })
   return response.data
 }
@@ -121,16 +125,16 @@ export const updateReportSectionStatus = async (
   sectionId: ID,
   payload: UpdateReportSectionStatusPayload,
 ) => {
-  const response = await request<ReportSection>({
+  const response = await request<string>({
     url: `/self-evaluation/sections/${sectionId}/status`,
     method: "PUT",
-    data: payload,
+    params: payload,
   })
   return response.data
 }
 
 export const deleteReportSection = async (sectionId: ID) => {
-  const response = await request<boolean>({
+  const response = await request<string>({
     url: `/self-evaluation/sections/${sectionId}`,
     method: "DELETE",
   })
@@ -149,7 +153,7 @@ export const saveReportDataSources = async (
   sectionId: ID,
   payload: SaveReportDataSourcesPayload,
 ) => {
-  const response = await request<ReportDataSource[]>({
+  const response = await request<string>({
     url: `/self-evaluation/sections/${sectionId}/data-sources`,
     method: "PUT",
     data: payload,

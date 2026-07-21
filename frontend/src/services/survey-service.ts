@@ -37,7 +37,7 @@ export const createSurvey = async (payload: SurveyPayload) => {
 }
 
 export const updateSurvey = async (id: ID, payload: SurveyPayload) => {
-  const response = await request<SurveyQuestionnaire>({
+  const response = await request<string>({
     url: `/surveys/${id}`,
     method: "PUT",
     data: payload,
@@ -46,7 +46,7 @@ export const updateSurvey = async (id: ID, payload: SurveyPayload) => {
 }
 
 export const openSurvey = async (id: ID) => {
-  const response = await request<SurveyQuestionnaire>({
+  const response = await request<string>({
     url: `/surveys/${id}/open`,
     method: "PUT",
   })
@@ -54,7 +54,7 @@ export const openSurvey = async (id: ID) => {
 }
 
 export const closeSurvey = async (id: ID) => {
-  const response = await request<SurveyQuestionnaire>({
+  const response = await request<string>({
     url: `/surveys/${id}/close`,
     method: "PUT",
   })
@@ -62,7 +62,7 @@ export const closeSurvey = async (id: ID) => {
 }
 
 export const deleteSurvey = async (id: ID) => {
-  const response = await request<boolean>({
+  const response = await request<string>({
     url: `/surveys/${id}`,
     method: "DELETE",
   })
@@ -70,7 +70,7 @@ export const deleteSurvey = async (id: ID) => {
 }
 
 export const submitSurveyAnswer = async (surveyId: ID, payload: SubmitSurveyAnswerPayload) => {
-  const response = await request<SurveyAnswer>({
+  const response = await request<string>({
     url: `/surveys/${surveyId}/answers`,
     method: "POST",
     data: payload,
@@ -78,11 +78,10 @@ export const submitSurveyAnswer = async (surveyId: ID, payload: SubmitSurveyAnsw
   return response.data
 }
 
-export const getSurveyAnswerPage = async (surveyId: ID, query?: PageQuery) => {
-  const response = await request<PageResult<SurveyAnswer>>({
+export const getSurveyAnswers = async (surveyId: ID) => {
+  const response = await request<SurveyAnswer[]>({
     url: `/surveys/${surveyId}/answers`,
     method: "GET",
-    params: query,
   })
   return response.data
 }

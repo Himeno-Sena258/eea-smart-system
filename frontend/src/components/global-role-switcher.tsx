@@ -2,7 +2,7 @@ import type { ComponentType } from "react"
 import { BarChart3, CheckCircle2, ClipboardCheck, FileText, ShieldCheck, type LucideProps } from "lucide-react"
 import type { RoleCode } from "@/models"
 import { roleOptions } from "@/constants/role-options"
-import { useUiStore } from "@/stores"
+import { useAuthStore, useSystemStore, useUiStore } from "@/stores"
 
 type RoleIcon = ComponentType<LucideProps>
 
@@ -17,10 +17,18 @@ const roleIconMap: Record<RoleCode, RoleIcon> = {
 export function GlobalRoleSwitcher() {
   const activeRole = useUiStore((state) => state.activeRole)
   const setActiveRole = useUiStore((state) => state.setActiveRole)
+  const currentUser = useAuthStore((state) => state.currentUser)
+  const roleDictOptions = useSystemStore((state) => state.roleOptions)
+  const userRoleOptions = roleOptions
+    .filter((option) => currentUser?.roleCodes?.includes(option.role))
+    .map((option) => ({
+      ...option,
+      label: roleDictOptions.find((dictOption) => dictOption.value === option.role)?.label ?? option.label,
+    }))
 
   return (
     <div className="flex flex-wrap gap-2 rounded-lg border border-slate-200 bg-white p-1.5 shadow-sm">
-      {roleOptions.map((option) => {
+      {userRoleOptions.map((option) => {
         const Icon = roleIconMap[option.role]
         const isActive = option.role === activeRole
 

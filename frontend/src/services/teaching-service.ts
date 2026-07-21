@@ -1,5 +1,6 @@
 import { download, request } from "./http"
 import type {
+  AcademicTeachingClassImportPreviewResult,
   ID,
   ImportResult,
   PageQuery,
@@ -9,9 +10,15 @@ import type {
   SaveScoresPayload,
   ScoreTable,
   Student,
+  StudentCourseScore,
   StudentPayload,
+  SubmitAcademicTeachingClassImportPayload,
   Teacher,
+  TeacherClass,
+  TeacherClassStudent,
+  TeacherFinalScore,
   TeacherPayload,
+  TeacherScoreGrid,
   TeachingClass,
   TeachingClassPayload,
   TeachingQuery,
@@ -208,6 +215,63 @@ export const getTeachingClassPage = async (query?: TeachingQuery) => {
   return response.data
 }
 
+export const getTeacherClassList = async () => {
+  const response = await request<TeacherClass[]>({
+    url: "/teacher/classes",
+    method: "GET",
+  })
+  return response.data
+}
+
+export const getTeacherClassStudents = async (classId: ID) => {
+  const response = await request<TeacherClassStudent[]>({
+    url: `/teacher/classes/${classId}/students`,
+    method: "GET",
+  })
+  return response.data
+}
+
+export const getTeacherScoreGrid = async (classId: ID) => {
+  const response = await request<TeacherScoreGrid>({
+    url: `/teacher/classes/${classId}/score-grid`,
+    method: "GET",
+  })
+  return response.data
+}
+
+export const saveTeacherScores = async (classId: ID, payload: SaveScoresPayload) => {
+  const response = await request<string>({
+    url: `/teacher/classes/${classId}/scores/batch`,
+    method: "POST",
+    data: payload,
+  })
+  return response.data
+}
+
+export const getTeacherFinalScores = async (classId: ID) => {
+  const response = await request<TeacherFinalScore[]>({
+    url: `/teacher/classes/${classId}/final-scores`,
+    method: "GET",
+  })
+  return response.data
+}
+
+export const getStudentCourseScores = async () => {
+  const response = await request<StudentCourseScore[]>({
+    url: "/student/scores",
+    method: "GET",
+  })
+  return response.data
+}
+
+export const getStudentScoreDetail = async (teachingClassId: ID) => {
+  const response = await request<StudentCourseScore>({
+    url: `/student/scores/${teachingClassId}/detail`,
+    method: "GET",
+  })
+  return response.data
+}
+
 export const getTeachingClassDetail = async (id: ID) => {
   const response = await request<TeachingClass>({
     url: `/teaching-classes/${id}`,
@@ -282,6 +346,27 @@ export const deleteTeachingTask = async (id: ID) => {
   const response = await request<boolean>({
     url: `/teaching-tasks/${id}`,
     method: "DELETE",
+  })
+  return response.data
+}
+
+export const previewAcademicTeachingClassImport = async (file: File) => {
+  const response = await request<AcademicTeachingClassImportPreviewResult>({
+    url: "/academic-imports/teaching-classes/preview",
+    method: "POST",
+    data: toImportForm(file),
+    headers: multipartHeaders,
+  })
+  return response.data
+}
+
+export const submitAcademicTeachingClassImport = async (
+  payload: SubmitAcademicTeachingClassImportPayload,
+) => {
+  const response = await request<ImportResult>({
+    url: "/academic-imports/teaching-classes",
+    method: "POST",
+    data: payload,
   })
   return response.data
 }

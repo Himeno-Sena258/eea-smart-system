@@ -47,6 +47,60 @@ export interface RequirementAttainmentResult {
   items: RequirementAttainmentItem[]
 }
 
+export interface TeacherCoAttainment {
+  coId: ID
+  coCode: string
+  coDescription: string
+  indicatorPointCode: string
+  targetMaxScore: number
+  classAvgScore: number
+  attainmentVal: number
+  warningThreshold: number
+  isQualified: 0 | 1
+}
+
+export interface DirectorCourseAttainmentContribution {
+  courseId: ID
+  courseName: string
+  coCode: string
+  weight: number
+  coAttainmentVal: number
+  weightedContribution: number
+}
+
+export interface DirectorAttainment {
+  indicatorPointId: ID
+  indicatorPointCode: string
+  indicatorPointContent: string
+  weightSum: number
+  courseContributions: DirectorCourseAttainmentContribution[]
+  attainmentVal: number
+  warningThreshold: number
+  isQualified: 0 | 1
+}
+
+export interface StudentAttainment {
+  indicatorCode: string
+  indicatorContent: string
+  threshold: number
+  attainmentValue: number | null
+  passed: boolean
+  gradRequirementTitle: string
+}
+
+export interface DirectorProgramScheme {
+  id: ID
+  majorId: ID
+  majorName?: string
+  grade?: number
+  name: string
+  totalCredits?: number
+  status?: number
+  statusDesc?: string
+  reqCount?: number
+  indicatorPointCount?: number
+}
+
 export interface DashboardQuery extends PageQuery {
   schemeId?: ID
   courseId?: ID
@@ -78,10 +132,16 @@ export interface WarningStudentResult {
   students: WarningStudent[]
 }
 
-export interface GenerateImprovementPayload {
+export interface ContinuousImprovementPayload {
   problemAnalysis: string
   improvementMeasures: string
-  createdBy: ID
+  createdBy?: ID
+}
+
+export interface TeacherImprovementPayload {
+  lowAttainmentCos: string
+  problemAnalysis: string
+  improvementMeasures: string
 }
 
 export interface ContinuousImprovement {
@@ -93,4 +153,20 @@ export interface ContinuousImprovement {
   createdAt: DateTimeString
 }
 
-export type ContinuousImprovementPayload = GenerateImprovementPayload
+export interface TeachingImprovement {
+  id: ID
+  classId: ID
+  className: string
+  lowAttainmentCos: string
+  problemAnalysis: string
+  improvementMeasures: string
+  createdBy: ID
+  creatorName?: string
+  createdAt: DateTimeString
+}
+
+export interface ImprovementDraft {
+  teachingClassId: ID
+  lowAttainmentCOs: string[]
+  suggestedAnalysis: string
+}

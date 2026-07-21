@@ -1,4 +1,4 @@
-import axios, { type AxiosRequestConfig } from "axios"
+import axios, { AxiosHeaders, type AxiosRequestConfig } from "axios"
 import type { ApiResponse } from "@/models"
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api/v1"
@@ -23,6 +23,33 @@ export const http = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+})
+
+const CURRENT_USER_STORAGE_KEY = "eea-current-user"
+
+const readCurrentUserId = () => {
+  if (typeof window === "undefined") return null
+
+  const storedValue = window.localStorage.getItem(CURRENT_USER_STORAGE_KEY)
+  if (!storedValue) return null
+
+  try {
+    const user = JSON.parse(storedValue) as { id?: number }
+    return user.id ?? null
+  } catch {
+    return null
+  }
+}
+
+http.interceptors.request.use((config) => {
+  const userId = readCurrentUserId()
+  if (!userId) return config
+
+  const headers = AxiosHeaders.from(config.headers)
+  headers.set("User-Id", String(userId))
+  config.headers = headers
+
+  return config
 })
 
 export async function request<T>(config: AxiosRequestConfig) {

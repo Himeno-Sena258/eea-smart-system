@@ -32,10 +32,7 @@ export interface SurveyAnswerItem {
   text?: string
 }
 
-export interface SubmitSurveyAnswerPayload {
-  userId: ID
-  answers: SurveyAnswerItem[]
-}
+export type SubmitSurveyAnswerPayload = Record<string, JsonValue>
 
 export interface SurveyAnswer {
   id: ID
@@ -46,12 +43,8 @@ export interface SurveyAnswer {
 }
 
 export interface SurveyStatistics {
-  surveyId: ID
+  questionnaireId: ID
+  title: string
   totalAnswers: number
-  items: Array<{
-    questionCode: string
-    averageScore?: number
-    distribution?: Record<string, number>
-    texts?: string[]
-  }>
+  answers: SurveyAnswer[]
 }

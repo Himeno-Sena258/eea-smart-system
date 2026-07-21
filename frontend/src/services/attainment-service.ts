@@ -1,118 +1,19 @@
 import { request } from "./http"
 import type {
-  AttainmentModel,
-  AttainmentModelPayload,
   ContinuousImprovement,
   ContinuousImprovementPayload,
-  CourseObjectiveAttainmentResult,
+  DirectorAttainment,
+  DirectorProgramScheme,
   DashboardQuery,
   ID,
+  ImprovementDraft,
   OverviewStats,
-  RequirementAttainmentResult,
+  StudentAttainment,
+  TeacherCoAttainment,
+  TeacherImprovementPayload,
+  TeachingImprovement,
   WarningStudentResult,
 } from "@/models"
-
-export const getAttainmentModelList = async () => {
-  const response = await request<AttainmentModel[]>({
-    url: "/attainment-models",
-    method: "GET",
-  })
-  return response.data
-}
-
-export const getAttainmentModelDetail = async (id: ID) => {
-  const response = await request<AttainmentModel>({
-    url: `/attainment-models/${id}`,
-    method: "GET",
-  })
-  return response.data
-}
-
-export const createAttainmentModel = async (payload: AttainmentModelPayload) => {
-  const response = await request<AttainmentModel>({
-    url: "/attainment-models",
-    method: "POST",
-    data: payload,
-  })
-  return response.data
-}
-
-export const updateAttainmentModel = async (id: ID, payload: AttainmentModelPayload) => {
-  const response = await request<AttainmentModel>({
-    url: `/attainment-models/${id}`,
-    method: "PUT",
-    data: payload,
-  })
-  return response.data
-}
-
-export const setDefaultAttainmentModel = async (id: ID) => {
-  const response = await request<AttainmentModel>({
-    url: `/attainment-models/${id}/default`,
-    method: "PUT",
-  })
-  return response.data
-}
-
-export const deleteAttainmentModel = async (id: ID) => {
-  const response = await request<boolean>({
-    url: `/attainment-models/${id}`,
-    method: "DELETE",
-  })
-  return response.data
-}
-
-export const calculateCourseObjectiveAttainment = async (teachingClassId: ID, modelId?: ID) => {
-  const response = await request<CourseObjectiveAttainmentResult>({
-    url: `/teaching-classes/${teachingClassId}/attainment/course-objectives/calculate`,
-    method: "POST",
-    data: modelId ? { modelId } : undefined,
-  })
-  return response.data
-}
-
-export const getCourseObjectiveAttainment = async (teachingClassId: ID) => {
-  const response = await request<CourseObjectiveAttainmentResult>({
-    url: `/teaching-classes/${teachingClassId}/attainment/course-objectives`,
-    method: "GET",
-  })
-  return response.data
-}
-
-export const calculateRequirementAttainment = async (schemeId: ID, modelId?: ID) => {
-  const response = await request<RequirementAttainmentResult>({
-    url: `/program-schemes/${schemeId}/attainment/requirements/calculate`,
-    method: "POST",
-    data: modelId ? { modelId } : undefined,
-  })
-  return response.data
-}
-
-export const getRequirementAttainment = async (schemeId: ID) => {
-  const response = await request<RequirementAttainmentResult>({
-    url: `/program-schemes/${schemeId}/attainment/requirements`,
-    method: "GET",
-  })
-  return response.data
-}
-
-export const getCourseObjectiveAttainmentDashboard = async (query?: DashboardQuery) => {
-  const response = await request<CourseObjectiveAttainmentResult[]>({
-    url: "/dashboard/attainment/course-objectives",
-    method: "GET",
-    params: query,
-  })
-  return response.data
-}
-
-export const getRequirementAttainmentDashboard = async (query?: DashboardQuery) => {
-  const response = await request<RequirementAttainmentResult[]>({
-    url: "/dashboard/attainment/requirements",
-    method: "GET",
-    params: query,
-  })
-  return response.data
-}
 
 export const getOverviewStats = async (query?: DashboardQuery) => {
   const response = await request<OverviewStats>({
@@ -160,7 +61,7 @@ export const createImprovement = async (
 }
 
 export const updateImprovement = async (id: ID, payload: ContinuousImprovementPayload) => {
-  const response = await request<ContinuousImprovement>({
+  const response = await request<string>({
     url: `/improvements/${id}`,
     method: "PUT",
     data: payload,
@@ -169,7 +70,7 @@ export const updateImprovement = async (id: ID, payload: ContinuousImprovementPa
 }
 
 export const deleteImprovement = async (id: ID) => {
-  const response = await request<boolean>({
+  const response = await request<string>({
     url: `/improvements/${id}`,
     method: "DELETE",
   })
@@ -177,9 +78,79 @@ export const deleteImprovement = async (id: ID) => {
 }
 
 export const generateImprovement = async (teachingClassId: ID) => {
-  const response = await request<ContinuousImprovement>({
+  const response = await request<ImprovementDraft>({
     url: `/teaching-classes/${teachingClassId}/improvements/generate`,
     method: "POST",
+  })
+  return response.data
+}
+
+export const getTeacherImprovementList = async (classId: ID) => {
+  const response = await request<TeachingImprovement[]>({
+    url: `/teacher/classes/${classId}/improvements`,
+    method: "GET",
+  })
+  return response.data
+}
+
+export const saveTeacherImprovement = async (
+  classId: ID,
+  payload: TeacherImprovementPayload,
+) => {
+  const response = await request<string>({
+    url: `/teacher/classes/${classId}/improvements`,
+    method: "POST",
+    data: payload,
+  })
+  return response.data
+}
+
+export const getTeacherCoAttainmentList = async (classId: ID) => {
+  const response = await request<TeacherCoAttainment[]>({
+    url: `/teacher/classes/${classId}/attainment`,
+    method: "GET",
+  })
+  return response.data
+}
+
+export const calculateTeacherCoAttainment = async (classId: ID) => {
+  const response = await request<TeacherCoAttainment[]>({
+    url: `/teacher/classes/${classId}/attainment/calculate`,
+    method: "POST",
+  })
+  return response.data
+}
+
+export const getDirectorProgramSchemeList = async () => {
+  const response = await request<DirectorProgramScheme[]>({
+    url: "/director/schemes",
+    method: "GET",
+  })
+  return response.data
+}
+
+export const getDirectorAttainmentList = async (schemeId: ID, grade?: number) => {
+  const response = await request<DirectorAttainment[]>({
+    url: `/director/schemes/${schemeId}/attainment`,
+    method: "GET",
+    params: grade ? { grade } : undefined,
+  })
+  return response.data
+}
+
+export const calculateDirectorAttainment = async (schemeId: ID, grade?: number) => {
+  const response = await request<DirectorAttainment[]>({
+    url: `/director/schemes/${schemeId}/attainment/calculate`,
+    method: "POST",
+    params: grade ? { grade } : undefined,
+  })
+  return response.data
+}
+
+export const getStudentAttainmentList = async () => {
+  const response = await request<StudentAttainment[]>({
+    url: "/student/attainment",
+    method: "GET",
   })
   return response.data
 }
