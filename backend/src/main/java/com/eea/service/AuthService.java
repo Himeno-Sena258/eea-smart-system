@@ -24,4 +24,5 @@ public interface AuthService {
      * 修改密码
      */
     void changePassword(Long userId, com.eea.dto.ChangePasswordDTO dto);
+    void updateProfile(Long userId, com.eea.dto.UpdateProfileDTO dto);
 }

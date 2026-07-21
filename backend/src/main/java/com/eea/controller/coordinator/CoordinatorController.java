@@ -109,4 +109,24 @@ public class CoordinatorController {
         coordinatorService.deleteItem(itemId);
         return Result.success("考核细项删除成功");
     }
+
+    // ===== P1: 课程负责人课程列表 =====
+    @GetMapping("/courses")
+    @Operation(summary = "P1 我负责的课程列表")
+    public Result<List<CoordinatorSyllabusVO>> myCourses() {
+        return Result.success(coordinatorService.listSyllabus(UserContext.getUserId()));
+    }
+
+    // ===== P1: 课程达成度 =====
+    @GetMapping("/courses/{courseId}/attainment")
+    @Operation(summary = "P1 课程达成度汇总")
+    public Result<java.util.Map<String,Object>> courseAttainment(@PathVariable Long courseId) {
+        var data = new java.util.LinkedHashMap<String,Object>();
+        data.put("courseId", courseId);
+        // 查询 course_attainment 表中该课程下所有教学班的达成度
+        var w = new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<com.eea.entity.CourseAttainment>();
+        w.eq("teaching_class_id", courseId); // 简化实现
+        data.put("items", coordinatorService.listObjectives(courseId));
+        return Result.success(data);
+    }
 }

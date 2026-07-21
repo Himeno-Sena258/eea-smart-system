@@ -145,4 +145,13 @@ public class AuthServiceImpl implements AuthService {
         user.setPassword(passwordEncoder.encode(dto.getNewPassword()));
         sysUserMapper.updateById(user);
     }
+
+    @Override
+    public void updateProfile(Long userId, com.eea.dto.UpdateProfileDTO dto) {
+        SysUser user = sysUserMapper.selectById(userId);
+        if (user == null) throw new BusinessException(50001, "用户不存在");
+        if (dto.getEmail() != null) user.setEmail(dto.getEmail());
+        if (dto.getPhone() != null) user.setPhone(dto.getPhone());
+        sysUserMapper.updateById(user);
+    }
 }

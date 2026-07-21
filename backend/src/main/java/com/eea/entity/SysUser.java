@@ -45,4 +45,7 @@ public class SysUser {
 
     @Schema(description = "创建时间")
     private LocalDateTime createdAt;
+
+    @Schema(description = "头像地址")
+    private String avatarUrl;
 }
