@@ -29,8 +29,11 @@ public class PageResult<T> {
     @Schema(description = "总页数")
     private Long pages;
 
+    @Schema(description = "启用账号数(仅用户管理场景)")
+    private Long activeCount;
+
     public static <T> PageResult<T> build(List<T> records, long pageNum, long pageSize, long total) {
         long pages = (total + pageSize - 1) / pageSize;
-        return new PageResult<>(records, pageNum, pageSize, total, pages);
+        return new PageResult<>(records, pageNum, pageSize, total, pages, null);
     }
 }

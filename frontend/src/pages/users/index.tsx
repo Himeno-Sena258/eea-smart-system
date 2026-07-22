@@ -1,6 +1,7 @@
 import { type ChangeEvent, type FormEvent, useEffect, useMemo, useRef, useState } from "react"
 import { Building2, FileSpreadsheet, KeyRound, Plus, Search, ShieldCheck, Trash2, UserCog } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -120,7 +121,7 @@ export function UsersPage() {
 
   const users = usersPage?.records ?? []
   const auditLogs = auditLogsPage?.records ?? []
-  const activeUsers = users.filter((user) => user.status === 1).length
+  const activeUsers = usersPage?.activeCount ?? usersPage?.total ?? 0
   const organizationCount = countOrganizations(organizationTree)
   const availableRoleOptions = roleOptions.length > 0
     ? roleOptions
@@ -131,6 +132,7 @@ export function UsersPage() {
   const [selectedFileName, setSelectedFileName] = useState("")
   const [keyword, setKeyword] = useState("")
   const [roleFilter, setRoleFilter] = useState("ALL")
+  const [pageNum, setPageNum] = useState(1)
   const [userDialogOpen, setUserDialogOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [userForm, setUserForm] = useState<UserFormState>(initialUserForm)
@@ -139,7 +141,7 @@ export function UsersPage() {
 
   useEffect(() => {
     void fetchUsers({
-      pageNum: 1,
+      pageNum: pageNum,
       pageSize: 20,
       keyword: keyword.trim() || undefined,
       roleCode: roleFilter === "ALL" ? undefined : roleFilter,
@@ -147,11 +149,11 @@ export function UsersPage() {
     void fetchOrganizationTree()
     void fetchClasses({ pageNum: 1, pageSize: 100 })
     void fetchAuditLogs({ pageNum: 1, pageSize: 10 })
-  }, [fetchAuditLogs, fetchClasses, fetchOrganizationTree, fetchUsers, keyword, roleFilter])
+  }, [fetchAuditLogs, fetchClasses, fetchOrganizationTree, fetchUsers, keyword, roleFilter, pageNum])
 
   const refreshPageData = async () => {
     await fetchUsers({
-      pageNum: 1,
+      pageNum: pageNum,
       pageSize: 20,
       keyword: keyword.trim() || undefined,
       roleCode: roleFilter === "ALL" ? undefined : roleFilter,
@@ -288,8 +290,8 @@ export function UsersPage() {
         </article>
       </section>
 
-      <div className="grid gap-5 xl:grid-cols-[300px_minmax(0,1fr)]">
-        <aside className="grid content-start gap-5">
+      <div className="grid gap-5">
+        <aside className="hidden">
           <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <h2 className="m-0 flex items-center gap-2 text-lg font-extrabold text-slate-950">
               <Building2 size={19} className="text-blue-700" />
@@ -463,6 +465,33 @@ export function UsersPage() {
                 <p className="m-0 border-t border-slate-100 p-6 text-center text-sm font-bold text-slate-400">
                   暂无用户数据
                 </p>
+              ) : null}
+              {usersPage && usersPage.pages > 1 ? (
+                <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3">
+                  <p className="m-0 text-sm text-slate-500">
+                    共 {usersPage.total} 条，第 {usersPage.pageNum}/{usersPage.pages} 页
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      disabled={usersPage.pageNum <= 1}
+                      onClick={() => setPageNum((prev) => Math.max(1, prev - 1))}
+                      variant="outline"
+                      type="button"
+                    >
+                      <ChevronLeft size={16} />
+                      上一页
+                    </Button>
+                    <Button
+                      disabled={usersPage.pageNum >= usersPage.pages}
+                      onClick={() => setPageNum((prev) => prev + 1)}
+                      variant="outline"
+                      type="button"
+                    >
+                      下一页
+                      <ChevronRight size={16} />
+                    </Button>
+                  </div>
+                </div>
               ) : null}
             </div>
           </section>

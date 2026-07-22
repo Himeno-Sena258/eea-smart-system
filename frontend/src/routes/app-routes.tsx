@@ -3,7 +3,9 @@ import type { RoleCode } from "@/models"
 import { AttainmentPage } from "@/pages/attainment"
 import { CoursesPage } from "@/pages/courses"
 import { DashboardPage } from "@/pages/dashboard"
+import { ImportPage } from "@/pages/import-batch"
 import { ImprovementsPage } from "@/pages/improvements"
+import { OrganizationPage } from "@/pages/organizations"
 import { ProfilePage } from "@/pages/profile"
 import { ProgramPage } from "@/pages/program"
 import { ReportsPage } from "@/pages/reports"
@@ -32,10 +34,24 @@ export const appRoutes: AppRoute[] = [
   },
   {
     path: "/admin/users",
-    title: "用户与组织管理",
-    description: "账号开设、组织架构、班级与审计入口。",
+    title: "用户管理",
+    description: "账号开设、密码重置与状态管控。",
     roles: ["ADMIN"],
     element: <UsersPage />,
+  },
+  {
+    path: "/admin/organizations",
+    title: "组织架构管理",
+    description: "学院、专业、班级的树状层级维护。",
+    roles: ["ADMIN"],
+    element: <OrganizationPage />,
+  },
+  {
+    path: "/admin/import",
+    title: "批量导入",
+    description: "Excel批量导入师生账号数据。",
+    roles: ["ADMIN"],
+    element: <ImportPage />,
   },
   {
     path: "/program",

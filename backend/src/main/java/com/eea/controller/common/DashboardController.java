@@ -56,6 +56,12 @@ public class DashboardController {
         return t;
     }
 
+    private Map<String,Object> warning(String message, String level) {
+        Map<String,Object> w = new LinkedHashMap<>();
+        w.put("message", message); w.put("level", level);
+        return w;
+    }
+
     @GetMapping("/admin")
     @Operation(summary = "系统管理员控制台")
     public Result<Map<String,Object>> admin() {
@@ -66,6 +72,14 @@ public class DashboardController {
         stats.add(stat("orgCount", "组织数", sysOrganizationMapper.selectCount(null), "个"));
         stats.add(stat("roleCount", "角色数", sysRoleMapper.selectCount(null), "个"));
         stats.add(stat("auditLogCount", "今日审计日志", sysAuditLogMapper.selectCount(null), "条"));
+        List<Map<String,Object>> todos = (List<Map<String,Object>>) d.get("todos");
+        todos.add(todo("batch-import", "批量导入师生账号数据", "/admin/users", "HIGH"));
+        todos.add(todo("org-tree", "维护组织架构（学院/专业/班级）", "/admin/users", "MEDIUM"));
+        todos.add(todo("audit-review", "审查近期系统操作审计日志", "/admin/users", "MEDIUM"));
+        todos.add(todo("user-status", "检查并启用/禁用异常账号", "/admin/users", "LOW"));
+        List<Map<String,Object>> warnings = (List<Map<String,Object>>) d.get("warnings");
+        warnings.add(warning("近7天存在多次失败登录尝试，建议检查系统安全日志", "MEDIUM"));
+        warnings.add(warning("部分测试账号密码仍为默认值，建议及时修改", "LOW"));
         return Result.success(d);
     }
 
@@ -79,6 +93,9 @@ public class DashboardController {
         stats.add(stat("courseCount", "专业课程", courseMapper.selectCount(null), "门"));
         List<Map<String,Object>> todos = (List<Map<String,Object>>) d.get("todos");
         todos.add(todo("report-progress", "自评报告章节待完成", "/reports", "HIGH"));
+        List<Map<String,Object>> warnings = (List<Map<String,Object>>) d.get("warnings");
+        warnings.add(warning("多个毕业要求指标点达成度低于 0.68 预警线，需分析原因并制定改进措施", "HIGH"));
+        warnings.add(warning("自评报告部分章节尚未分配负责人，请及时安排编写任务", "MEDIUM"));
         return Result.success(d);
     }
 
@@ -89,6 +106,9 @@ public class DashboardController {
         List<Map<String,Object>> stats = (List<Map<String,Object>>) d.get("stats");
         stats.add(stat("courseCount", "管辖课程", courseMapper.selectCount(null), "门"));
         stats.add(stat("tcCount", "教学班", teachingClassMapper.selectCount(null), "个"));
+        List<Map<String,Object>> warnings = (List<Map<String,Object>>) d.get("warnings");
+        warnings.add(warning("有教学班成绩尚未完成录入，请提醒任课教师及时提交", "MEDIUM"));
+        warnings.add(warning("部分课程大纲尚未完成课程目标与指标点关联配置", "LOW"));
         return Result.success(d);
     }
 
@@ -101,6 +121,9 @@ public class DashboardController {
         var tcW = new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<com.eea.entity.TeachingClass>();
         tcW.eq("teacher_id", userId);
         stats.add(stat("tcCount", "我的教学班", teachingClassMapper.selectCount(tcW), "个"));
+        List<Map<String,Object>> warnings = (List<Map<String,Object>>) d.get("warnings");
+        warnings.add(warning("部分课程目标达成度低于预期，请及时提交持续改进报告", "HIGH"));
+        warnings.add(warning("有教学班需补交认证佐证材料样本", "MEDIUM"));
         return Result.success(d);
     }
 

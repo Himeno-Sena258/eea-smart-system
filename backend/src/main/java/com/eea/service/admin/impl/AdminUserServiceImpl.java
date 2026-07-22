@@ -122,22 +122,23 @@ public class AdminUserServiceImpl implements AdminUserService {
         }
 
         wrapper.orderByDesc("id");
+
+        // 将角色筛选提前到 SQL 查询中，避免分页后数据不准确
+        if (dto.getRoleCode() != null && !dto.getRoleCode().trim().isEmpty()) {
+            wrapper.exists("SELECT 1 FROM sys_user_role ur INNER JOIN sys_role r ON ur.role_id = r.id WHERE ur.user_id = sys_user.id AND r.role_code = {0}", dto.getRoleCode().trim());
+        }
+
         Page<SysUser> page = sysUserMapper.selectPage(pageParam, wrapper);
 
         List<UserDetailVO> voList = new ArrayList<>();
         for (SysUser user : page.getRecords()) {
             UserDetailVO vo = getUserDetail(user.getId());
-            // 如果指定了 roleCode 筛选
-            if (dto.getRoleCode() != null && !dto.getRoleCode().trim().isEmpty()) {
-                if (vo.getRoleCodes() != null && vo.getRoleCodes().contains(dto.getRoleCode().trim())) {
-                    voList.add(vo);
-                }
-            } else {
-                voList.add(vo);
-            }
+            voList.add(vo);
         }
 
-        return PageResult.build(voList, page.getCurrent(), page.getSize(), page.getTotal());
+        PageResult<UserDetailVO> result = PageResult.build(voList, page.getCurrent(), page.getSize(), page.getTotal());
+        result.setActiveCount(sysUserMapper.selectCount(new QueryWrapper<SysUser>().eq("status", 1)));
+        return result;
     }
 
     @Override

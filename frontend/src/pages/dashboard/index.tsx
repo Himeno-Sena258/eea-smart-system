@@ -26,7 +26,9 @@ interface DashboardQuickLink {
 
 const quickLinksMap: Record<RoleCode, DashboardQuickLink[]> = {
   ADMIN: [
-    { title: "用户与组织", description: "维护账号、角色与组织基础数据", targetPath: "/admin/users", tone: "blue" },
+    { title: "用户管理", description: "账号开设、密码重置与状态管控", targetPath: "/admin/users", tone: "blue" },
+    { title: "组织架构", description: "维护学院、专业、班级层级", targetPath: "/admin/organizations", tone: "green" },
+    { title: "批量导入", description: "Excel 导入师生账号数据", targetPath: "/admin/import", tone: "amber" },
     { title: "个人中心", description: "查看当前登录账号信息", targetPath: "/profile", tone: "slate" },
   ],
   DIRECTOR: [
