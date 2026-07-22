@@ -782,8 +782,8 @@ export function CoursesPage() {
                           {formatCourseObjectiveLabel(objective, { maxLength: 18 })}
                         </strong>
                         <div className="flex items-center gap-1">
-                          <span className="text-xs font-bold text-slate-500">
-                            {objectiveIndicatorCodes.get(String(objective.id))?.join(", ") ?? "未关联指标点"}
+                         <span className="text-xs font-bold text-slate-500">
+                            {objective.indicatorPointCodes?.join(", ") ?? "未关联指标点"}
                           </span>
                           {canEdit && !isStudent ? (
                             <>
