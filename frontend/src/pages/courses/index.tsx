@@ -267,7 +267,7 @@ function CourseList({
   onSelect: (courseId: ID) => void
 }) {
   return (
-    <aside className="h-full rounded-lg border border-slate-200 bg-white shadow-sm">
+    <aside className="sticky top-4 flex h-[calc(100vh-7rem)] min-h-[560px] flex-col rounded-lg border border-slate-200 bg-white shadow-sm">
       <div className="border-b border-slate-200 p-3">
         <label className="relative block">
           <Search className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-slate-400" size={16} />
@@ -279,7 +279,7 @@ function CourseList({
           />
         </label>
       </div>
-      <div className="grid max-h-[442px] gap-1 overflow-y-auto p-2">
+      <div className="grid flex-1 content-start gap-1 overflow-y-auto p-2">
         {courses.map((course) => {
           const isActive = course.id === selectedCourseId
 
@@ -725,7 +725,7 @@ export function CoursesPage() {
         ))}
       </div> : null}
 
-      <div className="grid gap-5 xl:grid-cols-[260px_minmax(0,1fr)]">
+      <div className="grid items-start gap-5 xl:grid-cols-[280px_minmax(0,1fr)]">
         <CourseList
           courses={filteredCourses}
           keyword={keyword}
@@ -734,7 +734,7 @@ export function CoursesPage() {
           selectedCourseId={selectedCourseId}
         />
 
-        <div className="grid gap-5">
+        <div className="grid min-w-0 gap-5">
           <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
             <div className="flex flex-col gap-3 border-b border-slate-200 bg-slate-50 p-3.5 lg:flex-row lg:items-center lg:justify-between">
               <div>
@@ -758,7 +758,7 @@ export function CoursesPage() {
               </div>
             </div>
 
-            <div className="grid gap-5 p-4">
+            <div className="grid gap-4 p-4">
               <section>
                 <div className="flex items-center justify-between gap-3">
                   <h3 className="m-0 border-l-4 border-blue-700 pl-2 text-base font-extrabold text-slate-800">
@@ -775,7 +775,7 @@ export function CoursesPage() {
                     />
                   ) : null}
                 </div>
-                <div className="mt-3 grid gap-3 lg:grid-cols-3">
+                <div className="mt-3 grid gap-3 xl:grid-cols-3">
                   {displayObjectives.map((objective) => (
                     <article className="rounded-lg border border-slate-200 bg-slate-50 p-3" key={objective.id}>
                       <div className="mb-2 flex items-center justify-between gap-3">
@@ -814,7 +814,7 @@ export function CoursesPage() {
               </section>
 
               <section>
-                <div className="mb-4 flex items-center justify-between gap-3">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                   <h3 className="m-0 border-l-4 border-emerald-600 pl-2 text-base font-extrabold text-slate-800">
                     考核比例
                   </h3>
@@ -834,7 +834,7 @@ export function CoursesPage() {
                     />
                   ) : null}
                 </div>
-                <div className="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-3">
+                <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-3">
                   {displayAssessmentMethods.map((method) => (
                     <article
                       className="rounded-lg border border-slate-200 p-3 text-center transition hover:border-blue-200 hover:bg-blue-50"
@@ -852,31 +852,32 @@ export function CoursesPage() {
             </div>
           </section>
 
-          <div className="grid gap-5 2xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+          <div className="grid gap-4">
             <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
               <h2 className="m-0 flex items-center gap-2 text-lg font-extrabold text-slate-950">
                 <FileText size={19} className="text-blue-700" />
                 课程基本信息
               </h2>
-              <div className="mt-3 grid gap-3 text-sm leading-6 text-slate-600 lg:grid-cols-3 2xl:grid-cols-1">
-                <div>
+              <div className="mt-3 grid gap-3 text-sm leading-6 text-slate-600 sm:grid-cols-3">
+                <div className="rounded-lg bg-slate-50 px-3 py-2">
                   <p className="m-0 text-xs font-extrabold text-slate-400">课程代码</p>
-                  <p className="m-0 mt-1">{selectedCourse?.courseCode ?? "-"}</p>
+                  <p className="m-0 mt-1 font-extrabold text-slate-900">{selectedCourse?.courseCode ?? "-"}</p>
                 </div>
-                <div>
+                <div className="rounded-lg bg-slate-50 px-3 py-2">
                   <p className="m-0 text-xs font-extrabold text-slate-400">课程名称</p>
-                  <p className="m-0 mt-1">{selectedCourse?.courseName ?? "-"}</p>
+                  <p className="m-0 mt-1 font-extrabold text-slate-900">{selectedCourse?.courseName ?? "-"}</p>
                 </div>
-                <div>
+                <div className="rounded-lg bg-slate-50 px-3 py-2">
                   <p className="m-0 text-xs font-extrabold text-slate-400">学分学时</p>
-                  <p className="m-0 mt-1">
+                  <p className="m-0 mt-1 font-extrabold text-slate-900">
                     {selectedCourse ? `${selectedCourse.credits} 学分 / ${selectedCourse.hours} 学时` : "-"}
                   </p>
                 </div>
               </div>
             </section>
 
-            <aside className="grid gap-5 lg:grid-cols-2 2xl:grid-cols-2">
+            <div className="grid min-w-0 gap-4">
+                <div className="grid gap-4 xl:grid-cols-2">
               <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
                 <h2 className="m-0 flex items-center gap-2 text-lg font-extrabold text-slate-950">
                   <Layers3 size={19} className="text-blue-700" />
@@ -942,6 +943,9 @@ export function CoursesPage() {
                 </div>
               </section>
 
+                </div>
+ 
+                <div className="grid gap-4 xl:grid-cols-2">
               {!isStudent ? <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
                 <h2 className="m-0 flex items-center gap-2 text-lg font-extrabold text-slate-950">
                   <Settings2 size={19} className="text-blue-700" />
@@ -975,7 +979,7 @@ export function CoursesPage() {
                 </div>
               </section> : null}
 
-              {!isStudent ? <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+              {!isStudent ? <section className="rounded-lg border border-slate-200 bg-white p-4">
                 <h2 className="m-0 flex items-center gap-2 text-lg font-extrabold text-slate-950">
                   <Settings2 size={19} className="text-blue-700" />
                   评分标准
@@ -999,7 +1003,9 @@ export function CoursesPage() {
                   ) : null}
                 </div>
               </section> : null}
-
+                </div>
+ 
+                <div className="grid gap-4">
               {!isStudent ? <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
                 <h2 className="m-0 flex items-center gap-2 text-lg font-extrabold text-slate-950">
                   <GitBranch size={19} className="text-blue-700" />
@@ -1024,7 +1030,8 @@ export function CoursesPage() {
                   ) : null}
                 </div>
               </section> : null}
-            </aside>
+                </div>
+            </div>
           </div>
         </div>
       </div>
