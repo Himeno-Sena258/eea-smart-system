@@ -45,6 +45,8 @@ export interface CourseObjective {
   courseId: ID
   objectiveCode: string
   content: string
+  indicatorPointIds?: ID[]
+  indicatorPointCodes?: string[]
 }
 
 export interface CourseObjectivePayload {
@@ -185,6 +187,7 @@ export interface CoordinatorCourse {
   courseCode?: string
   credits?: number
   hours?: number
+  semester?: string
   syllabusId?: ID
   updatedAt?: DateTimeString
 }
