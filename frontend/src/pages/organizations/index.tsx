@@ -6,6 +6,7 @@ import type { Organization, DictOption } from "@/models"
 import { request } from "@/services/http"
 
 function OrgNode({ node, level = 0, onRefresh }: { node: Organization; level?: number; onRefresh: () => void }) {
+  const [expanded, setExpanded] = useState(true)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
 
@@ -28,6 +29,13 @@ function OrgNode({ node, level = 0, onRefresh }: { node: Organization; level?: n
   return (
     <div>
       <div className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-red-50" style={{ paddingLeft: `${8 + level * 14}px` }}>
+        {node.children?.length ? (
+          <button className="cursor-pointer rounded p-0.5 text-slate-400 hover:text-slate-700" onClick={() => setExpanded(!expanded)} type="button">
+            <span className={"inline-block w-3 text-center text-xs text-slate-500 transition-transform duration-150 " + (expanded ? "rotate-90" : "")}>▶</span>
+          </button>
+        ) : (
+          <span className="w-5" />
+        )}
         <Building2 size={15} className="shrink-0 text-slate-400" />
         <span className="font-bold text-slate-700">{node.name}</span>
         <span className="ml-auto rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-500">{typeLabel}</span>
