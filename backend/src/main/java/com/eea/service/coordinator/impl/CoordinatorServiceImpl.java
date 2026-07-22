@@ -41,6 +41,9 @@ public class CoordinatorServiceImpl implements CoordinatorService {
     @Autowired
     private SysUserMapper sysUserMapper;
 
+    @Autowired
+    private TeachingClassMapper teachingClassMapper;
+
     // -------------------------------------------------------------------------
     // 3.1 课程教学大纲表
     // -------------------------------------------------------------------------
@@ -93,6 +96,11 @@ public class CoordinatorServiceImpl implements CoordinatorService {
         vo.setSyllabusVersion("2024版V1.0");
         vo.setAuditStatus(2); // 2-已审核通过
         vo.setAuditStatusDesc("已审核通过");
+        // Populate semester from the first teaching class
+        LambdaQueryWrapper<TeachingClass> tcW = new LambdaQueryWrapper<TeachingClass>()
+                .eq(TeachingClass::getCourseId, c.getId()).last("LIMIT 1");
+        TeachingClass tc = teachingClassMapper.selectOne(tcW);
+        vo.setSemester(tc != null ? tc.getSemester() : null);
         return vo;
     }
 

@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useMemo, useState } from "react"
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react"
 import {
   AlertTriangle,
   BarChart3,
@@ -12,6 +12,7 @@ import {
   Trash2,
   Upload,
   UsersRound,
+  X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -198,6 +199,8 @@ function InstructorView() {
   const [scoreGrid, setScoreGrid] = useState<TeacherScoreGrid | null>(null)
   const [finalScores, setFinalScores] = useState<TeacherFinalScore[]>([])
   const [draftScores, setDraftScores] = useState<Record<string, string>>({})
+  const [isEditing, setIsEditing] = useState(false)
+  const originalDraftsRef = useRef<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
@@ -274,6 +277,7 @@ function InstructorView() {
       setScoreGrid(grid)
       setFinalScores(totals)
       setSaveMessage("成绩已保存")
+      setIsEditing(false)
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "保存失败")
     } finally {
@@ -383,10 +387,26 @@ function InstructorView() {
                   type="file"
                 />
               </label>
-              <Button className="bg-blue-700 text-white hover:bg-blue-800" disabled={loading || !scoreGrid} onClick={handleSave} type="button">
-                <Save size={16} />
-                保存成绩
-              </Button>
+              {isEditing ? (
+                <>
+                  <Button className="bg-blue-700 text-white hover:bg-blue-800" disabled={loading || !scoreGrid} onClick={handleSave} type="button">
+                    <Save size={16} /> 保存成绩
+                  </Button>
+                  <Button className="ml-2 border border-slate-300 bg-white text-slate-700 hover:bg-slate-50" variant="outline" onClick={() => {
+                    setDraftScores(originalDraftsRef.current)
+                    setIsEditing(false)
+                  }} type="button">
+                    <X size={16} /> 取消
+                  </Button>
+                </>
+              ) : (
+                <Button className="bg-blue-700 text-white hover:bg-blue-800" disabled={loading || !scoreGrid} onClick={() => {
+                  originalDraftsRef.current = { ...draftScores }
+                  setIsEditing(true)
+                }} type="button">
+                  <PencilLine size={16} /> 编辑
+                </Button>
+              )}
             </div>
           </div>
 
@@ -426,6 +446,7 @@ function InstructorView() {
 
                         return (
                           <td className="border-r border-slate-100 p-3" key={item.itemId}>
+                            {isEditing ? (
                             <input
                               className={isLow ? "h-8 w-20 rounded-md border border-red-200 bg-red-50 text-center font-bold text-red-700" : "h-8 w-20 rounded-md border border-slate-200 bg-white text-center font-bold text-slate-800"}
                               max={item.maxScore}
@@ -439,6 +460,11 @@ function InstructorView() {
                               type="number"
                               value={rawValue ?? ""}
                             />
+                          ) : (
+                            <span className={`font-bold ${isLow ? "text-red-700" : "text-slate-800"}`}>
+                              {rawValue && rawValue !== "" ? rawValue : <span className="text-slate-400">未录入</span>}
+                            </span>
+                          )}
                           </td>
                         )
                       })}
