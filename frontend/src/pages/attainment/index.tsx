@@ -2,6 +2,7 @@ import { AlertTriangle, BarChart3, Calculator, ChartNoAxesCombined, RefreshCw } 
 import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { roleLabels } from "@/constants/role-options"
+import { formatCourseObjectiveLabel } from "@/lib/course-objective-label"
 import type {
   CourseObjectiveAttainmentResult,
   CoordinatorCourse,
@@ -268,7 +269,7 @@ export function AttainmentPage() {
       if (activeRole === "INSTRUCTOR" && selectedClass) {
         const data = await calculateTeacherCoAttainment(selectedClass.classId)
         setTeacherRows(data)
-        setMessage("教学班 CO 达成度已重新计算")
+        setMessage("教学班课程目标达成度已重新计算")
       }
       if (activeRole === "DIRECTOR" && selectedScheme) {
         const data = await calculateDirectorAttainment(selectedScheme.id, selectedScheme.grade)
@@ -404,7 +405,7 @@ export function AttainmentPage() {
       <div className={activeRole === "INSTRUCTOR" ? "grid gap-6 xl:grid-cols-2" : "grid gap-6"}>
         {activeRole === "INSTRUCTOR" ? (
           <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="m-0 text-lg font-extrabold text-slate-950">教学班 CO 达成度</h2>
+            <h2 className="m-0 text-lg font-extrabold text-slate-950">教学班课程目标达成度</h2>
             <AttainmentBarChart
               primaryLabel="达成度计算值"
               primaryResult={teacherCourseResult}
@@ -441,7 +442,9 @@ export function AttainmentPage() {
                 <div className="mt-3 grid gap-2 md:grid-cols-2">
                   {row.courseContributions?.map((item) => (
                     <div className="rounded-lg bg-slate-50 p-3 text-sm" key={`${row.indicatorPointId}-${item.courseId}-${item.coCode}`}>
-                      <p className="m-0 font-extrabold text-slate-800">{item.courseName} {item.coCode}</p>
+                      <p className="m-0 font-extrabold text-slate-800">
+                        {item.courseName} {formatCourseObjectiveLabel({ objectiveCode: item.coCode }, { mode: "compact" })}
+                      </p>
                       <p className="mt-1 text-slate-500">权重 {Number(item.weight ?? 0).toFixed(3)}，贡献 {Number(item.weightedContribution ?? 0).toFixed(3)}</p>
                     </div>
                   ))}
@@ -464,7 +467,9 @@ export function AttainmentPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h3 className="m-0 text-base font-extrabold text-red-800">
-                      {item.requirementCode} {item.title}
+                      {/^CO\d+/i.test(item.requirementCode)
+                        ? formatCourseObjectiveLabel({ objectiveCode: item.requirementCode, content: item.title }, { maxLength: 22 })
+                        : `${item.requirementCode} ${item.title}`}
                     </h3>
                     <p className="mt-1 text-sm text-red-600">低于标准底线 {threshold.toFixed(2)}</p>
                   </div>

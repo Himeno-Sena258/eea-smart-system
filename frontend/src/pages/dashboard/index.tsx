@@ -42,7 +42,7 @@ const quickLinksMap: Record<RoleCode, DashboardQuickLink[]> = {
   INSTRUCTOR: [
     { title: "成绩录入", description: "进入教学班分项成绩网格", targetPath: "/teaching-classes", tone: "blue" },
     { title: "持续改进", description: "提交教学班改进分析", targetPath: "/improvements", tone: "amber" },
-    { title: "达成度分析", description: "查看教学班 CO 达成度", targetPath: "/attainment", tone: "green" },
+    { title: "达成度分析", description: "查看教学班课程目标达成度", targetPath: "/attainment", tone: "green" },
   ],
   STUDENT: [
     { title: "我的成绩", description: "查看课程总评和分项明细", targetPath: "/teaching-classes", tone: "blue" },

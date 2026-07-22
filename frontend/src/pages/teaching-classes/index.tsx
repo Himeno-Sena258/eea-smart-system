@@ -1,28 +1,49 @@
-import { useEffect, useMemo, useState } from "react"
+import { type ReactNode, useEffect, useMemo, useState } from "react"
 import {
   AlertTriangle,
   BarChart3,
   CheckCircle2,
   GraduationCap,
+  Download,
+  PencilLine,
+  Plus,
   Save,
   Table2,
+  Trash2,
+  Upload,
   UsersRound,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { formatCourseObjectiveLabel } from "@/lib/course-objective-label"
 import type {
+  AcademicTeachingClassImportPreviewResult,
   ID,
+  ImportResult,
   StudentCourseScore,
   TeacherClass,
   TeacherFinalScore,
   TeacherScoreGrid,
   TeachingClass,
+  TeachingClassPayload,
 } from "@/models"
 import {
+  downloadScoreTemplate,
   getStudentCourseScores,
   getStudentScoreDetail,
   getTeacherClassList,
   getTeacherFinalScores,
   getTeacherScoreGrid,
+  importScores,
   saveTeacherScores,
 } from "@/services"
 import { useTeachingStore, useUiStore } from "@/stores"
@@ -31,6 +52,98 @@ const threshold = 0.68
 
 const scoreValue = (value: number | null | undefined) =>
   typeof value === "number" ? value.toFixed(1).replace(/\.0$/, "") : "-"
+
+function TeachingClassDialog({
+  teachingClass,
+  trigger,
+  onSave,
+}: {
+  teachingClass?: TeachingClass | null
+  trigger: ReactNode
+  onSave: (payload: TeachingClassPayload) => Promise<void> | void
+}) {
+  const [open, setOpen] = useState(false)
+  const [courseId, setCourseId] = useState("")
+  const [teacherId, setTeacherId] = useState("")
+  const [semester, setSemester] = useState("")
+  const [className, setClassName] = useState("")
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+    setError(null)
+    setCourseId(teachingClass?.courseId ? String(teachingClass.courseId) : "")
+    setTeacherId(teachingClass?.teacherId ? String(teachingClass.teacherId) : "")
+    setSemester(teachingClass?.semester ?? "")
+    setClassName(teachingClass?.className ?? "")
+  }, [open, teachingClass])
+
+  const handleSave = async () => {
+    const payload = {
+      courseId: Number(courseId),
+      teacherId: Number(teacherId),
+      semester: semester.trim(),
+      className: className.trim(),
+    }
+
+    if (!payload.courseId || !payload.teacherId || !payload.semester || !payload.className) {
+      setError("请完整填写课程ID、教师ID、学期和教学班名称")
+      return
+    }
+
+    try {
+      await onSave(payload)
+      setOpen(false)
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "保存教学班失败")
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent className="bg-white shadow-2xl ring-1 ring-slate-200 sm:max-w-[560px]">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-extrabold text-slate-950">{teachingClass ? "编辑教学班" : "新增教学班"}</DialogTitle>
+          <DialogDescription>维护教学班、课程和任课教师关系。</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="grid gap-1.5">
+            <span className="text-sm font-bold text-slate-700">课程ID</span>
+            <Input type="number" value={courseId} onChange={(event) => setCourseId(event.target.value)} />
+          </label>
+          <label className="grid gap-1.5">
+            <span className="text-sm font-bold text-slate-700">教师ID</span>
+            <Input type="number" value={teacherId} onChange={(event) => setTeacherId(event.target.value)} />
+          </label>
+          <label className="grid gap-1.5">
+            <span className="text-sm font-bold text-slate-700">学期</span>
+            <Input value={semester} onChange={(event) => setSemester(event.target.value)} />
+          </label>
+          <label className="grid gap-1.5">
+            <span className="text-sm font-bold text-slate-700">教学班名称</span>
+            <Input value={className} onChange={(event) => setClassName(event.target.value)} />
+          </label>
+          {error ? <p className="m-0 text-sm font-bold text-red-600 sm:col-span-2">{error}</p> : null}
+        </div>
+        <DialogFooter>
+          <Button onClick={() => setOpen(false)} type="button" variant="outline">取消</Button>
+          <Button className="bg-blue-700 text-white hover:bg-blue-800" onClick={handleSave} type="button">保存教学班</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function ImportResultNote({ result }: { result: ImportResult | null }) {
+  if (!result) return null
+
+  return (
+    <p className="m-0 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-700">
+      导入完成：总计 {result.totalRows} 行，成功 {result.successRows} 行，失败 {result.failedRows} 行
+    </p>
+  )
+}
 
 function ClassSelector({
   classes,
@@ -168,6 +281,60 @@ function InstructorView() {
     }
   }
 
+  const reloadSelectedClassScores = async () => {
+    if (!selectedClass) return
+    const [grid, totals] = await Promise.all([
+      getTeacherScoreGrid(selectedClass.classId),
+      getTeacherFinalScores(selectedClass.classId),
+    ])
+    setScoreGrid(grid)
+    setFinalScores(totals)
+    const nextDraft: Record<string, string> = {}
+    grid.rows.forEach((row) => {
+      grid.headers.forEach((header) => {
+        const value = row.itemScores[header.itemId]
+        nextDraft[`${row.studentId}-${header.itemId}`] = typeof value === "number" ? String(value) : ""
+      })
+    })
+    setDraftScores(nextDraft)
+  }
+
+  const handleDownloadTemplate = async () => {
+    if (!selectedClass) return
+    setError(null)
+    setSaveMessage(null)
+    try {
+      const blob = await downloadScoreTemplate(selectedClass.classId)
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement("a")
+      anchor.href = url
+      anchor.download = `${selectedClass.className}-成绩模板.xlsx`
+      document.body.appendChild(anchor)
+      anchor.click()
+      anchor.remove()
+      URL.revokeObjectURL(url)
+      setSaveMessage("成绩模板已开始下载")
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "模板下载失败")
+    }
+  }
+
+  const handleImportScores = async (file: File | null) => {
+    if (!selectedClass || !file) return
+    setLoading(true)
+    setError(null)
+    setSaveMessage(null)
+    try {
+      const result = await importScores(selectedClass.classId, file)
+      await reloadSelectedClassScores()
+      setSaveMessage(`成绩导入完成：成功 ${result.successRows} 行，失败 ${result.failedRows} 行`)
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "成绩导入失败")
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="grid gap-5 xl:grid-cols-[280px_minmax(0,1fr)]">
       <ClassSelector
@@ -198,10 +365,29 @@ function InstructorView() {
                 {selectedClass ? `${selectedClass.courseName} / ${selectedClass.className}` : "请选择教学班"}
               </p>
             </div>
-            <Button className="bg-blue-700 text-white hover:bg-blue-800" disabled={loading || !scoreGrid} onClick={handleSave} type="button">
-              <Save size={16} />
-              保存成绩
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button disabled={loading || !selectedClass} onClick={handleDownloadTemplate} type="button" variant="outline">
+                <Download size={16} />
+                下载模板
+              </Button>
+              <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-extrabold text-slate-700 transition hover:bg-slate-50">
+                <Upload size={16} />
+                导入成绩
+                <input
+                  accept=".xls,.xlsx"
+                  className="hidden"
+                  onChange={(event) => {
+                    void handleImportScores(event.target.files?.[0] ?? null)
+                    event.target.value = ""
+                  }}
+                  type="file"
+                />
+              </label>
+              <Button className="bg-blue-700 text-white hover:bg-blue-800" disabled={loading || !scoreGrid} onClick={handleSave} type="button">
+                <Save size={16} />
+                保存成绩
+              </Button>
+            </div>
           </div>
 
           <div className="overflow-x-auto">
@@ -211,8 +397,15 @@ function InstructorView() {
                   <th className="border-r border-b border-slate-200 p-3 text-left">学号</th>
                   <th className="border-r border-b border-slate-200 p-3 text-left">姓名</th>
                   {scoreGrid?.headers.map((item) => (
-                    <th className="border-r border-b border-slate-200 bg-blue-50 p-3" key={item.itemId}>
-                      {item.itemName} [{item.coCode}] ({scoreValue(item.maxScore)})
+                    <th
+                      className="border-r border-b border-slate-200 bg-blue-50 p-3"
+                      key={item.itemId}
+                      title={`支撑目标：${item.coCode}`}
+                    >
+                      <span className="block">{item.itemName}</span>
+                      <span className="mt-1 block text-xs font-extrabold text-blue-700">
+                        {formatCourseObjectiveLabel({ objectiveCode: item.coCode }, { mode: "compact" })} / {scoreValue(item.maxScore)} 分
+                      </span>
                     </th>
                   ))}
                   <th className="border-b border-slate-200 p-3">总评</th>
@@ -293,8 +486,16 @@ function InstructorView() {
 function ManagementView() {
   const teachingClassesPage = useTeachingStore((state) => state.teachingClassesPage)
   const fetchTeachingClasses = useTeachingStore((state) => state.fetchTeachingClasses)
+  const createTeachingClass = useTeachingStore((state) => state.createTeachingClass)
+  const updateTeachingClass = useTeachingStore((state) => state.updateTeachingClass)
+  const deleteTeachingClass = useTeachingStore((state) => state.deleteTeachingClass)
+  const previewAcademicTeachingClassImport = useTeachingStore((state) => state.previewAcademicTeachingClassImport)
+  const submitAcademicTeachingClassImport = useTeachingStore((state) => state.submitAcademicTeachingClassImport)
+  const importPreview = useTeachingStore((state) => state.academicTeachingClassImportPreview)
+  const importResult = useTeachingStore((state) => state.academicTeachingClassImportResult)
   const loading = useTeachingStore((state) => state.loading)
   const error = useTeachingStore((state) => state.error)
+  const [message, setMessage] = useState<string | null>(null)
 
   const classes = teachingClassesPage?.records ?? []
 
@@ -302,11 +503,37 @@ function ManagementView() {
     void fetchTeachingClasses({ pageNum: 1, pageSize: 100 })
   }, [fetchTeachingClasses])
 
+  const refreshClasses = () => fetchTeachingClasses({ pageNum: 1, pageSize: 100 })
+
+  const handleDeleteClass = async (teachingClass: TeachingClass) => {
+    if (!window.confirm(`确认删除教学班「${teachingClass.className}」吗？`)) return
+    await deleteTeachingClass(teachingClass.id)
+    await refreshClasses()
+    setMessage("教学班已删除")
+  }
+
+  const handlePreviewImport = async (file: File | null) => {
+    if (!file) return
+    setMessage(null)
+    await previewAcademicTeachingClassImport(file)
+  }
+
+  const handleSubmitImport = async () => {
+    if (!importPreview) return
+    await submitAcademicTeachingClassImport({ batchId: importPreview.batchId })
+    await refreshClasses()
+    setMessage("教务排课数据已导入")
+  }
+
   return (
     <div className="grid gap-5">
       {error ? (
         <p className="m-0 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700">{error}</p>
       ) : null}
+      {message ? (
+        <p className="m-0 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-700">{message}</p>
+      ) : null}
+      <ImportResultNote result={importResult} />
       <section className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4">
         <article className="rounded-lg border border-blue-200 bg-blue-50 p-4">
           <p className="m-0 text-sm font-bold text-blue-700">教学班数量</p>
@@ -319,10 +546,57 @@ function ManagementView() {
       </section>
 
       <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="m-0 flex items-center gap-2 text-lg font-extrabold text-slate-950">
-          <UsersRound size={19} className="text-blue-700" />
-          教学班主数据
-        </h2>
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <h2 className="m-0 flex items-center gap-2 text-lg font-extrabold text-slate-950">
+            <UsersRound size={19} className="text-blue-700" />
+            教学班主数据
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            <TeachingClassDialog
+              onSave={async (payload) => {
+                await createTeachingClass(payload)
+                await refreshClasses()
+                setMessage("教学班已创建")
+              }}
+              trigger={<Button className="bg-blue-700 text-white hover:bg-blue-800" type="button"><Plus size={16} />新增教学班</Button>}
+            />
+            <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-extrabold text-slate-700 transition hover:bg-slate-50">
+              <Upload size={16} />
+              导入排课
+              <input
+                accept=".xls,.xlsx"
+                className="hidden"
+                onChange={(event) => {
+                  void handlePreviewImport(event.target.files?.[0] ?? null)
+                  event.target.value = ""
+                }}
+                type="file"
+              />
+            </label>
+          </div>
+        </div>
+        {importPreview ? (
+          <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3">
+            <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+              <p className="m-0 text-sm font-bold text-blue-800">
+                预览 {importPreview.totalRows} 行，有效 {importPreview.validRows} 行，无效 {importPreview.invalidRows} 行，教学班 {importPreview.teachingClassCount} 个
+              </p>
+              <Button disabled={loading || importPreview.validRows === 0} onClick={handleSubmitImport} type="button">
+                提交导入
+              </Button>
+            </div>
+            <div className="mt-3 max-h-44 overflow-y-auto rounded-lg border border-blue-100 bg-white">
+              {importPreview.rows.slice(0, 8).map((row) => (
+                <div className="grid gap-2 border-b border-slate-100 p-2 text-xs md:grid-cols-[60px_1fr_1fr_1fr]" key={row.rowIndex}>
+                  <span className="font-mono text-slate-500">#{row.rowIndex}</span>
+                  <span className="font-bold text-slate-800">{row.courseName}</span>
+                  <span className="text-slate-600">{row.teachingClassName}</span>
+                  <span className={row.validation === "PASS" ? "font-bold text-emerald-600" : "font-bold text-red-600"}>{row.message}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
         <div className="mt-4 overflow-x-auto rounded-lg border border-slate-200">
           <table className="w-full min-w-[720px] border-collapse text-sm">
             <thead className="bg-slate-100 text-slate-600">
@@ -331,6 +605,7 @@ function ManagementView() {
                 <th className="border-b border-slate-200 p-3 text-left">课程</th>
                 <th className="border-b border-slate-200 p-3 text-left">教师</th>
                 <th className="border-b border-slate-200 p-3 text-left">学期</th>
+                <th className="border-b border-slate-200 p-3 text-left">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -340,6 +615,23 @@ function ManagementView() {
                   <td className="p-3 text-slate-600">{item.courseName ?? `课程ID ${item.courseId}`}</td>
                   <td className="p-3 text-slate-600">{item.teacherName ?? `教师ID ${item.teacherId}`}</td>
                   <td className="p-3 text-slate-600">{item.semester}</td>
+                  <td className="p-3">
+                    <div className="flex gap-2">
+                      <TeachingClassDialog
+                        teachingClass={item}
+                        onSave={async (payload) => {
+                          await updateTeachingClass(item.id, payload)
+                          await refreshClasses()
+                          setMessage("教学班已保存")
+                        }}
+                        trigger={<Button size="sm" type="button" variant="outline"><PencilLine size={15} />编辑</Button>}
+                      />
+                      <Button onClick={() => void handleDeleteClass(item)} size="sm" type="button" variant="outline">
+                        <Trash2 size={15} />
+                        删除
+                      </Button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -448,7 +740,7 @@ function StudentView() {
                     </td>
                     <td className="p-4">
                       <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-bold text-slate-600">
-                        {item.objectiveCode}
+                        {formatCourseObjectiveLabel({ objectiveCode: item.objectiveCode }, { mode: "compact" })}
                       </span>
                     </td>
                     <td className={isLow ? "p-4 font-bold text-red-700" : "p-4 font-bold text-emerald-600"}>

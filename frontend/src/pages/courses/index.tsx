@@ -1,17 +1,21 @@
-import { BookOpen, CheckCircle2, FileText, GitBranch, Layers3, PencilLine, Search, Settings2 } from "lucide-react"
-import { useEffect, useMemo, useState } from "react"
+import { BookOpen, CheckCircle2, FileText, GitBranch, Layers3, PencilLine, Plus, Search, Settings2, Trash2, Upload } from "lucide-react"
+import { type ReactNode, useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { roleLabels } from "@/constants/role-options"
+import { formatCourseObjectiveLabel } from "@/lib/course-objective-label"
 import type {
   AssessmentMethod,
+  AssessmentMethodPayload,
   AssessmentStandard,
   CoordinatorCourse,
   Course,
@@ -31,6 +35,222 @@ const editableRoles = ["DIRECTOR", "COORDINATOR"]
 const percent = (value: number) => {
   const normalized = value > 1 ? value : value * 100
   return `${Math.round(normalized)}%`
+}
+
+function ObjectiveDialog({
+  objective,
+  trigger,
+  onSave,
+}: {
+  objective?: CourseObjective | null
+  trigger: ReactNode
+  onSave: (payload: { objectiveCode: string; content: string }) => Promise<void> | void
+}) {
+  const [open, setOpen] = useState(false)
+  const [objectiveCode, setObjectiveCode] = useState("")
+  const [content, setContent] = useState("")
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+    setError(null)
+    setObjectiveCode(objective?.objectiveCode ?? "")
+    setContent(objective?.content ?? "")
+  }, [objective, open])
+
+  const handleSave = async () => {
+    if (!objectiveCode.trim() || !content.trim()) {
+      setError("请填写课程目标编码和内容")
+      return
+    }
+    try {
+      await onSave({ objectiveCode: objectiveCode.trim(), content: content.trim() })
+      setOpen(false)
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "保存课程目标失败")
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent className="bg-white shadow-2xl ring-1 ring-slate-200 sm:max-w-[560px]">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-extrabold text-slate-950">{objective ? "编辑课程目标" : "新增课程目标"}</DialogTitle>
+          <DialogDescription>维护课程目标编码和目标描述。</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-3">
+          <label className="grid gap-1.5">
+            <span className="text-sm font-bold text-slate-700">目标编码</span>
+            <Input value={objectiveCode} onChange={(event) => setObjectiveCode(event.target.value)} />
+          </label>
+          <label className="grid gap-1.5">
+            <span className="text-sm font-bold text-slate-700">目标描述</span>
+            <textarea
+              className="min-h-28 rounded-md border border-slate-200 bg-white p-3 text-sm leading-6 outline-none focus:border-blue-400"
+              value={content}
+              onChange={(event) => setContent(event.target.value)}
+            />
+          </label>
+          {error ? <p className="m-0 text-sm font-bold text-red-600">{error}</p> : null}
+        </div>
+        <DialogFooter>
+          <Button onClick={() => setOpen(false)} type="button" variant="outline">取消</Button>
+          <Button className="bg-blue-700 text-white hover:bg-blue-800" onClick={handleSave} type="button">保存目标</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function AssessmentMethodsDialog({
+  methods,
+  objectives,
+  trigger,
+  onSave,
+}: {
+  methods: AssessmentMethod[]
+  objectives: CourseObjective[]
+  trigger: ReactNode
+  onSave: (methods: AssessmentMethodPayload[]) => Promise<void> | void
+}) {
+  const [open, setOpen] = useState(false)
+  const [draftMethods, setDraftMethods] = useState<AssessmentMethodPayload[]>([])
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+    setError(null)
+    setDraftMethods(methods.length > 0
+      ? methods.map((method) => ({
+          name: method.name,
+          weight: method.weight,
+          items: (method.items ?? []).map((item) => ({
+            name: item.name,
+            maxScore: item.maxScore,
+            courseObjectiveId: item.courseObjectiveId,
+          })),
+        }))
+      : [{ name: "期末考试", weight: 0.6, items: [] }])
+  }, [methods, open])
+
+  const updateMethod = (index: number, patch: Partial<AssessmentMethodPayload>) => {
+    setDraftMethods((current) => current.map((method, currentIndex) => currentIndex === index ? { ...method, ...patch } : method))
+  }
+
+  const updateItem = (methodIndex: number, itemIndex: number, patch: Partial<NonNullable<AssessmentMethodPayload["items"]>[number]>) => {
+    setDraftMethods((current) => current.map((method, currentIndex) => {
+      if (currentIndex !== methodIndex) return method
+      const items = method.items ?? []
+      return {
+        ...method,
+        items: items.map((item, currentItemIndex) => currentItemIndex === itemIndex ? { ...item, ...patch } : item),
+      }
+    }))
+  }
+
+  const handleSave = async () => {
+    const normalized = draftMethods.map((method) => ({
+      ...method,
+      name: method.name.trim(),
+      weight: Number(method.weight),
+      items: (method.items ?? []).map((item) => ({
+        name: item.name.trim(),
+        maxScore: Number(item.maxScore),
+        courseObjectiveId: Number(item.courseObjectiveId),
+      })),
+    }))
+
+    if (normalized.some((method) => !method.name || !Number.isFinite(method.weight))) {
+      setError("请完整填写考核方式名称和权重")
+      return
+    }
+    if (normalized.flatMap((method) => method.items ?? []).some((item) => !item.name || !Number.isFinite(item.maxScore) || !item.courseObjectiveId)) {
+      setError("请完整填写考核细项名称、满分和课程目标")
+      return
+    }
+
+    try {
+      await onSave(normalized)
+      setOpen(false)
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "保存考核配置失败")
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent className="max-h-[calc(100vh-96px)] overflow-hidden bg-white shadow-2xl ring-1 ring-slate-200 sm:max-w-[820px]">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-extrabold text-slate-950">考核方式与细项</DialogTitle>
+          <DialogDescription>维护考核方式权重，以及每个考核细项绑定的课程目标。</DialogDescription>
+        </DialogHeader>
+        <div className="grid max-h-[560px] gap-4 overflow-y-auto pr-1">
+          {draftMethods.map((method, methodIndex) => (
+            <article className="grid gap-3 rounded-lg border border-slate-200 p-3" key={methodIndex}>
+              <div className="grid gap-3 md:grid-cols-[1fr_120px_auto]">
+                <Input value={method.name} onChange={(event) => updateMethod(methodIndex, { name: event.target.value })} />
+                <Input type="number" step="0.01" value={method.weight} onChange={(event) => updateMethod(methodIndex, { weight: Number(event.target.value) })} />
+                <Button
+                  disabled={draftMethods.length === 1}
+                  onClick={() => setDraftMethods((current) => current.filter((_, currentIndex) => currentIndex !== methodIndex))}
+                  type="button"
+                  variant="outline"
+                >
+                  <Trash2 size={16} />
+                </Button>
+              </div>
+              <div className="grid gap-2">
+                {(method.items ?? []).map((item, itemIndex) => (
+                  <div className="grid gap-2 rounded-lg bg-slate-50 p-2 md:grid-cols-[1fr_100px_160px_auto]" key={itemIndex}>
+                    <Input placeholder="细项名称" value={item.name} onChange={(event) => updateItem(methodIndex, itemIndex, { name: event.target.value })} />
+                    <Input type="number" placeholder="满分" value={item.maxScore} onChange={(event) => updateItem(methodIndex, itemIndex, { maxScore: Number(event.target.value) })} />
+                    <select
+                      className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold outline-none focus:border-blue-400"
+                      value={item.courseObjectiveId}
+                      onChange={(event) => updateItem(methodIndex, itemIndex, { courseObjectiveId: Number(event.target.value) })}
+                    >
+                      <option value={0}>选择目标</option>
+                      {objectives.map((objective) => (
+                        <option key={objective.id} value={objective.id}>{formatCourseObjectiveLabel(objective, { maxLength: 14 })}</option>
+                      ))}
+                    </select>
+                    <Button
+                      onClick={() => updateMethod(methodIndex, { items: (method.items ?? []).filter((_, currentIndex) => currentIndex !== itemIndex) })}
+                      type="button"
+                      variant="outline"
+                    >
+                      <Trash2 size={16} />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  onClick={() => updateMethod(methodIndex, {
+                    items: [...(method.items ?? []), { name: "", maxScore: 100, courseObjectiveId: objectives[0]?.id ?? 0 }],
+                  })}
+                  type="button"
+                  variant="outline"
+                >
+                  <Plus size={16} />
+                  添加细项
+                </Button>
+              </div>
+            </article>
+          ))}
+          <Button onClick={() => setDraftMethods((current) => [...current, { name: "", weight: 0, items: [] }])} type="button" variant="outline">
+            <Plus size={16} />
+            添加考核方式
+          </Button>
+          {error ? <p className="m-0 text-sm font-bold text-red-600">{error}</p> : null}
+        </div>
+        <DialogFooter>
+          <Button onClick={() => setOpen(false)} type="button" variant="outline">取消</Button>
+          <Button className="bg-blue-700 text-white hover:bg-blue-800" onClick={handleSave} type="button">保存考核配置</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
 }
 
 function CourseList({
@@ -113,10 +333,15 @@ export function CoursesPage() {
   const error = useCourseStore((state) => state.error)
   const fetchCourses = useCourseStore((state) => state.fetchCourses)
   const fetchCourseDetail = useCourseStore((state) => state.fetchCourseDetail)
+  const createObjective = useCourseStore((state) => state.createObjective)
+  const updateObjective = useCourseStore((state) => state.updateObjective)
+  const deleteObjective = useCourseStore((state) => state.deleteObjective)
   const updateCourse = useCourseStore((state) => state.updateCourse)
+  const importCourses = useCourseStore((state) => state.importCourses)
   const fetchObjectives = useCourseStore((state) => state.fetchObjectives)
   const fetchIndicatorMatrix = useCourseStore((state) => state.fetchIndicatorMatrix)
   const fetchAssessmentMethods = useCourseStore((state) => state.fetchAssessmentMethods)
+  const saveAssessmentMethods = useCourseStore((state) => state.saveAssessmentMethods)
   const fetchResources = useCourseStore((state) => state.fetchResources)
   const fetchTeachingContents = useCourseStore((state) => state.fetchTeachingContents)
   const fetchAssessmentStandards = useCourseStore((state) => state.fetchAssessmentStandards)
@@ -213,6 +438,10 @@ export function CoursesPage() {
 
     return map
   }, [displayIndicatorMatrix, indicatorNameMap, isStudent, selectedStudentSyllabus])
+  const objectiveLabelMap = useMemo(
+    () => new Map(displayObjectives.map((objective) => [String(objective.id), formatCourseObjectiveLabel(objective, { maxLength: 16 })])),
+    [displayObjectives],
+  )
 
   useEffect(() => {
     if (!isDirector) return
@@ -323,7 +552,7 @@ export function CoursesPage() {
       void fetchIndicatorMatrix(selectedCourse.id)
     }
 
-    if (isCoordinator) {
+    if (isCoordinator || isDirector) {
       void fetchObjectives(selectedCourse.id)
       void fetchAssessmentMethods(selectedCourse.id)
     }
@@ -335,8 +564,48 @@ export function CoursesPage() {
     void fetchAssessmentStandards(firstAssessmentItem.id)
   }, [fetchAssessmentStandards, firstAssessmentItem, isStudent])
 
-  const displayError = isDirector ? error : roleError
+  const displayError = error ?? roleError
   const displayLoading = isDirector ? loading : roleLoading
+
+  const refreshSelectedCourseConfig = async () => {
+    if (!selectedCourse) return
+    await Promise.all([
+      fetchObjectives(selectedCourse.id),
+      fetchAssessmentMethods(selectedCourse.id),
+      isDirector ? fetchIndicatorMatrix(selectedCourse.id) : Promise.resolve([]),
+    ])
+  }
+
+  const handleImportCourses = async (file: File | null) => {
+    if (!file) return
+    setRoleError(null)
+    setActionMessage(null)
+    try {
+      const result = await importCourses(file)
+      await fetchCourses({
+        pageNum: 1,
+        pageSize: 100,
+        keyword: keyword.trim() || undefined,
+        schemeId: selectedSchemeId ?? undefined,
+      })
+      setActionMessage(`课程导入完成：成功 ${result.successRows} 行，失败 ${result.failedRows} 行`)
+    } catch (requestError) {
+      setRoleError(requestError instanceof Error ? requestError.message : "课程导入失败")
+    }
+  }
+
+  const handleDeleteObjective = async (objective: CourseObjective) => {
+    if (!window.confirm(`确认删除课程目标「${objective.objectiveCode}」吗？`)) return
+    setRoleError(null)
+    setActionMessage(null)
+    try {
+      await deleteObjective(objective.id)
+      await refreshSelectedCourseConfig()
+      setActionMessage("课程目标已删除")
+    } catch (requestError) {
+      setRoleError(requestError instanceof Error ? requestError.message : "删除课程目标失败")
+    }
+  }
 
   const handleOpenEditCourse = async () => {
     if (!selectedCourse) return
@@ -408,10 +677,25 @@ export function CoursesPage() {
           <BookOpen size={16} />
           课程质量管理
         </p>
-        <div>
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <h1 className="m-0 text-[34px] leading-tight font-extrabold tracking-normal text-slate-950">
             课程主数据
           </h1>
+          {isDirector ? (
+            <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-extrabold text-slate-700 transition hover:bg-slate-50">
+              <Upload size={16} />
+              导入课程
+              <input
+                accept=".xls,.xlsx"
+                className="hidden"
+                onChange={(event) => {
+                  void handleImportCourses(event.target.files?.[0] ?? null)
+                  event.target.value = ""
+                }}
+                type="file"
+              />
+            </label>
+          ) : null}
         </div>
       </header>
 
@@ -475,17 +759,47 @@ export function CoursesPage() {
 
             <div className="grid gap-5 p-4">
               <section>
-                <h3 className="m-0 border-l-4 border-blue-700 pl-2 text-base font-extrabold text-slate-800">
-                  课程目标
-                </h3>
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="m-0 border-l-4 border-blue-700 pl-2 text-base font-extrabold text-slate-800">
+                    课程目标
+                  </h3>
+                  {canEdit && selectedCourse ? (
+                    <ObjectiveDialog
+                      onSave={async (payload) => {
+                        await createObjective(selectedCourse.id, payload)
+                        await refreshSelectedCourseConfig()
+                        setActionMessage("课程目标已保存")
+                      }}
+                      trigger={<Button size="sm" type="button" variant="outline"><Plus size={15} />新增目标</Button>}
+                    />
+                  ) : null}
+                </div>
                 <div className="mt-3 grid gap-3 lg:grid-cols-3">
                   {displayObjectives.map((objective) => (
                     <article className="rounded-lg border border-slate-200 bg-slate-50 p-3" key={objective.id}>
                       <div className="mb-2 flex items-center justify-between gap-3">
-                        <strong className="text-blue-700">{objective.objectiveCode}</strong>
-                        <span className="text-xs font-bold text-slate-500">
-                          {objectiveIndicatorCodes.get(String(objective.id))?.join(", ") ?? "未关联指标点"}
-                        </span>
+                        <strong className="text-blue-700" title={formatCourseObjectiveLabel(objective, { mode: "full" })}>
+                          {formatCourseObjectiveLabel(objective, { maxLength: 18 })}
+                        </strong>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs font-bold text-slate-500">
+                            {objectiveIndicatorCodes.get(String(objective.id))?.join(", ") ?? "未关联指标点"}
+                          </span>
+                          {canEdit && !isStudent ? (
+                            <>
+                              <ObjectiveDialog
+                                objective={objective}
+                                onSave={async (payload) => {
+                                  await updateObjective(objective.id, payload)
+                                  await refreshSelectedCourseConfig()
+                                  setActionMessage("课程目标已保存")
+                                }}
+                                trigger={<Button size="icon-sm" type="button" variant="ghost"><PencilLine size={14} /></Button>}
+                              />
+                              <Button onClick={() => void handleDeleteObjective(objective)} size="icon-sm" type="button" variant="ghost"><Trash2 size={14} /></Button>
+                            </>
+                          ) : null}
+                        </div>
                       </div>
                       <p className="m-0 text-sm leading-6 text-slate-700">{objective.content}</p>
                     </article>
@@ -506,6 +820,18 @@ export function CoursesPage() {
                   <span className={Math.abs(totalWeight - 1) < 0.001 || Math.abs(totalWeight - 100) < 0.001 ? "text-sm font-extrabold text-emerald-600" : "text-sm font-extrabold text-red-600"}>
                     合计 {percent(totalWeight)}
                   </span>
+                  {canEdit && selectedCourse ? (
+                    <AssessmentMethodsDialog
+                      methods={displayAssessmentMethods}
+                      objectives={displayObjectives}
+                      onSave={async (methods) => {
+                        await saveAssessmentMethods(selectedCourse.id, { methods })
+                        await refreshSelectedCourseConfig()
+                        setActionMessage("考核配置已保存")
+                      }}
+                      trigger={<Button size="sm" type="button" variant="outline"><PencilLine size={15} />配置考核</Button>}
+                    />
+                  ) : null}
                 </div>
                 <div className="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-3">
                   {displayAssessmentMethods.map((method) => (
@@ -563,7 +889,7 @@ export function CoursesPage() {
                         <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-700">{item.hours} 学时</span>
                       </div>
                       <p className="mt-1 text-xs font-semibold text-slate-500">
-                        支撑目标 {item.objectiveIds.length > 0 ? item.objectiveIds.join(", ") : "-"}
+                        支撑目标 {item.objectiveIds.length > 0 ? item.objectiveIds.map((id) => objectiveLabelMap.get(String(id)) ?? `目标 ${id}`).join("，") : "-"}
                       </p>
                     </div>
                   ))}
@@ -634,7 +960,7 @@ export function CoursesPage() {
                             </span>
                           </div>
                           <p className="mt-2 text-xs font-semibold text-slate-500">
-                            满分 {item.maxScore} / 支撑 {objective?.objectiveCode ?? "-"}
+                            满分 {item.maxScore} / 支撑 {objective ? formatCourseObjectiveLabel(objective, { maxLength: 14 }) : "-"}
                           </p>
                         </div>
                       )
@@ -684,7 +1010,7 @@ export function CoursesPage() {
                       <CheckCircle2 className="mt-0.5 text-emerald-600" size={17} />
                       <div>
                         <p className="m-0 text-sm font-extrabold text-slate-900">
-                          {displayObjectives.find((objective) => objective.id === item.courseObjectiveId)?.objectiveCode ?? "CO"} 支撑 {indicatorNameMap[String(item.indicatorPointId)] ?? "-"}
+                          {formatCourseObjectiveLabel(displayObjectives.find((objective) => objective.id === item.courseObjectiveId), { maxLength: 14 })} 支撑 {indicatorNameMap[String(item.indicatorPointId)] ?? "-"}
                         </p>
                         <p className="mt-1 text-xs leading-5 text-slate-500">权重 {item.weight.toFixed(2)}</p>
                       </div>

@@ -1,4 +1,4 @@
-import { Download, FileText, FolderOpen, PencilLine, Plus, Save, Send, Sparkles, Trash2 } from "lucide-react"
+import { Database, Download, FileText, FolderOpen, PencilLine, Plus, Save, Send, Sparkles, Trash2 } from "lucide-react"
 import { type ReactNode, useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
@@ -11,7 +11,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import type { ID, ReportSection, SelfEvaluationReport } from "@/models"
+import type { ID, ReportDataSource, ReportDataSourceType, ReportSection, SelfEvaluationReport } from "@/models"
 import {
   autoFillReport,
   createReport,
@@ -20,8 +20,10 @@ import {
   deleteReportSection,
   exportReport,
   getMyReportSections,
+  getReportDataSourceList,
   getReportList,
   getReportSectionList,
+  saveReportDataSources,
   updateReport,
   updateReportSection,
   updateReportSectionStatus,
@@ -93,6 +95,113 @@ function SectionNav({
         ) : null}
       </div>
     </aside>
+  )
+}
+
+function DataSourceDialog({
+  section,
+  trigger,
+  onSaved,
+}: {
+  section: ReportSection
+  trigger: ReactNode
+  onSaved: () => Promise<void> | void
+}) {
+  const [open, setOpen] = useState(false)
+  const [sources, setSources] = useState<ReportDataSource[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+    setLoading(true)
+    setError(null)
+    void getReportDataSourceList(section.id)
+      .then((items) => setSources(items.length > 0 ? items : [{ sourceType: "ATTAINMENT", sourceKey: "", autoFillConfig: "{}" }]))
+      .catch((requestError: Error) => setError(requestError.message))
+      .finally(() => setLoading(false))
+  }, [open, section.id])
+
+  const updateSource = (index: number, patch: Partial<ReportDataSource>) => {
+    setSources((current) => current.map((source, currentIndex) => currentIndex === index ? { ...source, ...patch } : source))
+  }
+
+  const handleSave = async () => {
+    const normalized = sources.map((source) => ({
+      ...source,
+      sourceKey: source.sourceKey.trim(),
+      autoFillConfig: source.autoFillConfig.trim() || "{}",
+    }))
+
+    if (normalized.some((source) => !source.sourceKey)) {
+      setError("请填写数据源标识")
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+    try {
+      await saveReportDataSources(section.id, normalized)
+      await onSaved()
+      setOpen(false)
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "保存数据源失败")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent className="max-h-[calc(100vh-96px)] overflow-hidden bg-white shadow-2xl ring-1 ring-slate-200 sm:max-w-[720px]">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-extrabold text-slate-950">章节数据源</DialogTitle>
+          <DialogDescription>{section.sectionCode}. {section.title}</DialogDescription>
+        </DialogHeader>
+        <div className="grid max-h-[520px] gap-3 overflow-y-auto pr-1">
+          {sources.map((source, index) => (
+            <article className="grid gap-3 rounded-lg border border-slate-200 p-3" key={`${source.id ?? "new"}-${index}`}>
+              <div className="grid gap-3 md:grid-cols-[160px_1fr_auto]">
+                <select
+                  className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold outline-none focus:border-blue-400"
+                  value={source.sourceType}
+                  onChange={(event) => updateSource(index, { sourceType: event.target.value as ReportDataSourceType })}
+                >
+                  <option value="ATTAINMENT">达成度</option>
+                  <option value="SURVEY">问卷</option>
+                  <option value="TABLE">数据表格</option>
+                  <option value="CHART">图表</option>
+                </select>
+                <Input placeholder="数据源标识，如教学班ID或问卷ID" value={source.sourceKey} onChange={(event) => updateSource(index, { sourceKey: event.target.value })} />
+                <Button
+                  disabled={sources.length === 1}
+                  onClick={() => setSources((current) => current.filter((_, currentIndex) => currentIndex !== index))}
+                  type="button"
+                  variant="outline"
+                >
+                  <Trash2 size={16} />
+                </Button>
+              </div>
+              <textarea
+                className="min-h-24 rounded-md border border-slate-200 bg-slate-50 p-3 font-mono text-xs leading-5 outline-none focus:border-blue-400"
+                value={source.autoFillConfig}
+                onChange={(event) => updateSource(index, { autoFillConfig: event.target.value })}
+              />
+            </article>
+          ))}
+          <Button onClick={() => setSources((current) => [...current, { sourceType: "ATTAINMENT", sourceKey: "", autoFillConfig: "{}" }])} type="button" variant="outline">
+            <Plus size={16} />
+            添加数据源
+          </Button>
+          {error ? <p className="m-0 text-sm font-bold text-red-600">{error}</p> : null}
+        </div>
+        <DialogFooter>
+          <Button onClick={() => setOpen(false)} type="button" variant="outline">取消</Button>
+          <Button className="bg-blue-700 text-white hover:bg-blue-800" disabled={loading} onClick={handleSave} type="button">保存数据源</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -735,7 +844,18 @@ export function ReportsPage() {
 
             <aside className="grid content-start gap-4">
               <section className="rounded-lg border border-slate-200 p-4">
-                <h3 className="m-0 text-base font-extrabold text-slate-950">协作状态</h3>
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="m-0 text-base font-extrabold text-slate-950">协作状态</h3>
+                  {canDirectorAction && activeSection ? (
+                    <DataSourceDialog
+                      onSaved={async () => {
+                        setMessage("章节数据源已保存")
+                      }}
+                      section={activeSection}
+                      trigger={<Button size="sm" type="button" variant="outline"><Database size={15} />数据源</Button>}
+                    />
+                  ) : null}
+                </div>
                 <div className="mt-3 grid gap-2 text-sm font-semibold text-slate-600">
                   <p className="m-0">章节状态: {activeSection ? statusMetaMap[activeSection.status].label : "-"}</p>
                   <p className="m-0">负责人: {formatAssignee(activeSection)}</p>

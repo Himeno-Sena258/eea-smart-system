@@ -11,6 +11,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { roleLabels } from "@/constants/role-options"
+import { formatCourseObjectiveLabel } from "@/lib/course-objective-label"
 import type { ContinuousImprovement, ID, TeacherClass, TeacherCoAttainment, TeachingImprovement } from "@/models"
 import {
   generateImprovement,
@@ -261,7 +262,10 @@ export function ImprovementsPage() {
   const lowCos = useMemo(
     () => lowAttainments
       .filter((item) => Number(item.attainmentVal ?? 0) < Number(item.warningThreshold ?? 0.68))
-      .map((item) => item.coCode)
+      .map((item) => formatCourseObjectiveLabel({
+        objectiveCode: item.coCode,
+        content: item.indicatorPointContent,
+      }, { maxLength: 16 }))
       .join(", "),
     [lowAttainments],
   )
@@ -339,7 +343,7 @@ export function ImprovementsPage() {
     try {
       const draft = await generateImprovement(selectedClass.id)
       setProblemAnalysis(draft.suggestedAnalysis)
-      setMessage("已根据低达成 CO 生成草稿")
+      setMessage("已根据低达成课程目标生成草稿")
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "生成草稿失败")
     } finally {
@@ -427,7 +431,7 @@ export function ImprovementsPage() {
         <article className="rounded-lg border border-red-200 bg-red-50 p-3">
           <p className="m-0 flex items-center gap-2 text-sm font-bold text-red-700">
             <TrendingUp size={16} />
-            低达成 CO
+            低达成课程目标
           </p>
           <strong className="mt-2 block text-lg font-extrabold text-red-700">{lowCos || "-"}</strong>
         </article>

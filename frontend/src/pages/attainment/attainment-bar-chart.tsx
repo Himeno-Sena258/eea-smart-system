@@ -1,4 +1,5 @@
 import type { CourseObjectiveAttainmentItem, CourseObjectiveAttainmentResult } from "@/models"
+import { formatCourseObjectiveLabel } from "@/lib/course-objective-label"
 
 interface AttainmentBarChartProps {
   primaryLabel: string
@@ -107,7 +108,8 @@ export function AttainmentBarChart({
                 })() : null}
 
                 <text fill="rgb(51 65 85)" fontSize="11" fontWeight="800" opacity="0" textAnchor="middle" x={groupCenter} y={chartHeight - 16}>
-                  {item.objectiveCode}
+                  {formatCourseObjectiveLabel({ objectiveCode: item.objectiveCode }, { mode: "compact" })}
+                  <title>{formatCourseObjectiveLabel({ objectiveCode: item.objectiveCode }, { mode: "full" })}</title>
                   <animate attributeName="opacity" begin={`${index * 80 + 220}ms`} dur="280ms" fill="freeze" from="0" to="1" />
                 </text>
                 <text fill={isWeak ? "#ef4444" : "#1d4ed8"} fontSize="11" fontWeight="800" opacity="0" textAnchor="middle" x={primaryX + barWidth / 2} y={plotBottomY}>
