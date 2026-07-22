@@ -1,5 +1,5 @@
 import { Building2, Plus, Trash2 } from "lucide-react"
-import { useCallback, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { useBaseStore } from "@/stores"
 import type { Organization, DictOption } from "@/models"
