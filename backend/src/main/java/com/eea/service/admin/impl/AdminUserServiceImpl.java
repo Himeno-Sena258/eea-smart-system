@@ -136,7 +136,9 @@ public class AdminUserServiceImpl implements AdminUserService {
             voList.add(vo);
         }
 
-        return PageResult.build(voList, page.getCurrent(), page.getSize(), page.getTotal());
+        PageResult<UserDetailVO> result = PageResult.build(voList, page.getCurrent(), page.getSize(), page.getTotal());
+        result.setActiveCount(sysUserMapper.selectCount(new QueryWrapper<SysUser>().eq("status", 1)));
+        return result;
     }
 
     @Override

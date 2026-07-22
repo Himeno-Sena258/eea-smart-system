@@ -121,7 +121,7 @@ export function UsersPage() {
 
   const users = usersPage?.records ?? []
   const auditLogs = auditLogsPage?.records ?? []
-  const activeUsers = usersPage?.total ?? 0
+  const activeUsers = usersPage?.activeCount ?? usersPage?.total ?? 0
   const organizationCount = countOrganizations(organizationTree)
   const availableRoleOptions = roleOptions.length > 0
     ? roleOptions

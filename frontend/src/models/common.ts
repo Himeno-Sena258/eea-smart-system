@@ -15,6 +15,7 @@ export interface PageResult<T> {
   pageSize: number
   total: number
   pages: number
+  activeCount?: number
 }
 
 export interface PageQuery {
