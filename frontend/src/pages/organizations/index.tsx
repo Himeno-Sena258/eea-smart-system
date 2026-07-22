@@ -40,7 +40,7 @@ function OrgNode({ node, level = 0, onRefresh }: { node: Organization; level?: n
           {deleteError}
         </p>
       ) : null}
-      {node.children?.map((child) => <OrgNode key={child.id} node={child} level={level + 1} onRefresh={onRefresh} />)}
+      {expanded && node.children?.map((child) => <OrgNode key={child.id} node={child} level={level + 1} onRefresh={onRefresh} />)}
     </div>
   )
 }
