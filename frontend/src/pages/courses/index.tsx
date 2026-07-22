@@ -552,11 +552,11 @@ export function CoursesPage() {
       void fetchIndicatorMatrix(selectedCourse.id)
     }
 
-    if (isCoordinator || isDirector) {
+    if (isCoordinator || isDirector || isTeacher) {
       void fetchObjectives(selectedCourse.id)
       void fetchAssessmentMethods(selectedCourse.id)
     }
-  }, [fetchAssessmentMethods, fetchIndicatorMatrix, fetchIndicatorTree, fetchObjectives, fetchResources, fetchTeachingContents, isCoordinator, isDirector, isStudent, selectedCourse])
+  }, [fetchAssessmentMethods, fetchIndicatorMatrix, fetchIndicatorTree, fetchObjectives, fetchResources, fetchTeachingContents, isCoordinator, isDirector, isStudent, isTeacher, selectedCourse])
 
   useEffect(() => {
     if (!firstAssessmentItem || isStudent) return
