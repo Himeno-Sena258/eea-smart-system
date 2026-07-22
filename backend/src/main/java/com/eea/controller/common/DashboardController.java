@@ -118,9 +118,13 @@ public class DashboardController {
         Long userId = UserContext.getUserId();
         Map<String,Object> d = base("授课教师控制台");
         List<Map<String,Object>> stats = (List<Map<String,Object>>) d.get("stats");
-        var tcW = new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<com.eea.entity.TeachingClass>();
-        tcW.eq("teacher_id", userId);
-        stats.add(stat("tcCount", "我的教学班", teachingClassMapper.selectCount(tcW), "个"));
+         var tcW = new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<com.eea.entity.TeachingClass>();
+         tcW.eq("teacher_id", userId);
+         stats.add(stat("tcCount", "我的教学班", teachingClassMapper.selectCount(tcW), "个"));
+        List<Map<String,Object>> todos = (List<Map<String,Object>>) d.get("todos");
+        todos.add(todo("enter-scores", "录入教学班学生成绩", "/teaching-classes", "HIGH"));
+        todos.add(todo("submit-evidence", "提交认证佐证材料样本", "/teaching-classes", "MEDIUM"));
+        todos.add(todo("improvement-report", "提交课程持续改进报告", "/improvements", "MEDIUM"));
         List<Map<String,Object>> warnings = (List<Map<String,Object>>) d.get("warnings");
         warnings.add(warning("部分课程目标达成度低于预期，请及时提交持续改进报告", "HIGH"));
         warnings.add(warning("有教学班需补交认证佐证材料样本", "MEDIUM"));
