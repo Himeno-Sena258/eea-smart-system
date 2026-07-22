@@ -9,6 +9,15 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
 
+import com.eea.dto.CreateUserDTO;
+import com.eea.entity.ClassInfo;
+import com.eea.entity.SysOrganization;
+import com.eea.mapper.ClassInfoMapper;
+import com.eea.mapper.SysOrganizationMapper;
+import com.eea.service.admin.AdminUserService;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import org.springframework.beans.factory.annotation.Autowired;
+
 /**
  * §3 师生账号批量导入 — preview + submit 两阶段
  */
@@ -20,6 +29,15 @@ public class UserImportController {
 
     // 简单内存缓存预览批次
     private static final Map<String, List<Map<String, Object>>> BATCH_CACHE = new LinkedHashMap<>();
+
+    @Autowired
+    private AdminUserService adminUserService;
+
+    @Autowired
+    private SysOrganizationMapper sysOrganizationMapper;
+
+    @Autowired
+    private ClassInfoMapper classInfoMapper;
 
     @PostMapping(value = "/import/preview", consumes = "multipart/form-data")
     @Operation(summary = "§3.1 导入预览", description = "上传Excel返回逐行校验结果")
@@ -69,7 +87,7 @@ public class UserImportController {
     }
 
     @PostMapping("/import")
-    @Operation(summary = "§3.2 提交导入", description = "提交已通过预览校验的批次")
+    @Operation(summary = "§3.2 提交导入", description = "提交已通过预览校验的批次并写入数据库")
     public Result<Map<String, Object>> submit(@RequestBody Map<String, Object> body) {
         String batchId = (String) body.get("batchId");
         List<Map<String, Object>> rows = BATCH_CACHE.remove(batchId);
@@ -78,13 +96,57 @@ public class UserImportController {
         int success = 0, failed = 0;
         List<Map<String, Object>> errors = new ArrayList<>();
         for (Map<String, Object> r : rows) {
-            if ("PASS".equals(r.get("validation"))) {
-                success++;
-            } else {
+            if (!"PASS".equals(r.get("validation"))) {
                 failed++;
                 Map<String, Object> err = new LinkedHashMap<>();
                 err.put("rowIndex", r.get("rowIndex"));
                 err.put("message", r.get("message"));
+                errors.add(err);
+                continue;
+            }
+
+            try {
+                String username = (String) r.get("username");
+                String realName = (String) r.get("realName");
+                @SuppressWarnings("unchecked")
+                List<String> roleCodes = (List<String>) r.get("roleCodes");
+                String orgName = (String) r.get("organizationName");
+                String className = (String) r.get("className");
+                String phone = (String) r.get("phone");
+
+                CreateUserDTO dto = new CreateUserDTO();
+                dto.setUsername(username);
+                dto.setRealName(realName);
+                dto.setPassword("123456");
+                dto.setPhone(phone != null && !phone.isEmpty() ? phone : null);
+                dto.setRoleCodes(roleCodes);
+
+                // 组织名称 → ID
+                if (orgName != null && !orgName.trim().isEmpty()) {
+                    QueryWrapper<SysOrganization> ow = new QueryWrapper<>();
+                    ow.eq("name", orgName.trim());
+                    SysOrganization org = sysOrganizationMapper.selectOne(ow);
+                    if (org != null) dto.setOrgId(org.getId());
+                }
+
+                // 学生角色：学号用账号，班级名称 → ID
+                if (roleCodes != null && roleCodes.contains("STUDENT")) {
+                    dto.setStudentNo(username);
+                    if (className != null && !className.trim().isEmpty()) {
+                        QueryWrapper<ClassInfo> cw = new QueryWrapper<>();
+                        cw.eq("class_name", className.trim());
+                        ClassInfo ci = classInfoMapper.selectOne(cw);
+                        if (ci != null) dto.setClassId(ci.getId());
+                    }
+                }
+
+                adminUserService.createUser(dto);
+                success++;
+            } catch (Exception e) {
+                failed++;
+                Map<String, Object> err = new LinkedHashMap<>();
+                err.put("rowIndex", r.get("rowIndex"));
+                err.put("message", e.getMessage());
                 errors.add(err);
             }
         }
