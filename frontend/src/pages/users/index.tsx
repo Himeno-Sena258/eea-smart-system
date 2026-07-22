@@ -290,8 +290,8 @@ export function UsersPage() {
         </article>
       </section>
 
-      <div className="grid gap-5 xl:grid-cols-[300px_minmax(0,1fr)]">
-        <aside className="grid content-start gap-5">
+      <div className="grid gap-5">
+        <aside className="hidden">
           <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <h2 className="m-0 flex items-center gap-2 text-lg font-extrabold text-slate-950">
               <Building2 size={19} className="text-blue-700" />

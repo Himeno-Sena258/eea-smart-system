@@ -1,6 +1,7 @@
 import type { ComponentType } from "react"
 import {
   BookOpen,
+  Building2,
   ClipboardList,
   FileText,
   GraduationCap,
@@ -55,9 +56,21 @@ const sidebarGroups: SidebarGroup[] = [
     items: [
       {
         path: "/admin/users",
-        title: "用户与组织管理",
+        title: "用户管理",
         roles: ["ADMIN"],
-        icon: ShieldCheck,
+        icon: UsersRound,
+      },
+      {
+        path: "/admin/organizations",
+        title: "组织架构管理",
+        roles: ["ADMIN"],
+        icon: Building2,
+      },
+      {
+        path: "/admin/import",
+        title: "批量导入",
+        roles: ["ADMIN"],
+        icon: FileText,
       },
       {
         path: "/settings",
