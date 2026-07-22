@@ -416,8 +416,8 @@ export function ProgramPage() {
       </section>
 
       <div className="grid min-w-0 gap-6 xl:grid-cols-[300px_minmax(0,1fr)]">
-        <aside className="grid content-start gap-6">
-          <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <aside className="sticky top-4 flex h-[calc(100vh-7rem)] min-h-[560px] flex-col gap-4">
+          <section className="flex min-h-0 flex-1 flex-col rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex items-center justify-between gap-3">
               <h2 className="m-0 flex items-center gap-2 text-lg font-extrabold text-slate-950">
                 <Layers3 size={19} className="text-blue-700" />
@@ -432,7 +432,7 @@ export function ProgramPage() {
                 trigger={<Button size="sm" type="button"><Plus size={15} />新增</Button>}
               />
             </div>
-            <div className="mt-4 grid max-h-[360px] gap-3 overflow-y-auto pr-1">
+            <div className="mt-4 grid flex-1 content-start gap-3 overflow-y-auto pr-1">
               {programSchemes.map((scheme) => {
                 const status = statusMap[scheme.status]
                 const isActive = scheme.id === activeScheme?.id
@@ -466,7 +466,7 @@ export function ProgramPage() {
             </div>
           </section>
 
-          <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <section className="shrink-0 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <h2 className="m-0 flex items-center gap-2 text-lg font-extrabold text-slate-950">
               <ShieldCheck size={19} className="text-blue-700" />
               发布检查
