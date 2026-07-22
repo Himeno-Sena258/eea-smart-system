@@ -7,6 +7,7 @@ import { ImprovementsPage } from "@/pages/improvements"
 import { ProfilePage } from "@/pages/profile"
 import { ProgramPage } from "@/pages/program"
 import { ReportsPage } from "@/pages/reports"
+import { SettingsPage } from "@/pages/settings"
 import { SurveysPage } from "@/pages/surveys"
 import { TeachingClassesPage } from "@/pages/teaching-classes"
 import { UsersPage } from "@/pages/users"
@@ -91,5 +92,12 @@ export const appRoutes: AppRoute[] = [
     description: "个人资料、账号安全与当前角色信息。",
     roles: allRoles,
     element: <ProfilePage />,
+  },
+  {
+    path: "/settings",
+    title: "系统设置",
+    description: "学年学期、达成度阈值与认证标准版本设置。",
+    roles: ["ADMIN"],
+    element: <SettingsPage />,
   },
 ]
