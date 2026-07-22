@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/coordinator")
 @Tag(name = "7.0 课程负责人模块", description = "对应文档 §7：课程教学大纲编制、课程目标(CO1~CO5)制定与指标点映射、考核环节权重强校验(ΣW=1.000)及考核细项与CO强绑定")
-@RequireRoles("COORDINATOR")
+@RequireRoles({"COORDINATOR", "INSTRUCTOR", "DIRECTOR"})
 public class CoordinatorController {
 
     @Autowired
@@ -41,6 +41,7 @@ public class CoordinatorController {
 
     @PostMapping("/courses/{courseId}/syllabus")
     @Operation(summary = "3.1 保存/更新课程教学大纲", description = "更新课程基本信息及教学大纲版本")
+    @RequireRoles("COORDINATOR")
     public Result<CoordinatorSyllabusVO> saveSyllabus(@PathVariable("courseId") Long courseId, @RequestBody SaveSyllabusDTO dto) {
         dto.setCourseId(courseId);
         Long coordinatorId = UserContext.getUserId();
@@ -58,6 +59,7 @@ public class CoordinatorController {
 
     @PostMapping("/courses/{courseId}/objectives")
     @Operation(summary = "3.2 新增/更新课程目标 (CO)", description = "录入课程目标描述(如 CO1)并关联支撑的毕业要求二级指标点")
+    @RequireRoles("COORDINATOR")
     public Result<CourseObjectiveVO> saveObjective(@PathVariable("courseId") Long courseId, @RequestBody SaveObjectiveDTO dto) {
         dto.setCourseId(courseId);
         Long coordinatorId = UserContext.getUserId();
@@ -67,6 +69,7 @@ public class CoordinatorController {
 
     @DeleteMapping("/objectives/{objectiveId}")
     @Operation(summary = "3.2 删除课程目标", description = "删除指定的课程目标及其与指标点的支撑关系")
+    @RequireRoles("COORDINATOR")
     public Result<String> deleteObjective(@PathVariable("objectiveId") Long objectiveId) {
         coordinatorService.deleteObjective(objectiveId);
         return Result.success("课程目标删除成功");
@@ -82,6 +85,7 @@ public class CoordinatorController {
 
     @PostMapping("/courses/{courseId}/methods")
     @Operation(summary = "3.3 批量设置考核环节占比权重", description = "设置考核环节权重占比，强制校验各环节权重和 ΣW = 1.000！")
+    @RequireRoles("COORDINATOR")
     public Result<String> saveMethods(@PathVariable("courseId") Long courseId, @RequestBody SaveMethodsDTO dto) {
         dto.setCourseId(courseId);
         Long coordinatorId = UserContext.getUserId();
@@ -99,6 +103,7 @@ public class CoordinatorController {
 
     @PostMapping("/courses/{courseId}/items")
     @Operation(summary = "3.4 新增/修改考核细项并绑定 CO", description = "录入考核细项名称、满分值，并强制绑定单一课程目标 (CO1~CO5)")
+    @RequireRoles("COORDINATOR")
     public Result<AssessmentItemVO> saveItem(@PathVariable("courseId") Long courseId, @RequestBody SaveItemDTO dto) {
         Long coordinatorId = UserContext.getUserId();
         AssessmentItemVO vo = coordinatorService.saveItem(coordinatorId, dto);
@@ -107,6 +112,7 @@ public class CoordinatorController {
 
     @DeleteMapping("/items/{itemId}")
     @Operation(summary = "3.4 删除考核细项", description = "删除指定的考核细项")
+    @RequireRoles("COORDINATOR")
     public Result<String> deleteItem(@PathVariable("itemId") Long itemId) {
         coordinatorService.deleteItem(itemId);
         return Result.success("考核细项删除成功");

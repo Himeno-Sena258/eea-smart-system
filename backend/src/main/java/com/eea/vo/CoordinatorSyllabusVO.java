@@ -43,4 +43,7 @@ public class CoordinatorSyllabusVO {
 
     @Schema(description = "审核状态中文说明 (草稿 / 待审核 / 已审核通过)")
     private String auditStatusDesc;
+
+    @Schema(description = "学期 (如 2025-2026-1)")
+    private String semester;
 }

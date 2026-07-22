@@ -36,6 +36,7 @@ public class StudentCourseListController {
             Course c = tc != null ? courseMapper.selectById(tc.getCourseId()) : null;
             if (c != null) {
                 Map<String,Object> m = new LinkedHashMap<>();
+                m.put("id", c.getId());
                 m.put("courseId", c.getId());
                 m.put("courseName", c.getCourseName());
                 m.put("courseCode", c.getCourseCode());

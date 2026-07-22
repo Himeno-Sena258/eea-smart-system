@@ -489,6 +489,7 @@ export function CoursesPage() {
             credits: course.credits ?? 0,
             hours: course.hours ?? 0,
             courseType: "负责课程",
+            semester: course.semester,
           })))
           : isTeacher
             ? getTeacherCourseList().then((courseList) => courseList.map((course: TeacherCourse): Course => ({
@@ -549,14 +550,14 @@ export function CoursesPage() {
 
     if (isDirector) {
       void fetchIndicatorTree(selectedCourse.schemeId)
-      void fetchIndicatorMatrix(selectedCourse.id)
     }
 
-    if (isCoordinator || isDirector) {
+    if (isCoordinator || isDirector || isTeacher) {
       void fetchObjectives(selectedCourse.id)
       void fetchAssessmentMethods(selectedCourse.id)
+      void fetchIndicatorMatrix(selectedCourse.id)
     }
-  }, [fetchAssessmentMethods, fetchIndicatorMatrix, fetchIndicatorTree, fetchObjectives, fetchResources, fetchTeachingContents, isCoordinator, isDirector, isStudent, selectedCourse])
+  }, [fetchAssessmentMethods, fetchIndicatorMatrix, fetchIndicatorTree, fetchObjectives, fetchResources, fetchTeachingContents, isCoordinator, isDirector, isStudent, isTeacher, selectedCourse])
 
   useEffect(() => {
     if (!firstAssessmentItem || isStudent) return
@@ -782,8 +783,8 @@ export function CoursesPage() {
                           {formatCourseObjectiveLabel(objective, { maxLength: 18 })}
                         </strong>
                         <div className="flex items-center gap-1">
-                          <span className="text-xs font-bold text-slate-500">
-                            {objectiveIndicatorCodes.get(String(objective.id))?.join(", ") ?? "未关联指标点"}
+                         <span className="text-xs font-bold text-slate-500">
+                            {objective.indicatorPointCodes?.join(", ") ?? "未关联指标点"}
                           </span>
                           {canEdit && !isStudent ? (
                             <>

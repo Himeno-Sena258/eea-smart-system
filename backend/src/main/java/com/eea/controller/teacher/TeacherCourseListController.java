@@ -37,6 +37,7 @@ public class TeacherCourseListController {
             Course c = courseMapper.selectById(tc.getCourseId());
             if (c != null) {
                 Map<String,Object> m = new LinkedHashMap<>();
+                m.put("id", c.getId());
                 m.put("courseId", c.getId()); m.put("courseName", c.getCourseName());
                 m.put("courseCode", c.getCourseCode()); m.put("credits", c.getCredits());
                 m.put("teachingClassCount", list.stream().filter(t -> t.getCourseId().equals(c.getId())).count());

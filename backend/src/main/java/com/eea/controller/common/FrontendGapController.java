@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.eea.common.*;
 import com.eea.entity.*;
 import com.eea.mapper.*;
+import com.eea.dto.SaveItemDTO;
+import com.eea.service.coordinator.CoordinatorService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -86,6 +88,45 @@ public class FrontendGapController {
             asMapper.insert(a);
         }
         return Result.success("保存成功");
+    }
+
+    // ===== §3.2 考核细项 CRUD =====
+    @Autowired private AssessmentItemMapper aiMapper;
+    @Autowired private CoordinatorService coordinatorService;
+
+    @PostMapping("/assessment-methods/{methodId}/items")
+    @RequireRoles({"COORDINATOR","ADMIN"})
+    @Operation(summary="§3.2 新增考核细项")
+    public Result<com.eea.vo.AssessmentItemVO> createItem(@PathVariable Long methodId,@RequestBody Map<String,Object> body){
+        SaveItemDTO dto=new SaveItemDTO();
+        dto.setMethodId(methodId);
+        dto.setName((String)body.get("name"));
+        dto.setMaxScore(new java.math.BigDecimal(body.get("maxScore").toString()));
+        dto.setCourseObjectiveId(Long.valueOf(body.get("courseObjectiveId").toString()));
+        return Result.success(coordinatorService.saveItem(UserContext.getUserId(), dto));
+    }
+
+    @PutMapping("/assessment-items/{id}")
+    @RequireRoles({"COORDINATOR","ADMIN"})
+    @Operation(summary="§3.2 修改考核细项")
+    public Result<com.eea.vo.AssessmentItemVO> updateItem(@PathVariable Long id,@RequestBody Map<String,Object> body){
+        com.eea.entity.AssessmentItem item=aiMapper.selectById(id);
+        if(item==null) return Result.error(50001,"考核细项不存在");
+        SaveItemDTO dto=new SaveItemDTO();
+        dto.setId(id);
+        dto.setMethodId(item.getMethodId());
+        dto.setName((String)body.get("name"));
+        dto.setMaxScore(new java.math.BigDecimal(body.get("maxScore").toString()));
+        dto.setCourseObjectiveId(Long.valueOf(body.get("courseObjectiveId").toString()));
+        return Result.success(coordinatorService.saveItem(UserContext.getUserId(), dto));
+    }
+
+    @DeleteMapping("/assessment-items/{id}")
+    @RequireRoles({"COORDINATOR","ADMIN"})
+    @Operation(summary="§3.2 删除考核细项")
+    public Result<String> deleteItem(@PathVariable Long id){
+        aiMapper.deleteById(id);
+        return Result.success("考核细项删除成功");
     }
 
     // ===== §4.1 佐证材料 =====

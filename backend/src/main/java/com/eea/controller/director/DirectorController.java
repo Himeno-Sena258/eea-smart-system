@@ -65,6 +65,7 @@ public class DirectorController {
 
     // ==================== 2.2 矩阵配置与权重校验 ====================
     @GetMapping("/schemes/{schemeId}/matrix")
+    @RequireRoles({"DIRECTOR", "COORDINATOR"})
     @Operation(summary = "2.2 OBE 课程矩阵与权重配置表", description = "获取各课程对毕业要求二级指标点的支撑权重矩阵与权重和汇总")
     public Result<ObeMatrixVO> getObeMatrix(@PathVariable("schemeId") Long schemeId) {
         ObeMatrixVO matrix = directorService.getObeMatrix(schemeId);

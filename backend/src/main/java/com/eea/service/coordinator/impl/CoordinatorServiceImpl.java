@@ -41,6 +41,9 @@ public class CoordinatorServiceImpl implements CoordinatorService {
     @Autowired
     private SysUserMapper sysUserMapper;
 
+    @Autowired
+    private TeachingClassMapper teachingClassMapper;
+
     // -------------------------------------------------------------------------
     // 3.1 课程教学大纲表
     // -------------------------------------------------------------------------
@@ -93,6 +96,11 @@ public class CoordinatorServiceImpl implements CoordinatorService {
         vo.setSyllabusVersion("2024版V1.0");
         vo.setAuditStatus(2); // 2-已审核通过
         vo.setAuditStatusDesc("已审核通过");
+        // Populate semester from the first teaching class
+        LambdaQueryWrapper<TeachingClass> tcW = new LambdaQueryWrapper<TeachingClass>()
+                .eq(TeachingClass::getCourseId, c.getId()).last("LIMIT 1");
+        TeachingClass tc = teachingClassMapper.selectOne(tcW);
+        vo.setSemester(tc != null ? tc.getSemester() : null);
         return vo;
     }
 
@@ -186,8 +194,14 @@ public class CoordinatorServiceImpl implements CoordinatorService {
     @Override
     public List<AssessmentMethodVO> listMethods(Long courseId) {
         List<AssessmentMethod> methods = assessmentMethodMapper.selectList(
-                new LambdaQueryWrapper<AssessmentMethod>().eq(AssessmentMethod::getCourseId, courseId)
+            new LambdaQueryWrapper<AssessmentMethod>().eq(AssessmentMethod::getCourseId, courseId)
         );
+        // Collect all method IDs to query items in batch
+        List<Long> methodIds = methods.stream().map(AssessmentMethod::getId).collect(Collectors.toList());
+        List<AssessmentItem> allItems = methodIds.isEmpty() ? new ArrayList<>() :
+            assessmentItemMapper.selectList(new LambdaQueryWrapper<AssessmentItem>().in(AssessmentItem::getMethodId, methodIds));
+        java.util.Map<Long, List<AssessmentItem>> itemsByMethod = allItems.stream()
+            .collect(Collectors.groupingBy(AssessmentItem::getMethodId));
 
         return methods.stream().map(m -> {
             AssessmentMethodVO vo = new AssessmentMethodVO();
@@ -195,6 +209,16 @@ public class CoordinatorServiceImpl implements CoordinatorService {
             vo.setCourseId(m.getCourseId());
             vo.setName(m.getName());
             vo.setWeight(m.getWeight());
+            List<AssessmentItem> methodItems = itemsByMethod.getOrDefault(m.getId(), new ArrayList<>());
+            vo.setItems(methodItems.stream().map(item -> {
+                com.eea.vo.AssessmentItemVO itemVO = new com.eea.vo.AssessmentItemVO();
+                itemVO.setId(item.getId());
+                itemVO.setMethodId(item.getMethodId());
+                itemVO.setName(item.getName());
+                itemVO.setMaxScore(item.getMaxScore());
+                itemVO.setCourseObjectiveId(item.getCourseObjectiveId());
+                return itemVO;
+            }).collect(Collectors.toList()));
             return vo;
         }).collect(Collectors.toList());
     }
