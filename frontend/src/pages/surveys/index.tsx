@@ -1,23 +1,29 @@
-import { BarChart3, CheckCircle2, ClipboardCheck, Eye, Send, ToggleLeft, ToggleRight } from "lucide-react"
+import { BarChart3, CheckCircle2, ClipboardCheck, Eye, PencilLine, Plus, Send, Trash2, ToggleLeft, ToggleRight } from "lucide-react"
 import { type ReactNode, useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 import type { ID, JsonValue, MySurveyAnswer, SurveyQuestion, SurveyQuestionnaire, SurveyStatistics } from "@/models"
 import {
   closeSurvey,
+  createSurvey,
+  deleteSurvey,
   getMySurveyAnswers,
   getSurveyPage,
   getSurveyQuestions,
   getSurveyStatistics,
   openSurvey,
+  saveSurveyQuestions,
   submitSurveyAnswer,
+  updateSurvey,
 } from "@/services"
 import { useUiStore } from "@/stores"
 
@@ -35,6 +41,20 @@ const typeLabelMap: Record<string, string> = {
 }
 
 const formatDate = (value?: string) => value?.slice(0, 10) ?? "-"
+
+const createEmptyQuestion = (index: number): SurveyQuestion => ({
+  questionCode: `Q${index + 1}`,
+  title: "",
+  questionType: "SCORE",
+  options: [1, 2, 3, 4, 5],
+  sortOrder: index + 1,
+})
+
+const normalizeQuestionOptions = (question: SurveyQuestion): SurveyQuestion => {
+  if (question.questionType === "SCORE") return { ...question, options: [1, 2, 3, 4, 5] }
+  if (question.questionType === "TEXT") return { ...question, options: [] }
+  return question
+}
 
 const parseOptions = (options?: JsonValue | string) => {
   if (!options) return []
@@ -327,6 +347,194 @@ function AnswerDialog({
   )
 }
 
+function SurveyManageDialog({
+  survey,
+  trigger,
+  onSaved,
+}: {
+  survey?: SurveyQuestionnaire | null
+  trigger: ReactNode
+  onSaved: (surveyId?: ID) => Promise<void> | void
+}) {
+  const [open, setOpen] = useState(false)
+  const [title, setTitle] = useState("")
+  const [type, setType] = useState("COURSE")
+  const [status, setStatus] = useState<0 | 1 | 2>(0)
+  const [draftQuestions, setDraftQuestions] = useState<SurveyQuestion[]>([createEmptyQuestion(0)])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+
+    setError(null)
+    setTitle(survey?.title ?? "")
+    setType(survey?.type ?? "COURSE")
+    setStatus((survey?.status ?? 0) as 0 | 1 | 2)
+
+    if (!survey) {
+      setDraftQuestions([createEmptyQuestion(0)])
+      return
+    }
+
+    setLoading(true)
+    void getSurveyQuestions(survey.id)
+      .then((items) => setDraftQuestions(items.length > 0 ? items : [createEmptyQuestion(0)]))
+      .catch((requestError: Error) => setError(requestError.message))
+      .finally(() => setLoading(false))
+  }, [open, survey])
+
+  const updateQuestion = (index: number, patch: Partial<SurveyQuestion>) => {
+    setDraftQuestions((current) =>
+      current.map((question, currentIndex) =>
+        currentIndex === index ? normalizeQuestionOptions({ ...question, ...patch }) : question,
+      ),
+    )
+  }
+
+  const handleSave = async () => {
+    const normalizedTitle = title.trim()
+    const questions = draftQuestions
+      .map((question, index) => normalizeQuestionOptions({
+        ...question,
+        questionCode: question.questionCode.trim() || `Q${index + 1}`,
+        title: question.title.trim(),
+        sortOrder: index + 1,
+      }))
+      .filter((question) => question.title)
+
+    if (!normalizedTitle) {
+      setError("请填写问卷标题")
+      return
+    }
+    if (questions.length === 0) {
+      setError("请至少配置一道题目")
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+    try {
+      if (survey) {
+        await updateSurvey(survey.id, { title: normalizedTitle, type, status, questions })
+        await saveSurveyQuestions(survey.id, questions)
+        await onSaved(survey.id)
+      } else {
+        const saved = await createSurvey({ title: normalizedTitle, type, status, questions })
+        await saveSurveyQuestions(saved.id, questions)
+        await onSaved(saved.id)
+      }
+      setOpen(false)
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "保存问卷失败")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent className="max-h-[calc(100vh-96px)] overflow-hidden bg-white shadow-2xl ring-1 ring-slate-200 sm:max-w-[760px]">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-extrabold text-slate-950">{survey ? "编辑问卷" : "新建问卷"}</DialogTitle>
+          <DialogDescription>维护问卷基础信息和题目。</DialogDescription>
+        </DialogHeader>
+
+        <div className="grid max-h-[560px] gap-4 overflow-y-auto pr-1">
+          <div className="grid gap-3 md:grid-cols-[1fr_180px_140px]">
+            <label className="grid gap-1.5">
+              <span className="text-sm font-bold text-slate-700">问卷标题</span>
+              <Input value={title} onChange={(event) => setTitle(event.target.value)} />
+            </label>
+            <label className="grid gap-1.5">
+              <span className="text-sm font-bold text-slate-700">问卷类型</span>
+              <select
+                className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold outline-none focus:border-blue-400"
+                onChange={(event) => setType(event.target.value)}
+                value={type}
+              >
+                <option value="COURSE">课程评价</option>
+                <option value="GRADUATE">毕业生评价</option>
+                <option value="EMPLOYER">用人单位评价</option>
+                <option value="STU_CO">课程目标达成</option>
+              </select>
+            </label>
+            <label className="grid gap-1.5">
+              <span className="text-sm font-bold text-slate-700">状态</span>
+              <select
+                className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold outline-none focus:border-blue-400"
+                onChange={(event) => setStatus(Number(event.target.value) as 0 | 1 | 2)}
+                value={status}
+              >
+                <option value={0}>已关闭</option>
+                <option value={1}>开放中</option>
+                <option value={2}>已归档</option>
+              </select>
+            </label>
+          </div>
+
+          <div className="grid gap-3">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="m-0 text-base font-extrabold text-slate-950">题目列表</h3>
+              <Button
+                onClick={() => setDraftQuestions((current) => [...current, createEmptyQuestion(current.length)])}
+                type="button"
+                variant="outline"
+              >
+                <Plus size={16} />
+                添加题目
+              </Button>
+            </div>
+            {draftQuestions.map((question, index) => (
+              <article className="grid gap-3 rounded-lg border border-slate-200 p-3" key={`${question.id ?? "new"}-${index}`}>
+                <div className="grid gap-3 md:grid-cols-[100px_1fr_140px_auto]">
+                  <Input value={question.questionCode} onChange={(event) => updateQuestion(index, { questionCode: event.target.value })} />
+                  <Input placeholder="题目内容" value={question.title} onChange={(event) => updateQuestion(index, { title: event.target.value })} />
+                  <select
+                    className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold outline-none focus:border-blue-400"
+                    onChange={(event) => updateQuestion(index, { questionType: event.target.value })}
+                    value={question.questionType}
+                  >
+                    <option value="SCORE">评分题</option>
+                    <option value="TEXT">文本题</option>
+                    <option value="CHOICE">选择题</option>
+                  </select>
+                  <Button
+                    disabled={draftQuestions.length === 1}
+                    onClick={() => setDraftQuestions((current) => current.filter((_, currentIndex) => currentIndex !== index))}
+                    type="button"
+                    variant="outline"
+                  >
+                    <Trash2 size={16} />
+                  </Button>
+                </div>
+                {question.questionType === "SCORE" ? (
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5].map((score) => (
+                      <span className="grid size-8 place-items-center rounded-full bg-blue-50 text-sm font-extrabold text-blue-700" key={score}>
+                        {score}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </article>
+            ))}
+          </div>
+          {error ? <p className="m-0 text-sm font-bold text-red-600">{error}</p> : null}
+        </div>
+
+        <DialogFooter>
+          <Button onClick={() => setOpen(false)} type="button" variant="outline">取消</Button>
+          <Button className="bg-blue-700 text-white hover:bg-blue-800" disabled={loading} onClick={handleSave} type="button">
+            保存问卷
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export function SurveysPage() {
   const activeRole = useUiStore((state) => state.activeRole)
   const [surveys, setSurveys] = useState<SurveyQuestionnaire[]>([])
@@ -427,6 +635,24 @@ export function SurveysPage() {
     }
   }
 
+  const handleDeleteSurvey = async () => {
+    if (!selectedSurvey) return
+    if (!window.confirm(`确认删除问卷「${selectedSurvey.title}」吗？`)) return
+
+    setLoading(true)
+    setError(null)
+    try {
+      await deleteSurvey(selectedSurvey.id)
+      setSelectedId(null)
+      await refreshSurveys()
+      setSuccessMessage("问卷已删除")
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "删除问卷失败")
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleSurveySubmitted = async (surveyId: ID) => {
     setSuccessMessage("问卷已提交")
     setMyAnswers((current) => {
@@ -450,6 +676,16 @@ export function SurveysPage() {
             </h1>
           </div>
         </div>
+        {canManage ? (
+          <SurveyManageDialog
+            onSaved={async (surveyId) => {
+              setSelectedId(surveyId ?? null)
+              await refreshSurveys()
+              setSuccessMessage("问卷已保存")
+            }}
+            trigger={<Button className="bg-blue-700 text-white hover:bg-blue-800" type="button"><Plus size={16} />新建问卷</Button>}
+          />
+        ) : null}
       </header>
 
       {error ? (
@@ -505,9 +741,26 @@ export function SurveysPage() {
               </div>
               <div className="flex flex-wrap gap-2">
                 {selectedSurvey ? (
+                  <SurveyManageDialog
+                    onSaved={async (surveyId) => {
+                      setSelectedId(surveyId ?? selectedSurvey.id)
+                      await refreshSurveys()
+                      setSuccessMessage("问卷已保存")
+                    }}
+                    survey={selectedSurvey}
+                    trigger={<Button variant="outline" type="button"><PencilLine size={16} />编辑问卷</Button>}
+                  />
+                ) : null}
+                {selectedSurvey ? (
                   <Button disabled={loading} onClick={handleToggleStatus} variant="outline" type="button">
                     {selectedSurvey.status === 1 ? <ToggleLeft size={16} /> : <ToggleRight size={16} />}
                     {selectedSurvey.status === 1 ? "关闭问卷" : "开放问卷"}
+                  </Button>
+                ) : null}
+                {selectedSurvey ? (
+                  <Button disabled={loading} onClick={handleDeleteSurvey} variant="outline" type="button">
+                    <Trash2 size={16} />
+                    删除问卷
                   </Button>
                 ) : null}
                 <SurveyStatsDialog
