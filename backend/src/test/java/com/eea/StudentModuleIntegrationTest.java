@@ -99,18 +99,30 @@ class StudentModuleIntegrationTest {
         assertTrue(node.get("data").size() > 0);
     }
 
-    @Test @Order(7) @DisplayName("TC-07: 提交问卷(id=2)")
+    @Test @Order(7) @DisplayName("TC-07: 提交问卷-先创建再提交")
     void testSubmitSurvey() throws Exception {
-        var body = java.util.Map.of("answers",
-                java.util.Map.of("满意度", "很满意"));
-        var node = post("/student/surveys/2/submit", "201", body);
+        // 先用管理员创建一个新问卷
+        var createReq = HttpRequest.newBuilder()
+                .uri(URI.create(BASE + "/surveys"))
+                .header("User-Id", "100")
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString("{\"title\":\"Test\",\"type\":\"STU_CO\",\"status\":1}"))
+                .build();
+        var createResp = client.send(createReq, HttpResponse.BodyHandlers.ofString());
+        var created = om.readTree(createResp.body());
+        long surveyId = created.get("data").get("id").asLong();
+
+        // 学生提交新创建的问卷
+        var body = java.util.Map.of("answers", java.util.Map.of("score", "5"));
+        var node = post("/student/surveys/" + surveyId + "/submit", "201", body);
         assertEquals(0, node.get("code").asInt());
     }
 
-    @Test @Order(8) @DisplayName("TC-08: 防重复提交")
+    @Test @Order(8) @DisplayName("TC-08: 防重复提交-再次提交同一问卷")
     void testSubmitSurveyDuplicated() throws Exception {
+        // 提交问卷1（已在种子数据中被提交过）
         var body = java.util.Map.of("answers", java.util.Map.of("x", "y"));
-        var node = post("/student/surveys/2/submit", "201", body);
+        var node = post("/student/surveys/1/submit", "201", body);
         assertEquals(80003, node.get("code").asInt());
     }
 
