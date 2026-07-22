@@ -2,6 +2,7 @@ package com.eea.vo;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
+import java.util.List;
 import lombok.Data;
 
 @Data
@@ -19,4 +20,7 @@ public class AssessmentMethodVO {
 
     @Schema(description = "考核占比权重 (如 0.60, 0.20, 0.20)")
     private BigDecimal weight;
+
+    @Schema(description = "考核细项列表")
+    private List<AssessmentItemVO> items;
 }
