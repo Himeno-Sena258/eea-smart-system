@@ -1,6 +1,15 @@
 import { AlertTriangle, CheckCircle2, ClipboardList, RefreshCw, Send, Sparkles, TrendingUp } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { roleLabels } from "@/constants/role-options"
 import type { ContinuousImprovement, ID, TeacherClass, TeacherCoAttainment, TeachingImprovement } from "@/models"
 import {
@@ -11,6 +20,7 @@ import {
   getTeacherClassList,
   getTeacherCoAttainmentList,
   getTeacherImprovementList,
+  reviewImprovement,
   saveTeacherImprovement,
 } from "@/services"
 import { useUiStore } from "@/stores"
@@ -89,7 +99,81 @@ const improvementStatusLabels: Record<number, string> = {
   2: "需修改",
 }
 
-function RecordCard({ record }: { record: DisplayRecord }) {
+function ReviewDialog({
+  record,
+  onReviewed,
+}: {
+  record: DisplayRecord
+  onReviewed: () => Promise<void> | void
+}) {
+  const [open, setOpen] = useState(false)
+  const [status, setStatus] = useState<number>(record.status ?? 1)
+  const [comment, setComment] = useState(record.reviewerComment ?? "")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleSubmit = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      await reviewImprovement(record.id, {
+        status,
+        reviewerComment: comment.trim() || undefined,
+      })
+      await onReviewed()
+      setOpen(false)
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "审核失败")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button type="button" variant="outline">审核记录</Button>
+      </DialogTrigger>
+      <DialogContent className="bg-white shadow-2xl ring-1 ring-slate-200 sm:max-w-[520px]">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-extrabold text-slate-950">审核持续改进记录</DialogTitle>
+          <DialogDescription>{record.courseName ? `${record.courseName} / ${record.className}` : record.className}</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-3">
+          <label className="grid gap-1.5">
+            <span className="text-sm font-bold text-slate-700">审核结果</span>
+            <select
+              className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold outline-none focus:border-blue-400"
+              onChange={(event) => setStatus(Number(event.target.value))}
+              value={status}
+            >
+              <option value={1}>审核通过</option>
+              <option value={2}>需修改</option>
+              <option value={0}>待审核</option>
+            </select>
+          </label>
+          <label className="grid gap-1.5">
+            <span className="text-sm font-bold text-slate-700">审核意见</span>
+            <textarea
+              className="min-h-28 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm leading-6 outline-none transition focus:border-blue-400 focus:ring-3 focus:ring-blue-100"
+              onChange={(event) => setComment(event.target.value)}
+              value={comment}
+            />
+          </label>
+          {error ? <p className="m-0 text-sm font-bold text-red-600">{error}</p> : null}
+        </div>
+        <DialogFooter>
+          <Button onClick={() => setOpen(false)} type="button" variant="outline">取消</Button>
+          <Button className="bg-blue-700 text-white hover:bg-blue-800" disabled={loading} onClick={handleSubmit} type="button">
+            提交审核
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function RecordCard({ record, onReviewed }: { record: DisplayRecord; onReviewed?: () => Promise<void> | void }) {
   const statusLabel = record.status === undefined ? "已提交" : improvementStatusLabels[record.status] ?? `状态 ${record.status}`
   const classTitle = record.courseName ? `${record.courseName} / ${record.className}` : record.className
 
@@ -114,6 +198,7 @@ function RecordCard({ record }: { record: DisplayRecord }) {
             <strong className="mt-1 block text-sm leading-none">{record.lowAttainmentCos}</strong>
           </div>
         ) : null}
+        {onReviewed ? <ReviewDialog record={record} onReviewed={onReviewed} /> : null}
       </div>
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         <div className="rounded-lg bg-slate-50 p-3">
@@ -181,6 +266,11 @@ export function ImprovementsPage() {
     [lowAttainments],
   )
 
+  const refreshAggregateRecords = async () => {
+    const data = activeRole === "DIRECTOR" ? await getDirectorImprovementList() : await getCoordinatorImprovementList()
+    setRecords(data.map((record) => normalizeCommonRecord(record, `教学班 ${record.teachingClassId}`)))
+  }
+
   const refreshRecords = async (classOption: ClassOption) => {
     if (canEdit) {
       const data = await getTeacherImprovementList(classOption.id)
@@ -209,12 +299,7 @@ export function ImprovementsPage() {
 
     setLoading(true)
     if (canReviewAggregate) {
-      const loadRecords = activeRole === "DIRECTOR" ? getDirectorImprovementList() : getCoordinatorImprovementList()
-
-      void loadRecords
-        .then((data) => {
-          setRecords(data.map((record) => normalizeCommonRecord(record, `教学班 ${record.teachingClassId}`)))
-        })
+      void refreshAggregateRecords()
         .catch((requestError: Error) => setError(requestError.message))
         .finally(() => setLoading(false))
       return
@@ -439,7 +524,14 @@ export function ImprovementsPage() {
       {canReviewAggregate ? (
         <section className="grid gap-3">
           {records.length > 0 ? records.map((record) => (
-            <RecordCard key={record.id} record={record} />
+            <RecordCard
+              key={record.id}
+              onReviewed={async () => {
+                await refreshAggregateRecords()
+                setMessage("审核结果已保存")
+              }}
+              record={record}
+            />
           )) : (
             <div className="rounded-lg border border-dashed border-slate-200 bg-white p-6 text-sm font-bold text-slate-400">
               当前教学班暂无持续改进记录。
