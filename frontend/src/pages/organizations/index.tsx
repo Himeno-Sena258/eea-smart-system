@@ -1,5 +1,5 @@
 import { Building2, Plus, Trash2 } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { useBaseStore } from "@/stores"
 import type { Organization, DictOption } from "@/models"
@@ -7,14 +7,19 @@ import { request } from "@/services/http"
 
 function OrgNode({ node, level = 0, onRefresh }: { node: Organization; level?: number; onRefresh: () => void }) {
   const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const handleDelete = async () => {
     if (!window.confirm(`确认删除 ${node.name} 吗？`)) return
     setDeleting(true)
+    setDeleteError(null)
     try {
       await request({ url: `/organizations/${node.id}`, method: "DELETE" })
       onRefresh()
-    } catch { }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "删除失败"
+      setDeleteError(msg)
+    }
     setDeleting(false)
   }
 
@@ -22,7 +27,7 @@ function OrgNode({ node, level = 0, onRefresh }: { node: Organization; level?: n
 
   return (
     <div>
-      <div className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm" style={{ paddingLeft: `${8 + level * 14}px` }}>
+      <div className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-red-50" style={{ paddingLeft: `${8 + level * 14}px` }}>
         <Building2 size={15} className="shrink-0 text-slate-400" />
         <span className="font-bold text-slate-700">{node.name}</span>
         <span className="ml-auto rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-500">{typeLabel}</span>
@@ -30,6 +35,11 @@ function OrgNode({ node, level = 0, onRefresh }: { node: Organization; level?: n
           <Trash2 size={13} />
         </button>
       </div>
+      {deleteError ? (
+        <p className="m-0 px-2 pb-1 text-xs font-bold text-red-600" style={{ paddingLeft: `${8 + level * 14}px` }}>
+          {deleteError}
+        </p>
+      ) : null}
       {node.children?.map((child) => <OrgNode key={child.id} node={child} level={level + 1} onRefresh={onRefresh} />)}
     </div>
   )
@@ -133,7 +143,13 @@ export function OrganizationPage() {
                 上级组织
                 <select className="min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-slate-950 outline-none" value={newParentId} onChange={(e) => setNewParentId(e.target.value)}>
                   <option value="">顶级（无上级）</option>
-                  {flattened.map((n) => <option key={n.id} value={n.id}>{'  '.repeat(n.depth)}{n.name}</option>)}
+                  {flattened
+                    .filter((n) => {
+                      if (newType === "MAJOR") return n.type === "COLLEGE"
+                      if (newType === "CLASS") return n.type === "MAJOR"
+                      return false
+                    })
+                    .map((n) => <option key={n.id} value={n.id}>{'  '.repeat(n.depth)}{n.name}</option>)}
                 </select>
               </label>
               {newType === "CLASS" ? (
