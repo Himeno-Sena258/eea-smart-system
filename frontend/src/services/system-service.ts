@@ -15,7 +15,7 @@ import type {
 
 export const getAuditLogPage = async (query?: AuditLogQuery) => {
   const response = await request<PageResult<AuditLog>>({
-    url: "/audit-logs",
+    url: "/admin/audit-logs",
     method: "GET",
     params: query,
   })
@@ -24,7 +24,7 @@ export const getAuditLogPage = async (query?: AuditLogQuery) => {
 
 export const getAuditLogDetail = async (id: ID) => {
   const response = await request<AuditLog>({
-    url: `/audit-logs/${id}`,
+    url: `/admin/audit-logs/${id}`,
     method: "GET",
   })
   return response.data
